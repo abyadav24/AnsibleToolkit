@@ -1,0 +1,19 @@
+[2025-09-19 06:48:37] [INFO] [NetworkDiscovery] Network Discovery Ansible Module Operations Log Started
+[2025-09-19 06:48:37] [DEBUG] [NetworkDiscovery] Module initialization completed
+[2025-09-19 06:48:44] [INFO] [NetworkDiscovery] Starting discovery for server server1
+[2025-09-19 06:48:44] [DEBUG] [NetworkDiscovery] Server IP: 172.25.57.43
+[2025-09-19 06:48:46] [DEBUG] [NetworkDiscovery] Network adapter discovery for server1
+[2025-09-19 06:48:46] [DEBUG] [NetworkDiscovery] API URL: https://172.25.57.43/redfish/v1/Chassis/1/NetworkAdapters
+[2025-09-19 06:48:46] [DEBUG] [NetworkDiscovery] Status Code: 200
+[2025-09-19 06:48:46] [INFO] [NetworkDiscovery] Adapters found: 1
+[2025-09-19 06:48:47] [DEBUG] [NetworkDiscovery] Starting adapter details processing for server1
+[2025-09-19 06:48:49] [DEBUG] [NetworkDiscovery] Adapter details retrieved for server1
+[2025-09-19 06:48:49] [DEBUG] [NetworkDiscovery]   Adapter 1: SUCCESS
+[2025-09-19 06:48:49] [DEBUG] [NetworkDiscovery] Starting port information processing for server1
+[2025-09-19 06:48:51] [DEBUG] [NetworkDiscovery] Port information retrieved for server1
+[2025-09-19 06:48:51] [DEBUG] [NetworkDiscovery]   Adapter 1 ports: SUCCESS
+[2025-09-19 06:48:52] [DEBUG] [NetworkDiscovery] Starting detailed port information processing for server1
+[2025-09-19 06:48:56] [DEBUG] [NetworkDiscovery] Detailed port information processing completed for server1
+[2025-09-19 06:48:56] [DEBUG] [NetworkDiscovery]   Port 1: SUCCESS
+[2025-09-19 06:48:56] [DEBUG] [NetworkDiscovery]   Port 2: SUCCESS
+[2025-09-19 06:48:57] [INFO] [NetworkDiscovery] Discovery completed successfully for server1

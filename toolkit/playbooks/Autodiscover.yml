@@ -1,0 +1,49 @@
+---
+- name: IPv6 Discovery Playbook
+  hosts: localhost
+  become: false
+  gather_facts: no
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  environment:
+    ANSIBLE_LIBRARY: "{{ playbook_dir }}/../plugins/modules"
+
+  tasks:
+    - name: Run custom IPv6 discovery module locally
+      ipv6_discover:
+        interface: "{{ interface | default(omit) }}"
+      register: result
+      delegate_to: localhost
+
+    - name: Show discovered interfaces
+      debug:
+        var: result.interfaces
+
+    - name: Show discovered IPv6 neighbors
+      debug:
+        var: result.ipv6_neighbors
+
+    - name: Identify server type for each IPv6 address
+      server_discover:
+        ipv6_address: "{{ item }}"
+      loop: "{{ result.ipv6_neighbors }}"
+      register: server_discovery_results
+      failed_when: false  # <<< KEY FIX: allow loop to continue despite errors
+
+    - name: Show discovered server info (successes only)
+      debug:
+        msg: |
+          IPv6: {{ item.item }}
+          Server Type: {{ item.server_type | default('Unknown') }}
+          Model: {{ item.model | default('Unknown') }}
+          SKU: {{ item.SKU | default('Unknown') }}
+      loop: "{{ server_discovery_results.results }}"
+      when: not item.failed
+
+    - name: Show devices that failed Redfish login
+      debug:
+        msg: |
+          IPv6: {{ item.item }}
+          Error: {{ item.msg | default('Unknown error') }}
+      loop: "{{ server_discovery_results.results }}"
+      when: item.failed

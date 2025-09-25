@@ -1,0 +1,33 @@
+=== SMC Firmware Update Started: Fri Sep 19 06:30:25 AM PDT 2025 ===
+Log Timestamp: 20250919_063020
+Processing servers from /home/ubuntu/smci/ansible-toolkit/toolkit/playbooks/servers.csv
+Skip Settings - BMC: True, BIOS: True, PCIe: False
+=== Processing server1 (X14DBM-SP) ===
+Server IP: 172.25.57.43
+Archive:  /tmp/firmware_mount/SMCI/Firmware/BIOS/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp.zip
+   creating: BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/
+  inflating: BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp.bin  
+ extracting: BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/command_example.txt  
+  inflating: BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/flash.nsh  
+  inflating: BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/SAA.efi  
+  inflating: BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/saa_activate_RHI.nsh  
+  inflating: BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/saa_deactivate_RHI.nsh  
+  inflating: BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/UEFI_SAA_UserGuide.pdf  
+Archive:  /tmp/firmware_mount/SMCI/Firmware/BMC/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.zip
+  inflating: BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.bin  
+  inflating: BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/command_example.txt  
+  inflating: BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/flash.nsh  
+  inflating: BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/SAA.efi  
+  inflating: BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/saa_activate_RHI.nsh  
+  inflating: BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/saa_deactivate_RHI.nsh  
+  inflating: BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/UEFI_SAA_UserGuide.pdf  
+  inflating: BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/X14_AMI_BMC_Upgrade_README.TXT  
+  inflating: BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/X14DBT-B_BMC_Package_Readme.txt  
+Getting current BIOS info for server1...
+Getting current BMC info for server1...
+SKIPPING BIOS update for server1 - disabled in toolkit_config.json
+SKIPPING BMC update for server1 - disabled in toolkit_config.json
+Checking virtual media status for server1...
+Starting SMC NIC update via IPMI SOL for server1...
+Executing NIC flashing script for server1...
+NIC flashing script completed for server1

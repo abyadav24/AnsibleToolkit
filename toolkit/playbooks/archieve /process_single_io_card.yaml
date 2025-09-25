@@ -1,0 +1,57 @@
+---
+# Process individual IO card firmware update
+- name: "Log processing card {{ card_name }} for {{ server_info.hostname }}"
+  shell: |
+    echo "--- Processing IO Card: {{ card_name }} ---" >> {{ settings.log_file }}
+
+- name: "Find matching IO card configuration for {{ card_name }}"
+  set_fact:
+    matching_card_config: >-
+      {%- for vendor, cards in io_config.items() -%}
+        {%- for card_model, config in cards.items() -%}
+          {%- if card_model == card_name -%}
+            {{ config | combine({'vendor': vendor, 'model': card_model}) }}
+          {%- endif -%}
+        {%- endfor -%}
+      {%- endfor -%}
+
+- name: "Copy IO card firmware file for {{ card_name }}"
+  copy:
+    src: "{{ settings.mounted_path }}/{{ matching_card_config.firmware_file }}"
+    dest: "{{ settings.temp_path }}/{{ server_info.hostname }}/io_cards/{{ matching_card_config.firmware_file }}"
+    mode: '0755'
+  when: 
+    - matching_card_config is defined
+    - matching_card_config.firmware_file is defined
+  failed_when: false
+
+- name: "Update {{ card_name }} firmware on {{ server_info.hostname }}"
+  shell: |
+    echo "Updating {{ card_name }} firmware..." >> {{ settings.log_file }}
+    echo "Current version target: {{ matching_card_config.current_version | default('Unknown') }}" >> {{ settings.log_file }}
+    echo "Update tool: {{ matching_card_config.update_tool | default('Unknown') }}" >> {{ settings.log_file }}
+    echo "Firmware file: {{ matching_card_config.firmware_file | default('Unknown') }}" >> {{ settings.log_file }}
+    
+    # Vendor-specific update commands would go here
+    case "{{ matching_card_config.vendor | default('unknown') }}" in
+      "mellanox")
+        echo "Would run: mft update for Mellanox card" >> {{ settings.log_file }}
+        # /usr/bin/mft start
+        # /usr/bin/flint -d <device> -i {{ settings.temp_path }}/{{ server_info.hostname }}/io_cards/{{ matching_card_config.firmware_file }} burn
+        ;;
+      "intel")
+        echo "Would run: nvmupdate for Intel card" >> {{ settings.log_file }}
+        # ./nvmupdate64e -u -l -c nvmupdate.cfg
+        ;;
+      "broadcom")
+        echo "Would run: bnxtnvm for Broadcom card" >> {{ settings.log_file }}
+        # ./bnxtnvm -dev=<device> -f={{ settings.temp_path }}/{{ server_info.hostname }}/io_cards/{{ matching_card_config.firmware_file }}
+        ;;
+      *)
+        echo "Unknown vendor: {{ matching_card_config.vendor | default('undefined') }}" >> {{ settings.log_file }}
+        ;;
+    esac
+    
+    echo "{{ card_name }} firmware update completed" >> {{ settings.log_file }}
+  when: matching_card_config is defined
+  failed_when: false

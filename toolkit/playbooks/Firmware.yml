@@ -1,0 +1,141 @@
+---
+# Comprehensive SMC Server Firmware Update Playbook
+# Updates BMC, BIOS, and SMC NIC firmware for Supermicro servers
+- name: SMC Server Firmware Update - BMC, BIOS & NIC
+  hosts: localhost
+  gather_facts: true
+  vars_files:
+    - ../config/version_config.yaml
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  environment:
+    ANSIBLE_LIBRARY: "{{ playbook_dir }}/../plugins/modules"
+  
+  tasks:
+    - name: Display VirtualBox mounting instructions
+      debug:
+        msg: |
+          ##########
+          ansibletoolkitMediakit folder must be mounted on the virtual box Guest vm.
+          Manually mount the folder in the setting->shared folder on virtual box.
+          #################
+          
+    - name: Check if ansibletoolkitMediakit is already mounted
+      stat:
+        path: /mnt/ansibletoolkitMediakit
+      register: mount_check
+      
+    - name: Create mount directory for ansibletoolkitMediakit
+      file:
+        path: /mnt/ansibletoolkitMediakit
+        state: directory
+      become: yes
+      when: not mount_check.stat.exists
+      ignore_errors: yes
+      
+    - name: Mount ansibletoolkitMediakit shared folder
+      mount:
+        path: /mnt/ansibletoolkitMediakit
+        src: ansibletoolkitMediakit
+        fstype: vboxsf
+        state: mounted
+      become: yes
+      ignore_errors: yes
+      
+    - name: List contents of mounted folder
+      shell: ls /mnt/ansibletoolkitMediakit
+      register: mount_contents
+      ignore_errors: yes
+      
+    - name: Display mounted folder contents
+      debug:
+        msg: "Mounted folder contents: {{ mount_contents.stdout_lines }}"
+      when: mount_contents.stdout_lines is defined
+      
+    - name: Change to mounted directory and restart nginx
+      systemd:
+        name: nginx
+        state: restarted
+      become: yes
+      ignore_errors: yes
+      
+    - name: Load toolkit configuration
+      include_vars:
+        file: ../config/toolkit_config.json
+        name: toolkit_config
+        
+    - name: Check firmware skip settings from toolkit config
+      set_fact:
+        skip_bmc: "{{ toolkit_config.firmware_skip_bmc | default('false') | bool }}"
+        skip_bios: "{{ toolkit_config.firmware_skip_bios | default('false') | bool }}"
+        skip_pcie: "{{ toolkit_config.firmware_skip_pcie_devices | default('false') | bool }}"
+        
+    - name: Generate timestamped log file paths
+      set_fact:
+        timestamp: "{{ ansible_date_time.epoch }}"
+        log_timestamp: "{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
+        firmware_log_file: "{{ playbook_dir }}/logs/firmware_update_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
+        saa_module_log_file: "{{ playbook_dir }}/logs/Firmware_AnsibleModule_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
+        
+    - name: Display firmware update plan
+      debug:
+        msg: |
+          Firmware Update Plan:
+          - BMC Update: {{ 'SKIPPED (disabled in toolkit_config)' if skip_bmc else 'ENABLED' }}
+          - BIOS Update: {{ 'SKIPPED (disabled in toolkit_config)' if skip_bios else 'ENABLED' }}
+          - PCIe Devices Update: {{ 'SKIPPED (disabled in toolkit_config)' if skip_pcie else 'ENABLED' }}
+          
+    - name: Initialize timestamped log files
+      shell: |
+        echo "=== SMC Firmware Update Started: $(date) ===" > {{ firmware_log_file }}
+        echo "Log Timestamp: {{ log_timestamp }}" >> {{ firmware_log_file }}
+        echo "Processing servers from {{ settings.servers_csv_path }}" >> {{ firmware_log_file }}
+        echo "Skip Settings - BMC: {{ skip_bmc }}, BIOS: {{ skip_bios }}, PCIe: {{ skip_pcie }}" >> {{ firmware_log_file }}
+        echo "=== Firmware Ansible Module Operations Log ===" > {{ saa_module_log_file }}
+        echo "Started: $(date)" >> {{ saa_module_log_file }}
+
+    - name: Ensure mounted firmware directory exists
+      file:
+        path: /tmp/firmware_mount/SMCI
+        state: directory
+        mode: '0755'
+
+    - name: Create firmware subdirectories if not present
+      file:
+        path: "/tmp/firmware_mount/SMCI/{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - Firmware/BMC
+        - Firmware/BIOS
+        - Firmware/OEMNic
+        - Firmware/SMCNic
+
+    - name: Ensure temp directory exists
+      file:
+        path: "{{ settings.temp_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Read server details from CSV file
+      read_csv:
+        path: "../config/smci-server.csv"
+      register: server_list
+
+    - name: Display servers to be processed
+      debug:
+        msg: "Processing {{ server_list.list | length }} servers"
+
+    # Process each server for firmware updates
+    - name: "Process firmware updates for each supermicro server"
+      include_tasks: ../plugins/module_utils/smci_firmware_tasks.yml
+      loop: "{{ server_list.list }}"
+      vars:
+        firmware_skip_bmc: "{{ skip_bmc }}"
+        firmware_skip_bios: "{{ skip_bios }}"
+        firmware_skip_pcie_devices: "{{ skip_pcie }}"
+      when: item.vendor == 'supermicro'
+
+    - name: Display completion summary
+      debug:
+        msg: "SMC Firmware update process completed."

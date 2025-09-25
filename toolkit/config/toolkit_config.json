@@ -1,0 +1,21 @@
+{
+  "_comment" : [
+    "This is the configuration file for the Supermicro Ansible Toolkit.",
+    "Please modify the parameters below to suit your environment and requirements.",
+    "Refer to the documentation for detailed explanations of each parameter."
+  ],
+  "_scratch_space" : [
+    "This section is reserved for temporary notes or scratch space.",
+    "You can use it to jot down ideas or reminders while configuring the toolkit."
+  ],
+  "use_target_nodes": "false",
+  "nodes": [
+    "fe80::5eba:2cff:fe38:a9fc%enp0s8",
+    "fe80::b67a:f1ff:fecf:bd7e%enp0s8",
+    "fe80::af1:eaff:fef7:68b0%enp0s8"
+  ],
+  "firmware_skip_bmc": "true",
+  "firmware_skip_bios": "true",
+  "firmware_skip_pcie_devices": "false",
+  "minios_file_name": "minios20.04_Sep02_2024.iso"
+}

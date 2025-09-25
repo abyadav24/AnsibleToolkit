@@ -1,0 +1,30 @@
+---
+# Single server IO card firmware update tasks
+- name: "Create IO card working directory for {{ server_info.hostname }}"
+  file:
+    path: "{{ settings.temp_path }}/{{ server_info.hostname }}/io_cards"
+    state: directory
+    mode: '0755'
+
+- name: "Parse IO cards list for {{ server_info.hostname }}"
+  set_fact:
+    io_cards_list: "{{ server_info.io_cards.split(',') | map('trim') | list }}"
+  when: server_info.io_cards is defined and server_info.io_cards != ""
+
+- name: "Log IO card information for {{ server_info.hostname }}"
+  shell: |
+    echo "=== IO Card Update for {{ server_info.hostname }} ===" >> {{ settings.log_file }}
+    echo "IO Cards to process: {{ io_cards_list | join(', ') }}" >> {{ settings.log_file }}
+
+- name: "Process each IO card for {{ server_info.hostname }}"
+  include_tasks: process_single_io_card.yaml
+  vars:
+    card_name: "{{ io_card }}"
+    card_config: "{{ io_config | dict2items | selectattr('key', 'search', io_card) | map(attribute='value') | list | first | default({}) }}"
+  loop: "{{ io_cards_list }}"
+  loop_control:
+    loop_var: io_card
+  when: io_cards_list is defined
+
+- name: "Log IO card completion for {{ server_info.hostname }}"
+  shell: echo "=== IO Card processing completed for {{ server_info.hostname }} ===" >> {{ settings.log_file }}

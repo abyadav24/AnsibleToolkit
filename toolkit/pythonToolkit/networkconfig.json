@@ -1,0 +1,161 @@
+{
+  "_spec" : "20200121",
+  "_comment" : [
+    "linkid = Cisco vpc peer-link id",
+    "customerid = Port-Channel ID to Customer Uplink",
+    "mgmtvlan = The management VLAN for whole rack",
+    "vlans = Well.... I mean.... The VLANs.... dunno how to explain this one",
+    "subnet = the subnet for all management devices",
+    "gateway = the default gateway for all management devices",
+    "ntpserver = the NTP server",
+    "mtu = the MTU Settings for the whole rack",
+    "osdetails = the OS details (VMware vSphere ESXi in this case)",
+    "osdetails : vlan = Typically the VMkernel VLAN for management purposes",
+    "osdetails : subnet = Typically the subnet for VMkernel",
+    "osdetails : gateway = the default gateway for VMkernel",
+    "rack = The rack number being worked on",
+    "rack : # = The rack number",
+    "rack : # : spine = The spine switch details",
+    "rack : # : leaf = The leaf switch details",
+    "rack : # : mgmt = The mgmt/BMC switch details",
+    "rack : # : fc = The fibre channel switch details",
+    "rack : # : bmc = The BMC network details",
+    "rack : # : os = The OS network details",
+    "* : id = The upstream port channel ID (Also Cisco VPC ID for pair of Cisco Switches, Brocade Domain ID for Brocade FC Switches",
+    "* : ipaddr1 = The mgmt IPv4 address of primary switch",
+    "* : ipaddr2 = The mgmt IPv4 address of secondary switch",
+    "* : ipaddrstart = Start Address of ipv4 Range",
+    "* : ipaddrend = End Address of ipv4 Range"
+  ],
+  "linkid" : 1,
+  "customerid" : 9,
+  "mgmtvlan": 100,
+  "vlans" : [101,102,103],
+  "subnet" : "255.255.255.0",
+  "gateway" : "192.168.0.1",
+  "ntpserver" : "192.168.0.1",
+  "mtu" : 9000,
+  "osdetails" : {
+    "vlan": 102,
+    "subnet": "255.255.255.0",
+    "gateway": "192.168.102.1"
+  },
+  "rack" : {
+    "1": {
+      "spine" : {
+        "id" : 10,
+        "ipaddr1" : "192.168.0.21",
+        "ipaddr2" : "192.168.0.22"
+      },
+      "leaf" : {
+        "id" : 11,
+        "ipaddr1" : "192.168.0.23",
+        "ipaddr2" : "192.168.0.24"
+      },
+      "mgmt" : {
+        "id" : 5,
+        "ipaddr1" : "192.168.0.10"
+      },
+      "fc" : {
+        "id" : 30,
+        "ipaddr1" : "192.168.0.31",
+        "ipaddr2" : "192.168.0.32"
+      },
+      "bmc" : {
+        "ipaddrstart": "192.168.0.101",
+        "ipaddrend": "192.168.0.130"
+      },
+      "os" : {
+        "ipaddrstart": "192.168.101.101",
+        "ipaddrend": "192.168.101.130"
+      }
+    },
+    "2": {
+      "spine" : {
+        "id" : null,
+        "ipaddr1" : null,
+        "ipaddr2" : null
+      },
+      "leaf" : {
+        "id" : 12,
+        "ipaddr1" : "192.168.0.25",
+        "ipaddr2" : "192.168.0.26"
+      },
+      "mgmt" : {
+        "id" : 6,
+        "ipaddr1" : "192.168.0.11"
+      },
+      "fc" : {
+        "id" : 30,
+        "ipaddr1" : "192.168.0.33",
+        "ipaddr2" : "192.168.0.34"
+      },
+      "bmc" : {
+        "ipaddrstart" : "192.168.0.133",
+        "ipaddrend" : "192.168.0.164"
+      },
+      "os" : {
+        "ipaddrstart": "192.168.101.133",
+        "ipaddrend": "192.168.101.164"
+      }
+    },
+    "3": {
+      "spine" : {
+        "id" : null,
+        "ipaddr1" : null,
+        "ipaddr2" : null
+      },
+      "leaf" : {
+        "id" : 13,
+        "ipaddr1" : "192.168.0.27",
+        "ipaddr2" : "192.168.0.28"
+      },
+      "mgmt" : {
+        "id" : 7,
+        "ipaddr1" : "192.168.0.12"
+      },
+      "fc" : {
+        "id" : 30,
+        "ipaddr1" : "192.168.0.35",
+        "ipaddr2" : "192.168.0.36"
+      },
+      "bmc" : {
+        "ipaddrstart" : "192.168.0.164",
+        "ipaddrend" : "192.168.0.193"
+      },
+      "os" : {
+        "ipaddrstart": "192.168.101.164",
+        "ipaddrend": "192.168.101.193"
+      }
+    },
+    "4": {
+      "spine" : {
+        "id" : null,
+        "ipaddr1" : null,
+        "ipaddr2" : null
+      },
+      "leaf" : {
+        "id" : 14,
+        "ipaddr1" : "192.168.0.29",
+        "ipaddr2" : "192.168.0.30"
+      },
+      "mgmt" : {
+        "id" : 8,
+        "ipaddr1" : "192.168.0.14"
+      },
+      "fc" : {
+        "id" : 30,
+        "ipaddr1" : "192.168.0.37",
+        "ipaddr2" : "192.168.0.38"
+      },
+      "bmc" : {
+        "ipaddrstart" : "192.168.0.197",
+        "ipaddrend" : "192.168.0.228"
+      },
+      "os" : {
+        "ipaddrstart": "192.168.101.197",
+        "ipaddrend": "192.168.101.228"
+      }
+    }
+  }
+}

@@ -1,0 +1,209 @@
+=== Firmware Ansible Module Operations Log ===
+Started: Fri Sep 19 06:30:25 AM PDT 2025
+=== Processing server1 (X14DBM-SP) ===
+Server IP: 172.25.57.43
+Getting current BIOS info for server1...
+SuperServer Automation Assistant 1.3.0 (2025/04/14) (x86_64)
+Copyright(C) 2024-2025 Super Micro Computer, Inc. All rights reserved.
+
+Managed system..........................172.25.57.43
+    Board ID............................1D3C
+    BIOS build date.....................2024/09/25
+    BIOS version........................1.0b
+Getting current BMC info for server1...
+SuperServer Automation Assistant 1.3.0 (2025/04/14) (x86_64)
+Copyright(C) 2024-2025 Super Micro Computer, Inc. All rights reserved.
+
+Managed system...........172.25.57.43
+    BMC UFFN.............BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.bin
+    BMC type.............X14_RoT2.0_ATEN_AST2600_2_1
+    BMC version..........01.00.21.12
+    BMC ext. version.....01 00 12 (P)
+    BMC build date.......2024/10/25
+SKIPPING BIOS update for server1 - disabled in toolkit_config.json
+SKIPPING BMC update for server1 - disabled in toolkit_config.json
+Checking virtual media status for server1...
+SuperServer Automation Assistant 1.3.0 (2025/04/14) (x86_64)
+Copyright(C) 2024-2025 Super Micro Computer, Inc. All rights reserved.
+[0m
+[1m[1mStatus:[0m [0mStart to unmount image file(s) from virtual media device 1...
+[0m
+[1m[1mStatus:[0m [0mThe image file(s) are unmounted successfully.
+Unmounting existing virtual media for server1...
+SuperServer Automation Assistant 1.3.0 (2025/04/14) (x86_64)
+Copyright(C) 2024-2025 Super Micro Computer, Inc. All rights reserved.
+[0m
+[1m[1mStatus:[0m [0mStart to unmount image file(s) from virtual media device 1...
+[0m
+[1m[1mStatus:[0m [0mThe image file(s) are unmounted successfully.
+Mounting SMC NIC flashing ISO for server1...
+SuperServer Automation Assistant 1.3.0 (2025/04/14) (x86_64)
+Copyright(C) 2024-2025 Super Micro Computer, Inc. All rights reserved.
+[0m
+[1m[1mStatus:[0m [0mThe image file is mounting to virtual media device 1...
+[0m
+[1m[1mStatus:[0m [0mThe image file is mounted successfully.
+Setting boot device to UEFI ISO Image and rebooting server1...
+SuperServer Automation Assistant 1.3.0 (2025/04/14) (x86_64)
+Copyright(C) 2024-2025 Super Micro Computer, Inc. All rights reserved.
+[0mSet boot device done
+[0m
+Proceeding to hard reset the managed system.
+..........[0m
+[0m[1m[1m[1mStatus:[0m[0m [0mThe managed system 172.25.57.43 is waiting for POST complete
+
+...............[0m
+[0m[1m[1m[1mStatus:[0m[0m [0mMemoryInitializationStarted
+
+.........................
+..................................................
+..................................................
+................................................[0m
+[0m[1m[1m[1mStatus:[0m[0m [0mPCIResourceConfigStarted
+
+..
+..........................[0m
+[0m[1m[1m[1mStatus:[0m[0m [0mThe managed system 172.25.57.43 is POST completed
+
+Starting SMC NIC update via IPMI SOL for server1...
+Executing NIC flashing script for server1...
+spawn ipmitool -I lanplus -H 172.25.57.43 -U ADMIN -P cmb9.admin sol activate
+[SOL Session operational.  Use ~? for help]
+
+ubuntu login: ubuntu
+Welcome to Ubuntu 20.04 LTS (GNU/Linux 5.4.0-135-generic x86_64)
+
+ * Documentation:  https://help.ubuntu.com
+ * Management:     https://landscape.canonical.com
+ * Support:        https://ubuntu.com/advantage
+
+The programs included with the Ubuntu system are free software;
+the exact distribution terms for each program are described in the
+individual files in /usr/share/doc/*/copyright.
+
+Ubuntu comes with ABSOLUTELY NO WARRANTY, to the extent permitted by
+applicable law.
+
+To run a command as administrator (user "root"), use "sudo <command>".
+See "man sudo_root" for details.
+
+ubuntu@ubuntu:~$ sh /cdrom/smci/flash-SMCInic-AOC-A25G-M2SM.sh
+5d:00.0 "Ethernet controller" "Mellanox Technologies" "MT2894 Family [ConnectX-6 Lx]" "Super Micro Computer Inc" "MT2894 Family [ConnectX-6 Lx]"
+5d:00.1 "Ethernet controller" "Mellanox Technologies" "MT2894 Family [ConnectX-6 Lx]" "Super Micro Computer Inc" "MT2894 Family [ConnectX-6 Lx]"
+Extracting /cdrom/smci/AOC-A25G-M2SM
+Archive:  /tmp/AOC-A25G-M2SM/A25GM2S_20240605_26-41-1000_NUP.zip
+   creating: /tmp/AOC-A25G-M2SM/A25GM2S_20240605_26-41-1000_NUP/
+  inflating: /tmp/AOC-A25G-M2SM/A25GM2S_20240605_26-41-1000_NUP/fw-ConnectX6Lx-rel-26_41_1000-Super_Micro_AOC-A25G-m2SM_Ax-UEFI-14.34.12-FlexBoot-3.7.400.bin  
+  inflating: /tmp/AOC-A25G-M2SM/A25GM2S_20240605_26-41-1000_NUP/FWUpdate.sh  
+  inflating: /tmp/AOC-A25G-M2SM/A25GM2S_20240605_26-41-1000_NUP/Instruction.txt  
+  inflating: /tmp/AOC-A25G-M2SM/A25GM2S_20240605_26-41-1000_NUP/Release Note.txt  
+  inflating: /tmp/AOC-A25G-M2SM/A25GM2S_20240605_26-41-1000_NUP/SM_1281000001000.pldm  
+  inflating: /tmp/AOC-A25G-M2SM/A25GM2S_20240605_26-41-1000_NUP/Verify.sh  
+  inflating: /tmp/AOC-A25G-M2SM/A25GM2S_20240605_26-41-1000_NUP/VPDMLX_16  
+Starting MST (Mellanox Software Tools) driver set
+Loading MST PCI module - Success
+Loading MST PCI configuration module - Success
+Create devices
+Unloading MST PCI module (unused) - Success
+
+
+Updating Mellanox /dev/mst/mt4127_pciconf0
+
+
+    Current FW version on flash:  26.41.1000
+    New FW version:               26.41.1000
+
+    Note: The new FW version is the same as the current FW version on flash.
+
+ Do you want to continue ? (y/n) [n] : y
+
+FSMST_INITIALIZE -   OK
+Writing Boot image component -   0%Writing Boot image component -   1%Writing Boot image component -   2%Writing Boot image component -   3%Writing Boot image component -   4%Writing Boot image component -   5%Writing Boot image component -   6%Writing Boot image component -   7%Writing Boot image component -   8%Writing Boot image component -   9%Writing Boot image component -  10%Writing Boot image component -  11%Writing Boot image component -  12%Writing Boot image component -  13%Writing Boot image component -  14%Writing Boot image component -  15%Writing Boot image component -  16%Writing Boot image component -  17%Writing Boot image component -  18%Writing Boot image component -  19%Writing Boot image component -  20%Writing Boot image component -  21%Writing Boot image component -  22%Writing Boot image component -  23%Writing Boot image component -  24%Writing Boot image component -  25%Writing Boot image component -  26%Writing Boot image component -  27%Writing Boot image component -  28%Writing Boot image component -  29%Writing Boot image component -  30%Writing Boot image component -  31%Writing Boot image component -  32%Writing Boot image component -  33%Writing Boot image component -  34%Writing Boot image component -  35%Writing Boot image component -  36%Writing Boot image component -  37%Writing Boot image component -  38%Writing Boot image component -  39%Writing Boot image component -  40%Writing Boot image component -  41%Writing Boot image component -  42%Writing Boot image component -  43%Writing Boot image component -  44%Writing Boot image component -  45%Writing Boot image component -  46%Writing Boot image component -  47%Writing Boot image component -  48%Writing Boot image component -  49%Writing Boot image component -  50%Writing Boot image component -  51%Writing Boot image component -  52%Writing Boot image component -  53%Writing Boot image component -  54%Writing Boot image component -  55%Writing Boot image component -  56%Writing Boot image component -  57%Writing Boot image component -  58%Writing Boot image component -  59%Writing Boot image component -  60%Writing Boot image component -  61%Writing Boot image component -  62%Writing Boot image component -  63%Writing Boot image component -  64%Writing Boot image component -  65%Writing Boot image component -  66%Writing Boot image component -  67%Writing Boot image component -  68%Writing Boot image component -  69%Writing Boot image component -  70%Writing Boot image component -  71%Writing Boot image component -  72%Writing Boot image component -  73%Writing Boot image component -  74%Writing Boot image component -  75%Writing Boot image component -  76%Writing Boot image component -  77%Writing Boot image component -  78%Writing Boot image component -  79%Writing Boot image component -  80%Writing Boot image component -  81%Writing Boot image component -  82%Writing Boot image component -  83%Writing Boot image component -  84%Writing Boot image component -  85%Writing Boot image component -  86%Writing Boot image component -  87%Writing Boot image component -  88%Writing Boot image component -  89%Writing Boot image component -  90%Writing Boot image component -  91%Writing Boot image component -  92%Writing Boot image component -  93%Writing Boot image component -  94%Writing Boot image component -  95%Writing Boot image component -  96%Writing Boot image component -  97%Writing Boot image component -  98%Writing Boot image component -  99%Writing Boot image component - 100%Writing Boot image component -   OK
+-I- To load new FW run mlxfwreset or reboot machine.
+
+Update old fw version in VPD to current fw version after each time fw updated
+Dumping current VPD...
+VPD Utility v1.6
+For Mellanox Ethernet Controllers
+Copyright (C) 2019 by SuperMicro(R). All rights reserved.
+
+Starting MST (Mellanox Software Tools) driver set
+Loading MST PCI module - Success
+[warn] mst_pciconf is already loaded, skipping
+Create devices
+Unloading MST PCI module (unused) - Success
+Processing VPD infomation from MST tool ...
+VPD infomation is saved to VPDInfo.txt.
+Importing VPD...
+VPD Utility v1.6
+For Mellanox Ethernet Controllers
+Copyright (C) 2019 by SuperMicro(R). All rights reserved.
+
+Importing VPD infomation from VPDInfo.txt.
+ Base MAC Read : 905A08036944
+ F/W Version Read : 26.41.1000
+ VPD is saved in file VPDfile.bin.
+Invalid command: VPDfile.bin
+NAME
+    Flint - Flash Interface
+
+SYNOPSIS
+    Flint [OPTIONS] <command> [Parameters]
+        [-d|--device <device>] [-i|--image <image>]
+        [--nonencrypted_image <nonencrypted_image>] [--latest_fw] [--ir] [-h|--help] [--hh]
+        [-y|--yes] [--no] [--guid <GUID>] [--guids <GUIDS...>] [--mac <MAC>]
+        [--macs <MACs...>] [--uid <UID>] [--blank_guids] [--clear_semaphore] [--qq]
+        [--low_cpu] [--flashed_version] [--nofs] [--allow_rom_change]
+        [--override_cache_replacement] [--no_flash_verify] [--use_fw] [-s|--silent]
+        [--vsd <string>] [--use_image_ps] [--use_image_guids] [--use_image_rom]
+        [--use_dev_rom] [--ignore_dev_data] [--no_fw_ctrl] [--dual_image] [--striped_image]
+        [--banks <bank>] [--loile>]
+        [--flash_params <type, log2size, num_of_flashes>] [-v|--version]
+        [--private_key <key_file>] [--public_key <key_file>] [--key_uuid <uuid_file>]
+        [--private_key2 <key_file>] [--hmac_key <hmac_key>] [--key_uuid2 <uuid_file>]
+        [--psid <PSID>] [--cc <Congestion_Control>] [--linkx]
+        [    --downstream_device_id_start_index <downstream_device_id_start_index>]
+        [    --num_of_downstream_devices <num_of_downstream_devices>]
+        [    --linkx_auto_update] [    --activate]
+        [    --activate_delay_sec <timeout in seconds>] [    --download_transfer]
+        [    --downstream_device_ids <list of ports>]
+        [    --i2c_secondary <i2c secondary address>] [--public_key_label <string>]
+        [--private_key_label <string>] [--openssl_engine <string>]
+        [--openssl_key_id <string>] [--output_file <string>] [--user_password <string>]
+
+
+Mellanox /dev/mst/mt4127_pciconf0
+Image type:            FS4
+FW Version:            26.41.1000
+FW Release Date:       28.4.2024
+Product Version:       26.41.1000
+Rom Info:              type=UEFI version=14.34.12 cpu=AMD64,AARCH64
+                       type=PXE version=3.7.400 cpu=AMD64
+Description:           UID                GuidsNumber
+Base GUID:             905a0815d9036944        4
+Base MAC:              905a08036944            4
+Image VSD:             N/A
+Device VSD:            N/A
+PSID:                  SM_1281000001000
+Security Attributes:   N/A
+
+Please reboot system for new FW to take effect.
+Afterward if want to check FW version execute Verify.sh.
+
+Successfully Flashed AOC-A25G-M2SM
+ubuntu@ubuntu:~$ ~. [terminated ipmitool]
+NIC flashing script completed for server1
+Unmounting ISO after NIC update for server1...
+SuperServer Automation Assistant 1.3.0 (2025/04/14) (x86_64)
+Copyright(C) 2024-2025 Super Micro Computer, Inc. All rights reserved.
+[0m
+[1m[1mStatus:[0m [0mStart to unmount image file(s) from virtual media device 1...
+[0m
+[1m[1mStatus:[0m [0mThe image file(s) are unmounted successfully.
+Final reboot of server1 to return to normal OS...
+SuperServer Automation Assistant 1.3.0 (2025/04/14) (x86_64)
+Copyright(C) 2024-2025 Super Micro Computer, Inc. All rights reserved.
+[0m
+Proceeding to hard reset the managed system.
+[0m[0m[0;33m[0;33m[0;33mWARNING[0m[0m: [0mWithout option --post_complete, please manually confirm the managed system is POST complete before executing next action.
+

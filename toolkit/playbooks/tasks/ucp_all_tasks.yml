@@ -1,0 +1,160 @@
+---
+# Task file for UCP All (Complete Setup) operations
+- name: Read servers CSV file path
+  pause:
+    prompt: "Enter the path to your servers CSV file (must include ipaddress, username, password, model columns)"
+  register: servers_csv_path
+
+- name: Verify servers CSV file exists
+  stat:
+    path: "{{ servers_csv_path.user_input }}"
+  register: csv_file_check
+  failed_when: not csv_file_check.stat.exists
+
+- name: Determine solution type based on selection
+  set_fact:
+    solution_type: "{{ user_selection.user_input }}"
+
+- name: Display solution type
+  debug:
+    msg: |
+      Selected Solution:
+      {% if solution_type == "1" %}
+      - UCP VMware (Default) - This applies BIOS template, boot SPV, and boot ESXi installer
+      {% elif solution_type == "9" %}
+      - Azure Stack HCI
+      {% elif solution_type == "10" %}
+      - Setup VSSB Servers
+      {% endif %}
+
+# Get URLs for different solution types
+- name: Get SPV URLs and Kickstart URL
+  pause:
+    prompt: |
+      Please navigate to http://[IPv6]:8081 of this jumphost in a browser and provide URLs:
+      
+      Enter SPV Image URL for HA G2 nodes
+  register: spv_g2_url_input
+
+- name: Get SPV G3 URL
+  pause:
+    prompt: "Enter SPV Image URL for HA G3 nodes"
+  register: spv_g3_url_input
+
+- name: Get Kickstart URL based on solution type
+  pause:
+    prompt: |
+      {% if solution_type == "1" %}
+      Enter ESXi 8.0 ISO Image URL
+      {% elif solution_type == "9" %}
+      Enter Azure Stack HCI ISO image URL
+      {% elif solution_type == "10" %}
+      Enter kickstart OS iso URL (SUSE)
+      {% endif %}
+  register: kickstart_url_input
+
+- name: Validate required URLs
+  fail:
+    msg: "All URLs are required"
+  when: spv_g2_url_input.user_input == '' or spv_g3_url_input.user_input == '' or kickstart_url_input.user_input == ''
+
+- name: Get BIOS templates directory (optional)
+  pause:
+    prompt: "Enter path to BIOS templates directory (press Enter for default './HA-G2-G3BiosTemplates')"
+  register: templates_dir_input
+
+- name: Set templates directory
+  set_fact:
+    templates_directory: "{{ templates_dir_input.user_input if templates_dir_input.user_input != '' else './HA-G2-G3BiosTemplates' }}"
+
+- name: Verify templates directory exists
+  stat:
+    path: "{{ templates_directory }}"
+  register: templates_dir_check
+
+- name: Create templates directory if it doesn't exist
+  file:
+    path: "{{ templates_directory }}"
+    state: directory
+    mode: '0755'
+  when: not templates_dir_check.stat.exists
+
+- name: Confirm operation
+  pause:
+    prompt: |
+      This will perform a complete setup including:
+      - Apply BIOS templates based on server models
+      - Mount SPV images
+      - Boot from SPV
+      
+      This operation will reboot all servers. Are you sure? (yes/no)
+  register: operation_confirmation
+
+- name: Validate confirmation
+  fail:
+    msg: "Operation cancelled by user"
+  when: operation_confirmation.user_input | lower not in ['yes', 'y']
+
+- name: Execute complete UCP setup
+  ucp_all:
+    servers_csv: "{{ servers_csv_path.user_input }}"
+    solution_type: "{{ solution_type }}"
+    spv_url_g2: "{{ spv_g2_url_input.user_input }}"
+    spv_url_g3: "{{ spv_g3_url_input.user_input }}"
+    kickstart_url: "{{ kickstart_url_input.user_input }}"
+    templates_directory: "{{ templates_directory }}"
+    ilorest_path: "{{ ilorest_path | default('ilorest') }}"
+    manage_nginx: true
+    skip_bios_reboot: false
+  register: ucp_all_result
+
+- name: Display complete setup results
+  debug:
+    msg: |
+      UCP Complete Setup Results:
+      - Successfully configured: {{ ucp_all_result.configured_servers | length }} servers
+      - Failed: {{ ucp_all_result.failed_servers | length }} servers
+      
+      Solution Type: {{ solution_type }}
+      SPV G2 URL: {{ spv_g2_url_input.user_input }}
+      SPV G3 URL: {{ spv_g3_url_input.user_input }}
+      Kickstart URL: {{ kickstart_url_input.user_input }}
+      
+      Successful servers: {{ ucp_all_result.configured_servers | join(', ') }}
+      
+      {% if ucp_all_result.bios_templates_applied %}
+      BIOS Templates Applied:
+      {% for server, template in ucp_all_result.bios_templates_applied.items() %}
+      - {{ server }}: {{ template }}
+      {% endfor %}
+      {% endif %}
+      
+      {% if ucp_all_result.failed_servers %}
+      Failed servers:
+      {% for failed in ucp_all_result.failed_servers %}
+      - {{ failed.ipaddress }} ({{ failed.model }}): {{ failed.error }}
+      {% endfor %}
+      {% endif %}
+
+- name: Post-setup instructions
+  debug:
+    msg: |
+      Setup completed! Next steps:
+      
+      1. Servers have been configured and are booting from SPV
+      2. Wait for SPV to complete its operations
+      3. Servers will automatically proceed with the next boot phase
+      4. Monitor server consoles for progress
+      
+      {% if solution_type == "1" %}
+      - For UCP VMware: Servers will boot ESXi installer after SPV
+      {% elif solution_type == "9" %}
+      - For Azure Stack HCI: Servers will boot Azure Stack HCI installer after SPV
+      {% elif solution_type == "10" %}
+      - For VSSB: Servers will boot SUSE installer after SPV
+      {% endif %}
+
+- name: Log complete setup operation
+  lineinfile:
+    path: "{{ log_file }}"
+    line: "{{ ansible_date_time.iso8601 }} - INFO - UCP Complete Setup completed: {{ ucp_all_result.configured_servers | length }} successful, {{ ucp_all_result.failed_servers | length }} failed"

@@ -1,0 +1,2 @@
+hostname,ipv4,username,password,vendor,model,description,io_cards
+server1,172.25.57.43,ADMIN,cmb9.admin,supermicro,X14DBM-SP,smciserver,

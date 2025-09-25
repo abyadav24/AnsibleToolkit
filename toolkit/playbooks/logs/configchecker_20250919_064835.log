@@ -1,0 +1,47 @@
+[2025-09-19 06:48:37] [INFO] [ConfigChecker] Network Card Discovery Started
+[2025-09-19 06:48:37] [INFO] [ConfigChecker] Log Timestamp: 20250919_064835
+[2025-09-19 06:48:37] [INFO] [ConfigChecker] Starting network card discovery process
+[2025-09-19 06:48:37] [INFO] [ConfigChecker] Configuration loaded successfully
+[2025-09-19 06:48:37] [DEBUG] [ConfigChecker] Version config file: ../config/version_config.yaml
+[2025-09-19 06:48:39] [INFO] [ConfigChecker] Server CSV file read successfully
+[2025-09-19 06:48:39] [DEBUG] [ConfigChecker] CSV file path: ../config/smci-server.csv
+[2025-09-19 06:48:39] [INFO] [ConfigChecker] Number of servers found: 1
+[2025-09-19 06:48:39] [DEBUG] [ConfigChecker] Servers to process:
+[2025-09-19 06:48:39] [DEBUG] [ConfigChecker]   - server1 (172.25.57.43)
+[2025-09-19 06:48:41] [INFO] [ConfigChecker] Network discovery table file initialized
+[2025-09-19 06:48:41] [DEBUG] [ConfigChecker] Table file path: /home/ubuntu/smci/ansible-toolkit/toolkit/playbooks/logs/network_discovery_table_20250919_064835.txt
+[2025-09-19 06:48:43] [INFO] [ConfigChecker] Network discovery CSV file initialized
+[2025-09-19 06:48:43] [DEBUG] [ConfigChecker] CSV file path: /home/ubuntu/smci/ansible-toolkit/toolkit/playbooks/logs/network_discovery_20250919_064835.csv
+[2025-09-19 06:48:43] [INFO] [ConfigChecker] Starting individual server processing
+[2025-09-19 06:48:43] [INFO] [ConfigChecker] Processing 1 servers in total
+[2025-09-19 06:48:44] [INFO] [NetworkDiscovery] Starting discovery for server server1
+[2025-09-19 06:48:44] [DEBUG] [NetworkDiscovery] Server IP: 172.25.57.43
+[2025-09-19 06:48:46] [INFO] [NetworkDiscovery] Network adapter discovery for server1
+[2025-09-19 06:48:46] [INFO] [NetworkDiscovery] API call result: SUCCESS
+[2025-09-19 06:48:47] [INFO] [NetworkDiscovery] Starting adapter details processing for server1
+[2025-09-19 06:48:47] [INFO] [NetworkDiscovery] Processing 1 adapters
+[2025-09-19 06:48:49] [INFO] [NetworkDiscovery] Adapter details retrieved for server1
+[2025-09-19 06:48:49] [INFO] [NetworkDiscovery] Retrieved details for 1 adapters
+[2025-09-19 06:48:49] [INFO] [NetworkDiscovery] Starting port information processing for server1
+[2025-09-19 06:48:49] [DEBUG] [NetworkDiscovery] Getting port details for all adapters
+[2025-09-19 06:48:51] [INFO] [NetworkDiscovery] Port information retrieved for server1
+[2025-09-19 06:48:51] [INFO] [NetworkDiscovery] Retrieved port info for 1 adapters
+[2025-09-19 06:48:52] [INFO] [NetworkDiscovery] Starting detailed port information processing for server1
+[2025-09-19 06:48:52] [DEBUG] [NetworkDiscovery] Getting MAC addresses and detailed port info
+[2025-09-19 06:48:56] [INFO] [NetworkDiscovery] Detailed port information processing completed for server1
+[2025-09-19 06:48:56] [INFO] [NetworkDiscovery] Retrieved details for 2 ports
+[2025-09-19 06:48:57] [INFO] [NetworkDiscovery] Discovery completed successfully for server1
+[2025-09-19 06:48:57] [INFO] [NetworkDiscovery] Data added to table and CSV files
+Completed processing all servers at Fri Sep 19 06:48:58 AM PDT 2025
+All individual server discoveries completed
+Table footer added at Fri Sep 19 06:48:59 AM PDT 2025
+Network discovery table completed
+[2025-09-19 06:49:00] [INFO] [ConfigChecker] Table output displayed successfully
+[2025-09-19 06:49:00] [DEBUG] [ConfigChecker] Table file size: 7 lines
+[2025-09-19 06:49:01] [INFO] [ConfigChecker] Network Card Discovery Completed Successfully
+[2025-09-19 06:49:01] [INFO] [ConfigChecker] Total servers processed: 1
+[2025-09-19 06:49:01] [INFO] [ConfigChecker] Generated files:
+[2025-09-19 06:49:01] [DEBUG] [ConfigChecker]   - Table: /home/ubuntu/smci/ansible-toolkit/toolkit/playbooks/logs/network_discovery_table_20250919_064835.txt
+[2025-09-19 06:49:01] [DEBUG] [ConfigChecker]   - CSV: /home/ubuntu/smci/ansible-toolkit/toolkit/playbooks/logs/network_discovery_20250919_064835.csv
+[2025-09-19 06:49:01] [DEBUG] [ConfigChecker]   - Log files: /home/ubuntu/smci/ansible-toolkit/toolkit/playbooks/logs/configchecker_20250919_064835.log and /home/ubuntu/smci/ansible-toolkit/toolkit/playbooks/logs/NetworkDiscovery_AnsibleModule_20250919_064835.log
+[2025-09-19 06:49:01] [INFO] [ConfigChecker] Process completed successfully

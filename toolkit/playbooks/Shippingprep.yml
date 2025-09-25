@@ -1,0 +1,116 @@
+---
+- name: Update SMCI Server Admin user passwords based on choice
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  environment:
+    ANSIBLE_LIBRARY: "{{ playbook_dir }}/../plugins/modules"
+
+  collections:
+    - community.general
+
+  vars_prompt:
+    - name: "password_choice"
+      prompt: "Choose password type (default/unique)"
+      private: no
+      default: "default"
+
+  tasks:
+    - name: Validate password_choice
+      assert:
+        that:
+          - password_choice in ['default', 'unique']
+        fail_msg: "Invalid choice. Please run playbook again and enter either 'default' or 'unique'."
+
+    - name: Read servers from CSV
+      community.general.read_csv:
+        path: /home/ubuntu/smci/ansible-toolkit/toolkit/config/smci-server.csv
+      register: server_list
+
+    - name: Get BIOS info for each server
+      shell: >
+        /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa
+        -i {{ item.ipv4 }}
+        -u {{ item.username }}
+        -p {{ item.password }}
+        -c GetSystemInfo
+      loop: "{{ server_list.list }}"
+      register: bios_info
+      ignore_errors: yes
+
+    - name: Extract all BMC MAC addresses.
+      set_fact:
+        mac_list: "{{ mac_list | default([]) + [ { 'server': item.item.ipv4, 'mac': (item.stdout | regex_search('BMC MAC address\\.*\\s*([0-9A-Fa-f:]+)', '\\1')) | default('') } ] }}"
+      loop: "{{ bios_info.results }}"
+      loop_control:
+        loop_var: item
+
+    - name: Print all MAC addresses (for verification)
+      debug:
+        msg: "Server: {{ item.server }} | BMC MAC: {{ item.mac }}"
+      loop: "{{ mac_list }}"
+      loop_control:
+        loop_var: item
+
+    - name: Prepare updated server list with new passwords
+      set_fact:
+        updated_servers: "{{ updated_servers | default([]) + [ new_server ] }}"
+      vars:
+        mac_entry: >-
+          {{ (mac_list | selectattr('server', 'equalto', item.ipv4) | map(attribute='mac') | list | first) }}
+        mac_value: >-
+          {% if mac_entry is string %}
+            {{ mac_entry }}
+          {% elif mac_entry is sequence and mac_entry|length > 0 %}
+            {{ mac_entry[0] }}
+          {% else %}
+            ""
+          {% endif %}
+        mac_clean: "{{ mac_value | regex_replace(':', '') }}"
+        mac_last6: "{{ mac_clean[-6:] if mac_clean | length >= 6 else '000000' }}"
+        new_password: >-
+          {% if password_choice == 'default' %}
+            cmb9.admin
+          {% else %}
+            UCPMSP.{{ mac_last6 }}
+          {% endif %}
+        new_server: "{{ item | combine({ 'password': new_password | trim }) }}"
+      loop: "{{ server_list.list }}"
+      loop_control:
+        loop_var: item
+
+    - name: Show updated servers with new passwords
+      debug:
+        msg: "{{ updated_servers }}"
+
+    - name: Update passwords on each server using ipmitool
+      loop: "{{ updated_servers }}"
+      loop_control:
+        loop_var: item
+      vars:
+        current_password: "{{ server_list.list | selectattr('ipv4', 'equalto', item.ipv4) | map(attribute='password') | first }}"
+      command: >
+        ipmitool -I lanplus -H {{ item.ipv4 }}
+        -U {{ item.username }} -P '{{ current_password }}'
+        user set password 4 '{{ item.password }}'
+      register: ipmi_results
+      no_log: true
+      ignore_errors: yes
+
+    - name: Print SMCI Servers update results per server
+      debug:
+        msg: |
+          Server: {{ item.item.ipv4 }}
+          Changed: {{ item.changed }}
+          RC: {{ item.rc }}
+          Stdout: {{ item.stdout }}
+          Stderr: {{ item.stderr }}
+      loop: "{{ ipmi_results.results }}"
+
+    - name: Write updated servers to CSV file overwriting original 
+      template:
+        src: updated_servers.csv.j2
+        dest: /home/ubuntu/smci/ansible-toolkit/toolkit/config/smci-server.csv
+        backup: yes

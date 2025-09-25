@@ -1,0 +1,68 @@
+- name: Update IPMI user password
+  hosts: localhost
+  connection: local
+
+  vars:
+    ipmi_host: "10.76.32.242"
+    admin_user: "ADMIN1"        # the user doing the update
+    admin_user_id: 4           # ID of ADMIN
+    target_user_id: 4          # ID of ADMIN1 (user to update)
+    target_username: "ADMIN1"  # Optional, for display
+
+  
+
+  vars_prompt:
+    - name: "current_password"
+      prompt: "Enter current password for {{ admin_user }}"
+      private: yes
+
+    - name: "new_password"
+      prompt: "Enter new password for {{ target_username }}"
+      private: yes
+      
+
+
+  tasks:
+
+    - name: Read server details from CSV file
+      read_csv:
+  path: /home/ubuntu/smci/ansible-toolkit/toolkit/config/smci-server.csv
+      register: server_list
+
+    - name: Get BIOS info for each server
+      shell: /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetSystemInfo
+      with_items: "{{ server_list.list }}"
+      register: bios_info   # ✅ Capture the command output
+      ignore_errors: yes    # ✅ Optional: skip errors to see all output
+
+    - name: Extract all BMC MAC addresses
+      set_fact:
+        mac_list: "{{ mac_list | default([]) + [ { 'server': item.item.ipv4, 'mac': (item.stdout | regex_search('BMC MAC address\\.*\\s*([0-9A-Fa-f:]+)', '\\1')) | default('MAC address not found') } ] }}"
+      with_items: "{{ bios_info.results }}"
+      loop_control:
+        loop_var: item
+
+    - name: Print all MAC addresses
+      debug:
+        msg: "Server: {{ item.server }} | BMC MAC: {{ item.mac }}"
+      with_items: "{{ mac_list }}"
+
+
+    - name: Set IPMI password for user ID {{ target_user_id }}
+      command: >
+        ipmitool -I lanplus -H {{ ipmi_host }}
+        -U {{ admin_user }} -P '{{ current_password }}'
+        user set password {{ target_user_id }} '{{ new_password }}'
+      register: ipmi_output
+      no_log: true
+
+    - name: Show IPMI command output
+      debug:
+        var: ipmi_output.stdout
+
+    - name: Confirm password was updated
+      assert:
+        that:
+          - "'successful' in ipmi_output.stdout.lower()"
+        fail_msg: "Password update failed!"
+        success_msg: "Password update confirmed successfully!"

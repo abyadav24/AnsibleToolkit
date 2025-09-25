@@ -1,0 +1,200 @@
+---
+# Process single server for network discovery
+- name: "Log start of server discovery for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting discovery for server {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IP: {{ server_data.ipv4 }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting discovery for server {{ server_data.hostname }}" >> {{ discovery_module_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IP: {{ server_data.ipv4 }}" >> {{ discovery_module_log_file }}
+
+- name: "Get network adapters for {{ server_data.hostname }}"
+  server_api_call:
+    url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters"
+    username: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    timeout: 30
+    validate_certs: false
+  register: adapters_result
+  ignore_errors: true
+
+- name: "Log network adapter discovery result for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Network adapter discovery for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] API call result: {{ 'SUCCESS' if adapters_result.status_code == 200 else 'FAILED' }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Network adapter discovery for {{ server_data.hostname }}" >> {{ discovery_module_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] API URL: https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters" >> {{ discovery_module_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Status Code: {{ adapters_result.status_code | default('N/A') }}" >> {{ discovery_module_log_file }}
+    {% if adapters_result.status_code == 200 %}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Adapters found: {{ adapters_result.content.Members | length }}" >> {{ discovery_module_log_file }}
+    {% else %}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Error: {{ adapters_result.msg | default('Unknown error') }}" >> {{ discovery_module_log_file }}
+    {% endif %}
+
+- name: "Process successful discovery for {{ server_data.hostname }}"
+  block:
+    - name: "Log start of adapter details processing"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting adapter details processing for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Processing {{ adapters_result.content.Members | length }} adapters" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Starting adapter details processing for {{ server_data.hostname }}" >> {{ discovery_module_log_file }}
+
+    - name: "Get adapter details"
+      server_api_call:
+        url: "https://{{ server_data.ipv4 }}{{ adapter['@odata.id'] }}"
+        username: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        timeout: 30
+        validate_certs: false
+      register: adapter_detail
+      ignore_errors: true
+      loop: "{{ adapters_result.content.Members }}"
+      loop_control:
+        loop_var: adapter
+
+    - name: "Log adapter details retrieval"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Adapter details retrieved for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Retrieved details for {{ adapter_detail.results | length }} adapters" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Adapter details retrieved for {{ server_data.hostname }}" >> {{ discovery_module_log_file }}
+        {% for result in adapter_detail.results %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery]   Adapter {{ loop.index }}: {{ 'SUCCESS' if result.status_code == 200 else 'FAILED' }}" >> {{ discovery_module_log_file }}
+        {% endfor %}
+
+    - name: "Log start of port information processing"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting port information processing for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Getting port details for all adapters" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Starting port information processing for {{ server_data.hostname }}" >> {{ discovery_module_log_file }}
+
+    - name: "Get port information"
+      server_api_call:
+        url: "https://{{ server_data.ipv4 }}{{ adapter['@odata.id'] }}/Ports"
+        username: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        timeout: 30
+        validate_certs: false
+      register: ports_result
+      ignore_errors: true
+      loop: "{{ adapters_result.content.Members }}"
+      loop_control:
+        loop_var: adapter
+
+    - name: "Log port information retrieval"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Port information retrieved for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Retrieved port info for {{ ports_result.results | length }} adapters" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Port information retrieved for {{ server_data.hostname }}" >> {{ discovery_module_log_file }}
+        {% for result in ports_result.results %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery]   Adapter {{ loop.index }} ports: {{ 'SUCCESS' if result.status_code == 200 else 'FAILED' }}" >> {{ discovery_module_log_file }}
+        {% endfor %}
+
+    - name: "Log start of detailed port processing"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting detailed port information processing for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Getting MAC addresses and detailed port info" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Starting detailed port information processing for {{ server_data.hostname }}" >> {{ discovery_module_log_file }}
+
+    - name: "Get detailed port information with MAC addresses"
+      server_api_call:
+        url: "https://{{ server_data.ipv4 }}{{ port_item['@odata.id'] }}"
+        username: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        timeout: 30
+        validate_certs: false
+      register: port_details
+      ignore_errors: true
+      vars:
+        all_ports: >-
+          {{
+            ports_result.results 
+            | selectattr('content', 'defined')
+            | map(attribute='content')
+            | map(attribute='Members', default=[])
+            | flatten
+          }}
+      loop: "{{ all_ports }}"
+      loop_control:
+        loop_var: port_item
+
+    - name: "Log detailed port information retrieval completion"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Detailed port information processing completed for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Retrieved details for {{ port_details.results | length }} ports" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Detailed port information processing completed for {{ server_data.hostname }}" >> {{ discovery_module_log_file }}
+        {% for result in port_details.results %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery]   Port {{ loop.index }}: {{ 'SUCCESS' if result.status_code == 200 else 'FAILED' }}" >> {{ discovery_module_log_file }}
+        {% endfor %}
+
+    - name: "Add successful entries to table"
+      shell: |
+        # Extract first available MAC address
+        {% if port_details.results | length > 0 and not port_details.results[0].failed | default(true) and port_details.results[0].content.Ethernet is defined and port_details.results[0].content.Ethernet.AssociatedMACAddresses is defined and port_details.results[0].content.Ethernet.AssociatedMACAddresses | length > 0 %}
+        MAC_ADDR="{{ port_details.results[0].content.Ethernet.AssociatedMACAddresses[0] }}"
+        {% else %}
+        MAC_ADDR="Unknown"
+        {% endif %}
+        
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "{{ adapter_detail.results[idx].content.Name[:20] | default('Unknown') }}" \
+          "{{ adapter_detail.results[idx].content.Manufacturer[:12] | default('Unknown') }}" \
+          "{{ adapter_detail.results[idx].content.Model[:18] | default('Unknown') }}" \
+          "{{ adapter_detail.results[idx].content.PartNumber[:12] | default('Unknown') }}" \
+          "{{ adapter_detail.results[idx].content.SerialNumber[:18] | default('Unknown') }}" \
+          "{{ adapter_detail.results[idx].content.Controllers[0].FirmwarePackageVersion[:12] | default('Unknown') if adapter_detail.results[idx].content.Controllers is defined and adapter_detail.results[idx].content.Controllers | length > 0 else 'Unknown' }}" \
+          "{{ ports_result.results[idx].content.get('Members@odata.count', 0) if not ports_result.results[idx].failed | default(true) else '?' }}" \
+          "$MAC_ADDR" \
+          >> {{ discovery_table_file }}
+        
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},{{ adapter_detail.results[idx].content.Name | default('Unknown') }},{{ adapter_detail.results[idx].content.Manufacturer | default('Unknown') }},{{ adapter_detail.results[idx].content.Model | default('Unknown') }},{{ adapter_detail.results[idx].content.PartNumber | default('Unknown') }},{{ adapter_detail.results[idx].content.SerialNumber | default('Unknown') }},{{ adapter_detail.results[idx].content.Controllers[0].FirmwarePackageVersion | default('Unknown') if adapter_detail.results[idx].content.Controllers is defined and adapter_detail.results[idx].content.Controllers | length > 0 else 'Unknown' }},{{ ports_result.results[idx].content.get('Members@odata.count', 0) if not ports_result.results[idx].failed | default(true) else '?' }},$MAC_ADDR,SUCCESS" >> {{ discovery_csv_file }}
+      loop: "{{ range(0, adapter_detail.results|length)|list }}"
+      loop_control:
+        loop_var: idx
+      when: 
+        - adapter_detail.results[idx] is defined
+        - not adapter_detail.results[idx].failed | default(true)
+
+  when: 
+    - not adapters_result.failed | default(true)
+    - adapters_result.content is defined
+    - adapters_result.content.Members is defined
+
+- name: "Log successful discovery completion for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Discovery completed successfully for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Data added to table and CSV files" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Discovery completed successfully for {{ server_data.hostname }}" >> {{ discovery_module_log_file }}
+  when: 
+    - not adapters_result.failed | default(true)
+    - adapters_result.content is defined
+    - adapters_result.content.Members is defined
+
+- name: "Handle failed discovery for {{ server_data.hostname }}"
+  shell: |
+    printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s ║\n" \
+      "{{ server_data.hostname[:12] }}" \
+      "{{ server_data.ipv4[:15] }}" \
+      "{{ server_data.vendor[:12] }}" \
+      "DISCOVERY FAILED" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      >> {{ discovery_table_file }}
+    
+    echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},DISCOVERY FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,FAILED" >> {{ discovery_csv_file }}
+  when: adapters_result.failed | default(true)
+
+- name: "Log failed discovery for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Discovery FAILED for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Reason: {{ adapters_result.msg | default('Unknown error') }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARN] [NetworkDiscovery] Failed entry added to table and CSV files" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Discovery FAILED for {{ server_data.hostname }}" >> {{ discovery_module_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Error details: {{ adapters_result.msg | default('Unknown error') }}" >> {{ discovery_module_log_file }}
+  when: adapters_result.failed | default(true)

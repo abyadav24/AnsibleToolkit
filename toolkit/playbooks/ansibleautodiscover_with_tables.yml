@@ -1,0 +1,180 @@
+---
+- name: Network Device Discovery via IPv6
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  environment:
+    ANSIBLE_LIBRARY: "{{ playbook_dir }}/../plugins/modules"
+    
+  tasks:
+    - name: Check if toolkit_config.json exists
+      stat:
+        path: "{{ playbook_dir }}/../config/toolkit_config.json"
+      register: config_file_stat
+      
+    - name: Load toolkit configuration if exists
+      include_vars:
+        file: "{{ playbook_dir }}/../config/toolkit_config.json"
+        name: toolkit_config
+      when: config_file_stat.stat.exists
+      
+    - name: Set default config if file doesn't exist
+      set_fact:
+        toolkit_config:
+          use_target_nodes: false
+          nodes: []
+      when: not config_file_stat.stat.exists
+      
+    - name: Display target nodes message when use_target_nodes is true
+      debug:
+        msg: |
+          
+          Discovery will only be performed on the following target IPv6 addresses:
+          {% for node in toolkit_config.nodes %}
+          - {{ node }}
+          {% endfor %}
+          
+          No interface scanning will be performed.
+          
+      when: toolkit_config.use_target_nodes | bool
+      
+    - name: Confirm target nodes discovery
+      pause:
+        prompt: "Press Enter to start discovery on target nodes or Ctrl+C to abort"
+      when: toolkit_config.use_target_nodes | bool
+      
+    - name: Set discovery flags for target nodes (discover both servers and switches)
+      set_fact:
+        discover_servers: true
+        discover_switches: true
+        discovery_choice: "target"
+        discovery_description: "Target nodes from config"
+        use_target_nodes: true
+      when: toolkit_config.use_target_nodes | bool
+      
+    - name: Display discovery options
+      debug:
+        msg: |
+          
+          What would you like to discover?
+          
+          1. Nodes only.
+          2. Switches only.
+          3. Both switches and nodes.
+          
+      when: not (toolkit_config.use_target_nodes | bool)
+    - name: Get user input for discovery type
+      pause:
+        prompt: "Please select one (1, 2, or 3)"
+      register: user_choice
+      when: not (toolkit_config.use_target_nodes | bool)
+      
+    - name: Validate user input
+      fail:
+        msg: "Invalid selection. Please choose 1, 2, or 3."
+      when: 
+        - not (toolkit_config.use_target_nodes | bool)
+        - user_choice.user_input not in ['1', '2', '3']
+      
+    - name: Set discovery flags based on user choice
+      set_fact:
+        discover_servers: "{{ user_choice.user_input in ['1', '3'] }}"
+        discover_switches: "{{ user_choice.user_input in ['2', '3'] }}"
+        discovery_choice: "{{ user_choice.user_input }}"
+        discovery_description: >-
+          {%- if user_choice.user_input == '1' -%}
+          Nodes only
+          {%- elif user_choice.user_input == '2' -%}
+          Switches only
+          {%- elif user_choice.user_input == '3' -%}
+          Both switches and nodes
+          {%- endif -%}
+        use_target_nodes: false
+      when: not (toolkit_config.use_target_nodes | bool)
+        
+    - name: Show discovery configuration
+      debug:
+        msg: |
+          Discovery Configuration:
+          - Type: {{ discovery_description }}
+          - Discover Servers: {{ discover_servers }}
+          - Discover Switches: {{ discover_switches }}
+          {% if use_target_nodes | default(false) %}
+          - Using Target Nodes: Yes ({{ toolkit_config.nodes | length }} nodes)
+          {% else %}
+          - Using Interface Discovery: Yes
+          {% endif %}
+          
+    - name: Confirm to start discovery
+      pause:
+        prompt: "Press Enter to start discovery or Ctrl+C to abort"
+      when: not (toolkit_config.use_target_nodes | bool)
+        
+    - name: Discover servers and switches on the network
+      ansibleautodiscover:
+        interface: "{{ interface | default('enp0s8') if not (use_target_nodes | default(false)) else omit }}"
+        target_nodes: "{{ toolkit_config.nodes if (use_target_nodes | default(false)) else omit }}"
+        discover_servers: "{{ discover_servers }}"
+        discover_switches: "{{ discover_switches }}"
+        usernames: "{{ server_usernames | default(['admin']) }}"
+        passwords: "{{ server_passwords | default(['cmb9.admin']) }}"
+        switch_usernames: "{{ switch_usernames | default(['admin']) }}"
+        switch_passwords: "{{ switch_passwords | default(['Passw0rd!']) }}"
+      register: discovery_result
+      
+    - name: Display discovery results in pretty tables
+      display_discovery_table:
+        servers: "{{ discovery_result.servers }}"
+        switches: "{{ discovery_result.switches }}"
+        display_servers: "{{ discover_servers }}"
+        display_switches: "{{ discover_switches }}"
+      register: table_output
+      
+    - name: Show formatted discovery tables
+      debug:
+        msg: "{{ table_output.message }}"
+        
+    - name: Append discovered servers to existing CSV
+      lineinfile:
+        path: "{{ playbook_dir }}/../config/smci-server.csv"
+        line: "{{ item.host | regex_replace('fe80::[a-f0-9:]+%.*', 'server_' + item.serial_number) }},{{ item.ipv4_address | default('N/A') }},{{ item.username }},{{ item.password }},{{ item.vendor | default('supermicro') }},{{ item.model }},{{ item.type }},{{ item.sku | default('N/A') }}"
+        create: yes
+        insertafter: EOF
+      loop: "{{ discovery_result.servers }}"
+      when: discovery_result.servers | length > 0 and discover_servers
+      
+    - name: Append discovered switches to existing CSV (if needed)
+      lineinfile:
+        path: "{{ playbook_dir }}/../config/smci-switches.csv"
+        line: "{{ item.host | regex_replace('[\\[\\]]', '') }},{{ item.username }},{{ item.password }},{{ item.type }},{{ item.model }}"
+        create: yes
+        insertafter: EOF
+      loop: "{{ discovery_result.switches }}"
+      when: discovery_result.switches | length > 0 and discover_switches
+        
+    - name: Generate discovery report
+      template:
+        src: discovery_report.md.j2
+        dest: ../logs/discovery_report_{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}.md
+      vars:
+        discovery_type: "{{ discovery_description }}"
+        user_selection: "{{ user_choice.user_input }}"
+      when: (discovery_result.servers | length > 0 and discover_servers) or (discovery_result.switches | length > 0 and discover_switches)
+      
+    - name: Show output files updated
+      debug:
+        msg: |
+          Discovery Complete! Discovery Type: {{ discovery_description }}
+          Files updated:
+          {% if discovery_result.servers | length > 0 and discover_servers %}
+          - ../config/smci-server.csv ({{ discovery_result.servers | length }} servers appended)
+          {% endif %}
+          {% if discovery_result.switches | length > 0 and discover_switches %}
+          - ../config/smci-switches.csv ({{ discovery_result.switches | length }} switches appended)
+          {% endif %}
+          {% if (discovery_result.servers | length > 0 and discover_servers) or (discovery_result.switches | length > 0 and discover_switches) %}
+          - ../logs/discovery_report_{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}.md (Full report)
+          {% endif %}
+          
+          Total devices discovered: {{ (discovery_result.servers | length if discover_servers else 0) + (discovery_result.switches | length if discover_switches else 0) }}

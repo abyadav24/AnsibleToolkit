@@ -1,0 +1,53 @@
+---
+# Version checking and validation playbook
+- name: Check Firmware Versions for Supermicro Servers
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - version_config.yaml
+  tasks:
+    - name: Load version configuration
+      include_vars: version_config.yaml
+
+    - name: Read server details from CSV file
+      read_csv:
+        path: "{{ settings.servers_csv_path }}"
+      register: server_list
+
+    - name: Initialize log file
+      shell: |
+        echo "=== Firmware Version Check Started: $(date) ===" > {{ settings.log_file }}
+        echo "Checking versions for {{ server_list.list | length }} servers" >> {{ settings.log_file }}
+
+    - name: Get current firmware versions for all servers
+      async: 120
+      poll: 0
+      shell: |
+        echo "=== Server {{ item.hostname }} ({{ item.ipv4 }}) ===" >> {{ settings.log_file }}
+        echo "Vendor: {{ item.vendor }}" >> {{ settings.log_file }}
+        echo "Model: {{ item.model }}" >> {{ settings.log_file }}
+        echo "IO Cards: {{ item.io_cards | default('None') }}" >> {{ settings.log_file }}
+        echo "Getting BIOS Info..." >> {{ settings.log_file }}
+        {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBiosInfo >> {{ settings.log_file }} 2>&1
+        echo "Getting BMC Info..." >> {{ settings.log_file }}
+        {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBmcInfo >> {{ settings.log_file }} 2>&1
+        echo "---" >> {{ settings.log_file }}
+      loop: "{{ server_list.list }}"
+      register: version_check_jobs
+
+    - name: Wait for all version checks to complete
+      async_status:
+        jid: "{{ item.ansible_job_id }}"
+      loop: "{{ version_check_jobs.results }}"
+      register: version_check_results
+      until: version_check_results.finished
+      retries: 12
+      delay: 10
+
+    - name: Display completion message
+      debug:
+        msg: "Version check completed for all servers. Check {{ settings.log_file }} for detailed results."
+
+    - name: Display log file location
+      debug:
+        msg: "Detailed version information is available in: {{ settings.log_file }}"
