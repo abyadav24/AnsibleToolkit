@@ -1,0 +1,4 @@
+ipaddress,username,password,model
+10.1.1.10,admin,password123,Hitachi Advanced Server HA810 G3
+10.1.1.11,admin,password123,Hitachi Advanced Server HA820 G3
+10.1.1.12,admin,password123,Hitachi Advanced Server HA805 G3
