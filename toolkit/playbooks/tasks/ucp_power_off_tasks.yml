@@ -1,0 +1,48 @@
+---
+# Task file for UCP Power Off operations
+- name: Read servers CSV file path
+  pause:
+    prompt: "Enter the path to your servers CSV file"
+  register: servers_csv_path
+
+- name: Verify servers CSV file exists
+  stat:
+    path: "{{ servers_csv_path.user_input }}"
+  register: csv_file_check
+  failed_when: not csv_file_check.stat.exists
+
+- name: Confirmation prompt for power off
+  pause:
+    prompt: "WARNING: This will power off all servers in the CSV file. Are you sure? (yes/no)"
+  register: confirmation
+
+- name: Validate confirmation
+  fail:
+    msg: "Operation cancelled by user"
+  when: confirmation.user_input | lower not in ['yes', 'y']
+
+- name: Power off all servers
+  ucp_power_off:
+    servers_csv: "{{ servers_csv_path.user_input }}"
+    ilorest_path: "{{ ilorest_path | default('ilorest') }}"
+  register: power_off_result
+
+- name: Display power off results
+  debug:
+    msg: |
+      Power Off Results:
+      - Successfully powered off: {{ power_off_result.powered_off_servers | length }} servers
+      - Failed: {{ power_off_result.failed_servers | length }} servers
+      
+      Successful servers: {{ power_off_result.powered_off_servers | join(', ') }}
+      {% if power_off_result.failed_servers %}
+      Failed servers:
+      {% for failed in power_off_result.failed_servers %}
+      - {{ failed.ipaddress }}: {{ failed.error }}
+      {% endfor %}
+      {% endif %}
+
+- name: Log power off operation
+  lineinfile:
+    path: "{{ log_file }}"
+    line: "{{ ansible_date_time.iso8601 }} - INFO - Power Off completed: {{ power_off_result.powered_off_servers | length }} successful, {{ power_off_result.failed_servers | length }} failed"

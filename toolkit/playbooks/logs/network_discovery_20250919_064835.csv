@@ -1,0 +1,2 @@
+Server,IP Address,Vendor,Card Name,Manufacturer,Model,Part Number,Serial Number,Firmware,Port Count,MAC Address,Status
+server1,172.25.57.43,supermicro,Network Adapter 1,Supermicro,AOC-A25G-m2SM,AOC-A25G-m2SM,OA248S013835,26.41.1000 ,2,90:5A:08:03:69:44,SUCCESS

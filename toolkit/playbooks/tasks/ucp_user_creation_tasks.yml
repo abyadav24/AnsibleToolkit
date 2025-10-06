@@ -1,0 +1,72 @@
+---
+# Task file for UCP User Creation operations
+- name: Read servers CSV file path
+  pause:
+    prompt: "Enter the path to your servers CSV file"
+  register: servers_csv_path
+
+- name: Verify servers CSV file exists
+  stat:
+    path: "{{ servers_csv_path.user_input }}"
+  register: csv_file_check
+  failed_when: not csv_file_check.stat.exists
+
+- name: Get new username (optional, default: admin)
+  pause:
+    prompt: "Enter the new username (press Enter for default 'admin')"
+  register: new_username_input
+
+- name: Set username variable
+  set_fact:
+    new_username: "{{ new_username_input.user_input if new_username_input.user_input != '' else 'admin' }}"
+
+- name: Get new password (optional, default: cmb9.admin)
+  pause:
+    prompt: "Enter the new password (press Enter for default 'cmb9.admin')"
+    echo: no
+  register: new_password_input
+
+- name: Set password variable
+  set_fact:
+    new_password: "{{ new_password_input.user_input if new_password_input.user_input != '' else 'cmb9.admin' }}"
+
+- name: Get user role (optional, default: Administrator)
+  pause:
+    prompt: "Enter the user role (press Enter for default 'Administrator')"
+  register: user_role_input
+
+- name: Set role variable
+  set_fact:
+    user_role: "{{ user_role_input.user_input if user_role_input.user_input != '' else 'Administrator' }}"
+
+- name: Create admin users on all servers
+  ucp_user_creation:
+    servers_csv: "{{ servers_csv_path.user_input }}"
+    new_username: "{{ new_username }}"
+    new_password: "{{ new_password }}"
+    user_role: "{{ user_role }}"
+    ilorest_path: "{{ ilorest_path | default('ilorest') }}"
+  register: user_creation_result
+
+- name: Display user creation results
+  debug:
+    msg: |
+      User Creation Results:
+      - Successfully created users on: {{ user_creation_result.created_users | length }} servers
+      - Failed: {{ user_creation_result.failed_servers | length }} servers
+      
+      Username: {{ new_username }}
+      Role: {{ user_role }}
+      
+      Successful servers: {{ user_creation_result.created_users | join(', ') }}
+      {% if user_creation_result.failed_servers %}
+      Failed servers:
+      {% for failed in user_creation_result.failed_servers %}
+      - {{ failed.ipaddress }}: {{ failed.error }}
+      {% endfor %}
+      {% endif %}
+
+- name: Log user creation operation
+  lineinfile:
+    path: "{{ log_file }}"
+    line: "{{ ansible_date_time.iso8601 }} - INFO - User Creation completed: {{ user_creation_result.created_users | length }} successful, {{ user_creation_result.failed_servers | length }} failed"

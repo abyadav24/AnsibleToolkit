@@ -1,0 +1,52 @@
+# Network Device Discovery Report
+
+**Discovery Date:** {{ ansible_date_time.date }} {{ ansible_date_time.time }}
+**Discovery Type:** {{ discovery_type | default('Not specified') }}
+**User Selection:** Option {{ user_selection | default('N/A') }}
+
+## Summary
+- **Discovery Mode:** {{ discovery_type | default('Not specified') }}
+- **Total Servers Discovered:** {{ discovery_result.servers | length }}
+- **Total Switches Discovered:** {{ discovery_result.switches | length }}
+- **Total Devices Found:** {{ (discovery_result.servers | length) + (discovery_result.switches | length) }}
+
+---
+
+## Discovered Servers
+
+{% if discovery_result.servers | length > 0 %}
+```
+Type          | Host                               | Model                              | SKU        | Serial Number | Username | Password  
+--------------|------------------------------------|------------------------------------|------------|---------------|----------|----------
+{% for server in discovery_result.servers -%}
+{{ "%-13s" | format(server.type) }} | {{ "%-34s" | format(server.host) }} | {{ "%-34s" | format(server.model) }} | {{ "%-10s" | format(server.sku) }} | {{ "%-13s" | format(server.serial_number) }} | {{ "%-8s" | format(server.username) }} | {{ server.password }}
+{% endfor -%}
+```
+{% else %}
+No servers discovered.
+{% endif %}
+
+---
+
+## Discovered Switches
+
+{% if discovery_result.switches | length > 0 %}
+```
+Type          | Host                               | Model                              | Username | Password  
+--------------|------------------------------------|------------------------------------|-----------|-----------
+{% for switch in discovery_result.switches -%}
+{{ "%-13s" | format(switch.type) }} | {{ "%-34s" | format(switch.host) }} | {{ "%-34s" | format(switch.model) }} | {{ "%-8s" | format(switch.username) }} | {{ switch.password }}
+{% endfor -%}
+```
+{% else %}
+No switches discovered.
+{% endif %}
+
+---
+
+## Discovery Notes
+
+- Discovery performed using IPv6 link-local addressing
+- Only GET operations were performed - no configuration changes made
+- Authentication was tested with provided credentials
+- Results saved to CSV files for further processing

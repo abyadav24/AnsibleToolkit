@@ -1,0 +1,64 @@
+- name: Update BMC and BIOS for Supermicro Servers (Parallel Processing)
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - version_config.yaml
+  tasks:
+    - name: Load version configuration
+      include_vars: version_config.yaml
+
+    - name: Ensure working directory exists
+      file:
+        path: "{{ settings.temp_path }}"
+        state: directory
+        mode: '0755'
+
+    - name: Read server details from CSV file
+      read_csv:
+        path: "{{ settings.servers_csv_path }}"
+      register: server_list
+
+    - name: Check if mounted directory exists
+      stat:
+        path: "{{ settings.mounted_path }}"
+      register: mounted_dir
+
+    - name: Fail if mounted directory doesn't exist
+      fail:
+        msg: "Mounted directory {{ settings.mounted_path }} not found!"
+      when: not mounted_dir.stat.exists
+
+    - name: Get current firmware versions for all servers (parallel)
+      async: 300
+      poll: 0
+      shell: |
+        echo "=== Server {{ item.hostname }} ({{ item.ipv4 }}) ===" >> {{ settings.log_file }}
+        echo "Getting BIOS Info..." >> {{ settings.log_file }}
+        {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBiosInfo >> {{ settings.log_file }} 2>&1
+        echo "Getting BMC Info..." >> {{ settings.log_file }}
+        {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBmcInfo >> {{ settings.log_file }} 2>&1
+      loop: "{{ server_list.list }}"
+      register: version_check_jobs
+
+    - name: Wait for version checks to complete
+      async_status:
+        jid: "{{ item.ansible_job_id }}"
+      loop: "{{ version_check_jobs.results }}"
+      register: version_check_results
+      until: version_check_results.finished
+      retries: 30
+      delay: 10
+
+    - name: Process firmware updates for all servers (parallel)
+      include_tasks: firmware_update_single_server.yaml
+      vars:
+        server_info: "{{ item }}"
+        server_config: "{{ version_config.servers[item.vendor][item.model] | default({}) }}"
+        io_config: "{{ version_config.io_cards | default({}) }}"
+      loop: "{{ server_list.list }}"
+      when: version_config.servers[item.vendor][item.model] is defined
+
+    - name: Display completion summary
+      debug:
+        msg: "Firmware update process completed for all servers. Check {{ settings.log_file }} for detailed logs."
+

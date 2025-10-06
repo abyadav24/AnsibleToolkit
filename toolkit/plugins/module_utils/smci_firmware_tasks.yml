@@ -1,0 +1,208 @@
+---
+# SMC Firmware Update Tasks
+- name: "Log firmware update start"
+  shell: |
+    echo "=== Processing {{ item.hostname }} ({{ item.model }}) ===" >> {{ firmware_log_file }}
+    echo "Server IP: {{ item.ipv4 }}" >> {{ firmware_log_file }}
+    echo "=== Processing {{ item.hostname }} ({{ item.model }}) ===" >> {{ saa_module_log_file }}
+    echo "Server IP: {{ item.ipv4 }}" >> {{ saa_module_log_file }}
+
+- name: "Set firmware file paths"
+  set_fact:
+    bios_file_path: "//mnt/ansibletoolkitMediakit/firmware_mount/SMCI/Firmware/BIOS/{{ version_config.servers.supermicro[item.model].firmware_files.bios }}"
+    bmc_file_path: "//mnt/ansibletoolkitMediakit/firmware_mount/SMCI/Firmware/BMC/{{ version_config.servers.supermicro[item.model].firmware_files.bmc }}"
+    temp_extract_path: "{{ settings.temp_path }}/{{ item.hostname }}_{{ item.model }}"
+
+- name: "Create extraction directory"
+  file:
+    path: "{{ temp_extract_path }}"
+    state: directory
+    mode: '0755'
+    recurse: yes
+
+- name: "Extract BIOS firmware"
+  shell: |
+    cd {{ temp_extract_path }}
+    unzip -o "{{ bios_file_path }}" >> {{ firmware_log_file }} 2>&1
+  register: bios_extract_result
+  ignore_errors: yes
+
+- name: "Extract BMC firmware"
+  shell: |
+    cd {{ temp_extract_path }}
+    unzip -o "{{ bmc_file_path }}" >> {{ firmware_log_file }} 2>&1
+  register: bmc_extract_result
+  ignore_errors: yes
+
+- name: "Set executable permissions on extracted files"
+  shell: "find {{ temp_extract_path }} -type f -exec chmod 755 {} \\;"
+
+- name: "Get current BIOS version"
+  shell: |
+    echo "Getting current BIOS info for {{ item.hostname }}..." >> {{ firmware_log_file }}
+    echo "Getting current BIOS info for {{ item.hostname }}..." >> {{ saa_module_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBiosInfo >> {{ saa_module_log_file }} 2>&1
+  register: current_bios_info
+  ignore_errors: yes
+
+- name: "Get current BMC version"
+  shell: |
+    echo "Getting current BMC info for {{ item.hostname }}..." >> {{ firmware_log_file }}
+    echo "Getting current BMC info for {{ item.hostname }}..." >> {{ saa_module_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBmcInfo >> {{ saa_module_log_file }} 2>&1
+  register: current_bmc_info
+  ignore_errors: yes
+
+- name: "Find BIOS binary file"
+  find:
+    paths: "{{ temp_extract_path }}"
+    patterns: "*BIOS*.bin"
+    recurse: yes
+  register: bios_binary_files
+
+- name: "Update BIOS"
+  shell: |
+    echo "Starting BIOS update for {{ item.hostname }}..." >> {{ firmware_log_file }}
+    echo "Starting BIOS update for {{ item.hostname }}..." >> {{ saa_module_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c UpdateBios --file {{ bios_binary_files.files[0].path }} >> {{ saa_module_log_file }} 2>&1
+  register: bios_update_result
+  ignore_errors: yes
+  when: 
+    - bios_binary_files.files | length > 0
+    - not (firmware_skip_bios | default(false) | bool)
+
+- name: "Skip BIOS update (disabled in toolkit_config)"
+  shell: |
+    echo "SKIPPING BIOS update for {{ item.hostname }} - disabled in toolkit_config.json" >> {{ firmware_log_file }}
+    echo "SKIPPING BIOS update for {{ item.hostname }} - disabled in toolkit_config.json" >> {{ saa_module_log_file }}
+  when: firmware_skip_bios | default(false) | bool
+
+- name: "Find BMC binary file"
+  find:
+    paths: "{{ temp_extract_path }}"
+    patterns: "*BMC*.bin"
+    recurse: yes
+  register: bmc_binary_files
+
+- name: "Update BMC"
+  shell: |
+    echo "Starting BMC update for {{ item.hostname }}..." >> {{ firmware_log_file }}
+    echo "Starting BMC update for {{ item.hostname }}..." >> {{ saa_module_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c UpdateBmc --file {{ bmc_binary_files.files[0].path }} >> {{ saa_module_log_file }} 2>&1
+  register: bmc_update_result
+  ignore_errors: yes
+  when: 
+    - bmc_binary_files.files | length > 0
+    - not (firmware_skip_bmc | default(false) | bool)
+
+- name: "Skip BMC update (disabled in toolkit_config)"
+  shell: |
+    echo "SKIPPING BMC update for {{ item.hostname }} - disabled in toolkit_config.json" >> {{ firmware_log_file }}
+    echo "SKIPPING BMC update for {{ item.hostname }} - disabled in toolkit_config.json" >> {{ saa_module_log_file }}
+  when: firmware_skip_bmc | default(false) | bool
+
+- name: "Check if virtual media is already mounted"
+  shell: |
+    echo "Checking virtual media status for {{ item.hostname }}..." >> {{ firmware_log_file }}
+    echo "Checking virtual media status for {{ item.hostname }}..." >> {{ saa_module_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c VmManage --action 4 --dev_id 1 >> {{ saa_module_log_file }} 2>&1 || echo "No virtual media to unmount" >> {{ saa_module_log_file }}
+  register: vm_status_check
+  ignore_errors: yes
+  when: not skip_pcie
+
+- name: "Unmount any existing virtual media"
+  shell: |
+    echo "Unmounting existing virtual media for {{ item.hostname }}..." >> {{ saa_module_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c VmManage --action 4 --dev_id 1 >> {{ saa_module_log_file }} 2>&1
+  register: vm_unmount_result
+  ignore_errors: yes
+  when: not skip_pcie
+
+- name: "Mount SMC NIC flashing ISO"
+  shell: |
+    echo "Mounting SMC NIC flashing ISO for {{ item.hostname }}..." >> {{ saa_module_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c VmManage --action 3 --image_url '{{ settings.nic_flashing_iso_url }}' --id tmp --dev_id 1 >> {{ saa_module_log_file }} 2>&1
+  register: vm_mount_result
+  ignore_errors: yes
+  when: not skip_pcie
+
+- name: "Wait for ISO mount to complete"
+  pause:
+    seconds: 10
+  when: not skip_pcie
+
+- name: "Set boot device to UEFI ISO and reboot"
+  shell: |
+    echo "Setting boot device to UEFI ISO Image and rebooting {{ item.hostname }}..." >> {{ saa_module_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c SetBootOption --device_type 13 --action reset --post_complete >> {{ saa_module_log_file }} 2>&1
+  register: boot_and_reboot_result
+  ignore_errors: yes
+  when: not skip_pcie
+
+- name: "Wait for server to boot from ISO"
+  pause:
+    seconds: 180
+    prompt: "Waiting for {{ item.hostname }} to boot from ISO and complete POST (180 seconds)..."
+  when: not skip_pcie
+
+- name: "Update SMC NIC via IPMI SOL connection"
+  shell: |
+    echo "Starting SMC NIC update via IPMI SOL for {{ item.hostname }}..." >> {{ firmware_log_file }}
+    echo "Starting SMC NIC update via IPMI SOL for {{ item.hostname }}..." >> {{ saa_module_log_file }}
+    # Create dynamic expect script with server IP
+    sed "s/172\.25\.57\.43/{{ item.ipv4 }}/g; s/ADMIN1/{{ item.username }}/g; s/cmb9\.admin/{{ item.password }}/g" /home/ubuntu/smci/ansible-toolkit/toolkit/plugins/module_utils/flash-ipmi_SMCInic_run.sh > /tmp/flash_nic_{{ item.hostname }}.exp
+    chmod +x /tmp/flash_nic_{{ item.hostname }}.exp
+    echo "Executing NIC flashing script for {{ item.hostname }}..." >> {{ firmware_log_file }}
+    echo "Executing NIC flashing script for {{ item.hostname }}..." >> {{ saa_module_log_file }}
+    /tmp/flash_nic_{{ item.hostname }}.exp >> {{ saa_module_log_file }} 2>&1
+    echo "NIC flashing script completed for {{ item.hostname }}" >> {{ firmware_log_file }}
+    echo "NIC flashing script completed for {{ item.hostname }}" >> {{ saa_module_log_file }}
+  register: smci_nic_update_result
+  ignore_errors: yes
+  when: not skip_pcie
+
+- name: "Wait for NIC flashing to complete"
+  pause:
+    seconds: 60
+  when: not skip_pcie
+
+- name: "Unmount ISO after NIC update"
+  shell: |
+    echo "Unmounting ISO after NIC update for {{ item.hostname }}..." >> {{ saa_module_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c VmManage --action Unmount --dev_id 1 >> {{ saa_module_log_file }} 2>&1
+  register: vm_unmount_final
+  ignore_errors: yes
+  when: not skip_pcie
+
+- name: "Final reboot to return to normal OS"
+  shell: |
+    echo "Final reboot of {{ item.hostname }} to return to normal OS..." >> {{ saa_module_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c SetPowerAction --action Reset >> {{ saa_module_log_file }} 2>&1
+  register: final_reboot_result
+  ignore_errors: yes
+  when: not skip_pcie
+
+- name: "Wait for server to return to normal operation"
+  pause:
+    seconds: 180
+    prompt: "Waiting for {{ item.hostname }} to return to normal operation (180 seconds)..."
+  when: not skip_pcie
+
+- name: "Cleanup extraction directory"
+  file:
+    path: "{{ temp_extract_path }}"
+    state: absent
+
+- name: "Cleanup temporary expect script"
+  file:
+    path: "/tmp/flash_nic_{{ item.hostname }}.exp"
+    state: absent
+  when: not skip_pcie
+
+- name: "Display completion message"
+  debug:
+    msg: |
+      Firmware update completed for {{ item.hostname }}:
+      - BMC: {{ 'Skipped' if skip_bmc else 'Updated' }}
+      - BIOS: {{ 'Skipped' if skip_bios else 'Updated' }}  
+      - PCIe/NIC: {{ 'Skipped' if skip_pcie else 'Updated' }}

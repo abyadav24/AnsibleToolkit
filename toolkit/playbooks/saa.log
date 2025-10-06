@@ -1,0 +1,74 @@
+2025-09-15_01:53:31    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i N/A -u ***** -p ***** -c GetBiosInfo
+2025-09-15_01:53:32    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i N/A -u ***** -p ***** -c GetBmcInfo
+2025-09-15_01:53:34    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i N/A -u ***** -p ***** -c UpdateBios --file /tmp/firmware_update/172.25.57.43_X14DBM-SP/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp.bin
+2025-09-15_01:53:35    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i N/A -u ***** -p ***** -c UpdateBmc --file /tmp/firmware_update/172.25.57.43_X14DBM-SP/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.bin
+2025-09-15_01:53:36    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i N/A -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-15_01:53:37    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i N/A -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-15_01:53:38    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i N/A -u ***** -p ***** -c VmManage --image_url http://10.76.32.27/minios-smci_March10_2025.iso --id ***** --dev_id 1 --action 3
+2025-09-15_01:53:49    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i N/A -u ***** -p ***** -c SetBootOption --action reset --post_complete  --device_type 13
+2025-09-15_01:54:05    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i N/A -u ***** -p ***** -c VmManage --dev_id 1 --action Unmount
+2025-09-15_01:54:06    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i N/A -u ***** -p ***** -c SetPowerAction --action Reset
+2025-09-15_01:57:14    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBiosInfo
+2025-09-15_01:57:18    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBmcInfo
+2025-09-15_01:57:23    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c UpdateBios --file /tmp/firmware_update/server1_X14DBM-SP/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp.bin
+2025-09-15_02:03:09    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c UpdateBmc --file /tmp/firmware_update/server1_X14DBM-SP/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.bin
+2025-09-15_02:07:03    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-15_02:07:19    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-15_02:07:23    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --image_url http://10.76.32.27/minios-smci_March10_2025.iso --id ***** --dev_id 1 --action 3
+2025-09-15_02:07:38    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetBootOption --action reset --post_complete  --device_type 13
+2025-09-15_02:49:09    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBiosInfo
+2025-09-15_02:49:13    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBmcInfo
+2025-09-15_02:49:18    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c UpdateBios --file /tmp/firmware_update/server1_X14DBM-SP/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp.bin
+2025-09-15_02:54:59    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c UpdateBmc --file /tmp/firmware_update/server1_X14DBM-SP/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.bin
+2025-09-15_02:58:52    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-15_02:59:07    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-15_02:59:11    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --image_url http://10.76.32.27/minios-smci_March10_2025.iso --id ***** --dev_id 1 --action 3
+2025-09-15_02:59:26    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetBootOption --action reset --post_complete  --device_type 13
+2025-09-15_03:07:24    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action Unmount
+2025-09-15_03:07:28    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetPowerAction --action Reset
+2025-09-15_03:15:49    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBiosInfo
+2025-09-15_03:15:53    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBmcInfo
+2025-09-15_03:15:59    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-15_03:16:03    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-15_03:16:07    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --image_url http://10.76.32.27/minios-smci_March10_2025.iso --id ***** --dev_id 1 --action 3
+2025-09-15_03:16:22    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetBootOption --action reset --post_complete  --device_type 13
+2025-09-15_03:23:06    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action Unmount
+2025-09-15_03:23:11    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetPowerAction --action Reset
+2025-09-15_03:41:30    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBiosInfo
+2025-09-15_03:41:35    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBmcInfo
+2025-09-15_03:41:42    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-15_03:41:47    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-15_03:41:51    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --image_url http://10.76.32.27/minios-smci_March10_2025.iso --id ***** --dev_id 1 --action 3
+2025-09-15_03:42:06    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetBootOption --action reset --post_complete  --device_type 13
+2025-09-15_03:51:41    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action Unmount
+2025-09-15_03:51:45    root    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetPowerAction --action Reset
+2025-09-15_06:56:58    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetSystemInfo
+2025-09-19_04:28:14    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBiosInfo
+2025-09-19_04:28:18    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBmcInfo
+2025-09-19_04:28:23    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c UpdateBios --file /tmp/firmware_update/server1_X14DBM-SP/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp.bin
+2025-09-19_04:33:57    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c UpdateBmc --file /tmp/firmware_update/server1_X14DBM-SP/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.bin
+2025-09-19_04:37:46    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-19_04:38:01    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-19_04:38:05    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --image_url http://10.76.32.27/minios-smci_March10_2025.iso --id ***** --dev_id 1 --action 3
+2025-09-19_04:38:20    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetBootOption --action reset --post_complete  --device_type 13
+2025-09-19_04:49:38    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action Unmount
+2025-09-19_04:49:43    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetPowerAction --action Reset
+2025-09-19_06:13:22    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBiosInfo
+2025-09-19_06:13:26    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBmcInfo
+2025-09-19_06:13:31    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c UpdateBios --file /tmp/firmware_update/server1_X14DBM-SP/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp.bin
+2025-09-19_06:19:12    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c UpdateBmc --file /tmp/firmware_update/server1_X14DBM-SP/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.bin
+2025-09-19_06:23:06    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-19_06:23:21    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-19_06:23:25    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --image_url http://10.76.32.27/minios-smci_March10_2025.iso --id ***** --dev_id 1 --action 3
+2025-09-19_06:23:40    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetBootOption --action reset --post_complete  --device_type 13
+2025-09-19_06:28:05    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action Unmount
+2025-09-19_06:29:01    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetPowerAction --action Reset
+2025-09-19_06:30:36    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBiosInfo
+2025-09-19_06:30:39    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetBmcInfo
+2025-09-19_06:30:47    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-19_06:30:50    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action 4
+2025-09-19_06:30:53    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --image_url http://10.76.32.27/minios-smci_March10_2025.iso --id ***** --dev_id 1 --action 3
+2025-09-19_06:31:08    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetBootOption --action reset --post_complete  --device_type 13
+2025-09-19_06:42:26    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c VmManage --dev_id 1 --action Unmount
+2025-09-19_06:42:31    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c SetPowerAction --action Reset
+2025-09-19_06:46:12    ubuntu    /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i 172.25.57.43 -u ***** -p ***** -c GetSystemInfo

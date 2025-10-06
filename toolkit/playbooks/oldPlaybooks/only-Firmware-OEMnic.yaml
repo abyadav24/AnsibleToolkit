@@ -1,0 +1,90 @@
+- name: Update BMC and BIOS for Supermicro Servers
+  hosts: localhost
+  tasks:
+    - name: Ensure the download directory exists
+      file:
+        path: /tmp/supermicro
+        state: directory
+
+    - name: Download BMC and BIOS update package
+      get_url:
+        url: https://www.supermicro.com/Bios/softfiles/23369/X13DET-B_2.5_X1.03.33_SUM2.14.0.zip
+        dest: /tmp/supermicro/X13DET-B_2.5_X1.03.33_SUM2.14.0.zip
+
+    - name: Extract the BMC and BIOS update package
+      unarchive:
+        src: /tmp/supermicro/X13DET-B_2.5_X1.03.33_SUM2.14.0.zip
+        dest: /tmp/supermicro/
+
+    - name: Change permissions for the zip file
+      command: chmod 755 /tmp/supermicro/X13DET-B_2.5_X1.03.33_SUM2.14.0.zip
+
+    - name: Define unzip variables
+      set_fact:
+        unzip_main: "unzip -o /tmp/supermicro/X13DET-B_2.5_X1.03.33_SUM2.14.0.zip -d /tmp/supermicro/X13DET-B_2.5_X1.03.33_SUM2.14.0"
+        unzip_bios: "unzip -o /tmp/supermicro/X13DET-B_2.5_X1.03.33_SUM2.14.0/BIOS_X13DETB-1C77_20241114_2.5_STDsp.zip -d /tmp/supermicro"
+        unzip_bmc: "unzip -o /tmp/supermicro/X13DET-B_2.5_X1.03.33_SUM2.14.0/BMC_X13AST2600-ROT20-D301MS_20241102_01.03.33_STDsp.zip -d /tmp/supermicro"
+
+    - name: Unzip the main package
+      shell: "{{ unzip_main }} >> /tmp/logfileSMC.txt 2>&1"
+
+    - name: Unzip the BIOS update package
+      shell: "{{ unzip_bios }} >> /tmp/logfileSMC.txt 2>&1"
+
+    - name: Unzip the BMC update package
+      shell: "{{ unzip_bmc }} >> /tmp/logfileSMC.txt 2>&1"
+
+    - name: Change permissions for all files in the directory recursively
+      command: find /tmp/supermicro -type f -exec chmod 755 {} \;
+
+    - name: Read server details from CSV file
+      read_csv:
+  path: /home/ubuntu/smci/ansible-toolkit/toolkit/config/smci-server.csv
+      register: server_list
+
+    - name: Get BIOS info for each server
+      with_items: "{{ server_list.list }}"
+      shell: /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBiosInfo
+
+    - name: Display in progress message
+      debug:
+        msg: "Please wait....work is in progress in background"
+
+    #- name: Update BIOS for each server
+    #  with_items: "{{ server_list.list }}"
+    #  shell: /home/ubuntu/smci/saa_1.2.0_Linux_x86_64/saa -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c UpdateBios --file #/tmp/supermicro/BIOS_X13DETB-1C77_20241114_2.5_STDsp/BIOS_X13DETB-1C77_20241114_2.5_STDsp.bin >> /tmp/logfileSMC.txt 2>&1                           
+  #  - name: Display completion message
+   #   debug:
+   #     msg: "Update BIOS execution completed"
+
+    - name: Get BMC info for each server
+      with_items: "{{ server_list.list }}"
+      shell: /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBmcInfo
+
+    - name: Display in progress message
+      debug:
+        msg: "Please wait...In progress"
+
+ #   - name: Update BMC for each server
+ #     with_items: "{{ server_list.list }}"
+ #     shell: /home/ubuntu/smci/saa_1.2.0_Linux_x86_64/saa -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c UpdateBmc --file #/tmp/supermicro/BMC_X13AST2600-ROT20-D301MS_20241102_01.03.33_STDsp/BMC_X13AST2600-ROT20-D301MS_20241102_01.03.33_STDsp.bin >> /tmp/logfileSMC.txt 2>&1
+ #   - name: Display completion message
+ #     debug:
+ #       msg: "Update BMC execution completed"
+
+    - name: Run OEM Card Flash
+      shell: "/home/ubuntu/smci/ansible-toolkit/toolkit/playbooks/flash-ipmi_OEMnic_run.sh >> /tmp/logfileSMC.txt 2>&1" 
+      register: script_output
+
+    - name: Display script output
+      debug:
+        var: script_output.stdout
+
+    - name: Remove files inside /tmp/supermicro
+      command: "find /tmp/supermicro -mindepth 1 -delete"
+
+    - name: Completed Tasks
+      debug:
+        msg: "Download, extraction, permission changes, and update completed successfully. Check /tmp/logfileSMC.txt for logs."
+
+

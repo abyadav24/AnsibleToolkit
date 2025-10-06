@@ -1,0 +1,122 @@
+---
+# Task file for UCP BIOS Save operations
+- name: Choose input method
+  pause:
+    prompt: |
+      How would you like to provide server details?
+      
+      1. Single server (manual input)
+      2. Multiple servers (CSV file)
+      
+      Please select one (1 or 2)
+  register: input_method
+
+- name: Validate input method
+  fail:
+    msg: "Invalid selection. Please enter 1 or 2."
+  when: input_method.user_input not in ['1', '2']
+
+# Single server input
+- block:
+    - name: Get iLO IP address
+      pause:
+        prompt: "Enter the IPv4 or [IPv6] of the iLO (For IPv6 use square brackets [IPv6])"
+      register: ilo_ip_input
+
+    - name: Get iLO username
+      pause:
+        prompt: "Enter the Username of the iLO"
+      register: ilo_username_input
+
+    - name: Get iLO password
+      pause:
+        prompt: "Enter the Password of the iLO"
+        echo: no
+      register: ilo_password_input
+
+    - name: Validate single server inputs
+      fail:
+        msg: "All iLO details are required"
+      when: ilo_ip_input.user_input == '' or ilo_username_input.user_input == '' or ilo_password_input.user_input == ''
+
+  when: input_method.user_input == '1'
+
+# Multiple servers input
+- block:
+    - name: Get servers CSV file path
+      pause:
+        prompt: "Enter the path to your servers CSV file"
+      register: servers_csv_input
+
+    - name: Verify servers CSV file exists
+      stat:
+        path: "{{ servers_csv_input.user_input }}"
+      register: csv_file_check
+      failed_when: not csv_file_check.stat.exists
+
+  when: input_method.user_input == '2'
+
+- name: Get output directory
+  pause:
+    prompt: "Enter directory to save BIOS configuration files (press Enter for current directory)"
+  register: output_dir_input
+
+- name: Set output directory
+  set_fact:
+    output_directory: "{{ output_dir_input.user_input if output_dir_input.user_input != '' else '.' }}"
+
+- name: Create output directory if needed
+  file:
+    path: "{{ output_directory }}"
+    state: directory
+    mode: '0755'
+
+# Save BIOS configuration - Single server
+- name: Save BIOS configuration from single server
+  ucp_bios_save:
+    ilo_ip: "{{ ilo_ip_input.user_input }}"
+    ilo_username: "{{ ilo_username_input.user_input }}"
+    ilo_password: "{{ ilo_password_input.user_input }}"
+    output_directory: "{{ output_directory }}"
+    ilorest_path: "{{ ilorest_path | default('ilorest') }}"
+  register: bios_save_result
+  when: input_method.user_input == '1'
+
+# Save BIOS configuration - Multiple servers
+- name: Save BIOS configuration from multiple servers
+  ucp_bios_save:
+    servers_csv: "{{ servers_csv_input.user_input }}"
+    output_directory: "{{ output_directory }}"
+    ilorest_path: "{{ ilorest_path | default('ilorest') }}"
+  register: bios_save_result
+  when: input_method.user_input == '2'
+
+- name: Display BIOS save results
+  debug:
+    msg: |
+      BIOS Save Results:
+      - Successfully saved BIOS from: {{ bios_save_result.saved_configs | length }} servers
+      - Failed: {{ bios_save_result.failed_servers | length }} servers
+      
+      Output Directory: {{ output_directory }}
+      
+      Successful servers: {{ bios_save_result.saved_configs | join(', ') }}
+      
+      {% if bios_save_result.config_files %}
+      Configuration Files Created:
+      {% for file in bios_save_result.config_files %}
+      - {{ file }}
+      {% endfor %}
+      {% endif %}
+      
+      {% if bios_save_result.failed_servers %}
+      Failed servers:
+      {% for failed in bios_save_result.failed_servers %}
+      - {{ failed.ipaddress }}: {{ failed.error }}
+      {% endfor %}
+      {% endif %}
+
+- name: Log BIOS save operation
+  lineinfile:
+    path: "{{ log_file }}"
+    line: "{{ ansible_date_time.iso8601 }} - INFO - BIOS Save completed: {{ bios_save_result.saved_configs | length }} successful, {{ bios_save_result.failed_servers | length }} failed"

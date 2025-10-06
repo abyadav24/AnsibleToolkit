@@ -1,0 +1,92 @@
+- name: Update BMC and BIOS for Supermicro Servers
+  hosts: localhost
+  tasks:
+    - name: Ensure the download directory exists
+      file:
+        path: /tmp/supermicro
+        state: directory
+
+    - name: Download BMC and BIOS update package
+      get_url:
+        url: https://www.supermicro.com/Bios/softfiles/23101/X14DBT-B_1.0b_1.00.21.12_SAA1.1.0-p5.zip
+        dest: /tmp/supermicro/X14DBT-B_1.0b_1.00.21.12_SAA1.1.0-p5.zip
+
+    - name: Extract the BMC and BIOS update package
+      unarchive:
+        src: /tmp/supermicro/X14DBT-B_1.0b_1.00.21.12_SAA1.1.0-p5.zip
+        dest: /tmp/supermicro/
+
+    - name: Change permissions for the zip file
+      command: chmod 755 /tmp/supermicro/X14DBT-B_1.0b_1.00.21.12_SAA1.1.0-p5.zip
+
+    - name: Define unzip variables and unzip the files...
+      set_fact:
+        unzip_main: "unzip -o /tmp/supermicro/X14DBT-B_1.0b_1.00.21.12_SAA1.1.0-p5.zip -d /tmp/supermicro/X14DBT-B_1.0b_1.00.21.12_SAA1.1.0-p5"
+        unzip_bios: "unzip -o /tmp/supermicro/X14DBT-B_1.0b_1.00.21.12_SAA1.1.0-p5/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp.zip -d /tmp/supermicro"
+        unzip_bmc: "unzip -o /tmp/supermicro/X14DBT-B_1.0b_1.00.21.12_SAA1.1.0-p5/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.zip -d /tmp/supermicro"
+
+    - name: Unzip the main parent package...
+      shell: "{{ unzip_main }} >> /tmp/logfileSMC.txt 2>&1"
+
+    - name: Unzip the BIOS update package...
+      shell: "{{ unzip_bios }} >> /tmp/logfileSMC.txt 2>&1"
+
+    - name: Unzip the BMC update package...
+      shell: "{{ unzip_bmc }} >> /tmp/logfileSMC.txt 2>&1"
+
+    - name: Change permissions for all files in the directory recursively
+      command: find /tmp/supermicro -type f -exec chmod 755 {} \;
+
+    - name: Read server details from CSV file...
+      read_csv:
+  path: /home/ubuntu/smci/ansible-toolkit/toolkit/config/smci-server.csv
+      register: server_list
+
+    - name: Get BIOS info for each server...
+      with_items: "{{ server_list.list }}"
+      shell: /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBiosInfo
+      register: bios_info
+      ignore_errors: yes
+
+    - name: Display in progress message
+      debug:
+        msg: "Please wait....work is in progress..."
+
+    - name: Update BIOS for each server
+      with_items: "{{ server_list.list }}"
+      shell: /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c UpdateBios --file /tmp/supermicro/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp/BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp.bin >> /tmp/logfileSMC.txt 2>&1
+
+    - name: Display completion message
+      debug:
+        msg: "Update BIOS execution completed"
+
+    - name: Get BMC info for each server
+      with_items: "{{ server_list.list }}"
+      shell: /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBmcInfo
+
+    - name: Display in progress message
+      debug:
+        msg: "Please wait... Work In progress"
+
+    - name: Update BMC for each server
+      with_items: "{{ server_list.list }}"
+      shell: /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c UpdateBmc --file /tmp/supermicro/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp/BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.bin >> /tmp/logfileSMC.txt 2>&1
+
+    - name: Display completion message
+      debug:
+        msg: "Update BMC execution completed"
+
+
+    #- name: Remove temporary files
+    #  file:
+    #    path: /tmp/supermicro
+    #    state: absent
+
+    - name: Remove files inside /tmp/supermicro
+      #command: "find /tmp/supermicro -type f -delete"
+      command: "find /tmp/supermicro -mindepth 1 -delete"
+    - name: Completed Tasks
+      debug:
+        msg: "Download, extraction, permission changes, and update completed successfully. Check /tmp/logfileSMC.txt for logs."
+
+

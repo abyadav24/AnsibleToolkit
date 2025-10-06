@@ -1,0 +1,34 @@
+---
+# IO Card Firmware Update Playbook
+- name: Update IO Card Firmware for All Servers
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - version_config.yaml
+  tasks:
+    - name: Load configuration
+      include_vars: version_config.yaml
+
+    - name: Read server details from CSV file
+      read_csv:
+        path: "{{ settings.servers_csv_path }}"
+      register: server_list
+
+    - name: Initialize IO card update log
+      shell: |
+        echo "=== IO Card Firmware Update Started: $(date) ===" >> {{ settings.log_file }}
+        echo "Processing {{ server_list.list | length }} servers for IO card updates" >> {{ settings.log_file }}
+
+    - name: Process IO card updates for each server
+      include_tasks: io_card_update_single_server.yaml
+      vars:
+        server_info: "{{ item }}"
+        io_config: "{{ version_config.io_cards | default({}) }}"
+      loop: "{{ server_list.list }}"
+      when: 
+        - item.io_cards is defined 
+        - item.io_cards != ""
+
+    - name: Display IO card update completion
+      debug:
+        msg: "IO card firmware updates completed for all applicable servers. Check {{ settings.log_file }} for details."

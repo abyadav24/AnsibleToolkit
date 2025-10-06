@@ -1,0 +1,95 @@
+---
+# Version management configuration for multiple server vendors
+version_config:
+  # Server configurations organized by vendor and model
+  servers:
+    supermicro:
+      X13DET-B:
+        current_version:
+          bios: "2.5"
+          bmc: "01.03.33"
+        firmware_files:
+          bios: "BIOS_X13DETB-1C77_20241114_2.5_STDsp.zip"
+          bmc: "BMC_X13AST2600-ROT20-D301MS_20241102_01.03.33_STDsp.zip"
+        supported_io_cards:
+          - "ConnectX-6"
+          - "Mellanox-25G"
+      
+      X14DBM-SP:
+        current_version:
+          bios: "1.2"
+          bmc: "01.00.21.31"
+        firmware_files:
+          bios: "BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp.zip"
+          bmc: "BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.zip"
+        supported_io_cards:
+          - "ConnectX-6"
+          - "Mellanox-25G"
+    
+    ha:
+      # HA server models will go here
+      HA-SERVER-MODEL1:
+        current_version:
+          bios: "1.0"
+          bmc: "01.00.00.01"
+        firmware_files:
+          bios: "HA_BIOS_example.zip"
+          bmc: "HA_BMC_example.zip"
+        supported_io_cards:
+          - "Intel-X710"
+    
+    quanta:
+      # Quanta server models will go here
+      QUANTA-MODEL1:
+        current_version:
+          bios: "1.0"
+          bmc: "01.00.00.01"
+        firmware_files:
+          bios: "QUANTA_BIOS_example.zip"
+          bmc: "QUANTA_BMC_example.zip"
+        supported_io_cards:
+          - "Broadcom-BCM"
+
+  # IO Card firmware configurations at same level as servers
+  io_cards:
+    mellanox:
+      ConnectX-6:
+        current_version: "26.41.1000"
+        firmware_file: "A25GM2S_20240605_26-41-1000_NUP.zip"
+        supported_servers:
+          - "X13DET-B"
+          - "X14DBM-SP"
+        update_tool: "mft"
+      
+      Mellanox-25G:
+        current_version: "26.35.2000"
+        firmware_file: "ConnectX6Lx-rel-26_35_2000.bin"
+        supported_servers:
+          - "X13DET-B"
+          - "X14DBM-SP"
+        update_tool: "mft"
+    
+    intel:
+      X710:
+        current_version: "8.15"
+        firmware_file: "Intel_X710_8_15.bin"
+        supported_servers:
+          - "HA-SERVER-MODEL1"
+        update_tool: "nvmupdate"
+    
+    broadcom:
+      BCM57416:
+        current_version: "214.0.308.0"
+        firmware_file: "BCM57416_214_0_308_0.pkg"
+        supported_servers:
+          - "QUANTA-MODEL1"
+        update_tool: "bnxtnvm"
+
+# General settings
+settings:
+  mounted_path: "/SMCI/Mounted/MediaKit"
+  temp_path: "/tmp/firmware_update"
+  log_file: "/tmp/firmware_update.log"
+  saa_tool_path: "/home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa"
+  servers_csv_path: "/home/ubuntu/smci/ansible-toolkit/toolkit/playbooks/servers.csv"
+  nic_flashing_iso_url: "http://10.76.32.27/minios-smci_March10_2025.iso"

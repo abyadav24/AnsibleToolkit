@@ -1,0 +1,93 @@
+---
+# Task file for UCP BIOS Load operations
+- name: Read servers CSV file path
+  pause:
+    prompt: "Enter the path to your servers CSV file (must include ipaddress, username, password, model columns)"
+  register: servers_csv_path
+
+- name: Verify servers CSV file exists
+  stat:
+    path: "{{ servers_csv_path.user_input }}"
+  register: csv_file_check
+  failed_when: not csv_file_check.stat.exists
+
+- name: Select solution type
+  pause:
+    prompt: |
+      What solution are you working on?
+      
+      1. UCP VMware
+      2. Azure Stack HCI
+      
+      Please select one (1 or 2)
+  register: solution_type_input
+
+- name: Validate solution type
+  fail:
+    msg: "Invalid selection. Please enter 1 or 2."
+  when: solution_type_input.user_input not in ['1', '2']
+
+- name: Get BIOS templates directory (optional)
+  pause:
+    prompt: "Enter path to BIOS templates directory (press Enter for default './HA-G2-G3BiosTemplates')"
+  register: templates_dir_input
+
+- name: Set templates directory
+  set_fact:
+    templates_directory: "{{ templates_dir_input.user_input if templates_dir_input.user_input != '' else './HA-G2-G3BiosTemplates' }}"
+
+- name: Verify templates directory exists
+  stat:
+    path: "{{ templates_directory }}"
+  register: templates_dir_check
+  failed_when: not templates_dir_check.stat.exists
+
+- name: Confirm reboot after BIOS load
+  pause:
+    prompt: "Do you want to reboot servers after applying BIOS settings? (yes/no, default: yes)"
+  register: reboot_confirmation
+
+- name: Set reboot flag
+  set_fact:
+    perform_reboot: "{{ reboot_confirmation.user_input | lower not in ['no', 'n'] }}"
+
+- name: Load BIOS settings on all servers
+  ucp_bios_load:
+    servers_csv: "{{ servers_csv_path.user_input }}"
+    solution_type: "{{ solution_type_input.user_input }}"
+    templates_directory: "{{ templates_directory }}"
+    ilorest_path: "{{ ilorest_path | default('ilorest') }}"
+    perform_reboot: "{{ perform_reboot }}"
+  register: bios_load_result
+
+- name: Display BIOS load results
+  debug:
+    msg: |
+      BIOS Load Results:
+      - Successfully loaded BIOS on: {{ bios_load_result.loaded_servers | length }} servers
+      - Failed: {{ bios_load_result.failed_servers | length }} servers
+      
+      Solution Type: {{ "UCP VMware" if solution_type_input.user_input == "1" else "Azure Stack HCI" }}
+      Templates Directory: {{ templates_directory }}
+      Performed Reboot: {{ perform_reboot }}
+      
+      Successful servers: {{ bios_load_result.loaded_servers | join(', ') }}
+      
+      {% if bios_load_result.template_mappings %}
+      Template Mappings:
+      {% for server, template in bios_load_result.template_mappings.items() %}
+      - {{ server }}: {{ template }}
+      {% endfor %}
+      {% endif %}
+      
+      {% if bios_load_result.failed_servers %}
+      Failed servers:
+      {% for failed in bios_load_result.failed_servers %}
+      - {{ failed.ipaddress }} ({{ failed.model }}): {{ failed.error }}
+      {% endfor %}
+      {% endif %}
+
+- name: Log BIOS load operation
+  lineinfile:
+    path: "{{ log_file }}"
+    line: "{{ ansible_date_time.iso8601 }} - INFO - BIOS Load completed: {{ bios_load_result.loaded_servers | length }} successful, {{ bios_load_result.failed_servers | length }} failed"

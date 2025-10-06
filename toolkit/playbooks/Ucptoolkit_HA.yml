@@ -1,152 +1,78 @@
-------
+---
+- name: Ucptoolkit for HA Nodes - Interactive Menu System
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    ha_menu_options:
+      "1": "ucp_all(Default) - This applies BIOS template, boot SPV, and boot ESXi installer"
+      "2": "ucp_BIOS_load - This applies BIOS template"
+      "3": "ucp_BIOS_save - This exports BIOS setting to a file"
+      "4": "ucp_firmware - This applies iLo, System ROM, or Server Platform Service firmware"
+      "5": "ucp_mount_reboot - This mounts the selected ISO file and boot from it"
+      "6": "ucp_power_off"
+      "7": "ucp_power_on"
+      "8": "ucp_user_creation"
+      "9": "Azure_Stack_HCI"
+      "10": "Setup_VSSB_Servers"
+      "11": "Exit"
+    log_directory: "{{ ansible_env.PWD }}/logs"
+    current_timestamp: "{{ ansible_date_time.year }}_{{ ansible_date_time.month }}_{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}_{{ ansible_date_time.minute }}_{{ ansible_date_time.second }}"
+    log_file: "{{ log_directory }}/Ucptoolkit_HA{{ current_timestamp }}.log"
+    
+  tasks:
+    - name: Display welcome screen
+      debug:
+        msg: |
+          
+          Welcome to Ucptoolkit for HA Nodes!!!
+          
+          Please select the appropriate option from the menu below as per your requirement...
+          {% for key, value in ha_menu_options.items() %}
+          {{ key }}: {{ value }}
+          {% endfor %}
+
+    - name: Create logs directory if it doesn't exist
+      file:
+        path: "{{ log_directory }}"
+        state: directory
+        mode: '0755'
+
+    - name: Prompt user for menu selection
+      pause:
+        prompt: |
+          
+          Please select your option now (1-11)
+      register: user_selection
+
+    - name: Validate user selection
+      fail:
+        msg: "Invalid option selected. Please enter a number between 1 and 11."
+      when: user_selection.user_input not in ha_menu_options.keys()
+
+    - name: Display selected option
+      debug:
+        msg: "Perfect! You have selected option {{ user_selection.user_input }}: {{ ha_menu_options[user_selection.user_input] }}"
+
+    - name: Log operation start
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "{{ ansible_date_time.iso8601 }} - INFO - Starting operation: {{ ha_menu_options[user_selection.user_input] }}"
+        create: yes
+
+    # Call appropriate module based on selection
+    - name: Execute UCP All (Default)
+      include_tasks: tasks/ucp_all_tasks.yml
+      when: user_selection.user_input in ["1", "9", "10"]
+
+    - name: Execute BIOS Load
+      include_tasks: tasks/ucp_bios_load_tasks.yml
+      when: user_selection.user_input == "2"
+
+    - name: Execute BIOS Save
+      include_tasks: tasks/ucp_bios_save_tasks.yml
+      when: user_selection.user_input == "3"
 
-- name: Ucptoolkit for HA Nodes - Interactive Menu System- name: Ucptoolkit for HA Nodes - Interactive Menu System
-
-  hosts: localhost  hosts: localhost
-
-  connection: local  connection: local
-
-  gather_facts: no  gather_facts: no
-
-  vars:  vars:
-
-    ha_menu_options:    ha_menu_options:
-
-      "1": "ucp_all(Default) - This applies BIOS template, boot SPV, and boot ESXi installer"      "1": "ucp_all(Default) - This applies BIOS template, boot SPV, and boot ESXi installer"
-
-      "2": "ucp_BIOS_load - This applies BIOS template"      "2": "ucp_BIOS_load - This applies BIOS template"
-
-      "3": "ucp_BIOS_save - This exports BIOS setting to a file"      "3": "ucp_BIOS_save - This exports BIOS setting to a file"
-
-      "4": "ucp_firmware - This applies iLo, System ROM, or Server Platform Service firmware"      "4": "ucp_firmware - This applies iLo, System ROM, or Server Platform Service firmware"
-
-      "5": "ucp_mount_reboot - This mounts the selected ISO file and boot from it"      "5": "ucp_mount_reboot - This mounts the selected ISO file and boot from it"
-
-      "6": "ucp_power_off"      "6": "ucp_power_off"
-
-      "7": "ucp_power_on"      "7": "ucp_power_on"
-
-      "8": "ucp_user_creation"      "8": "ucp_user_creation"
-
-      "9": "Azure_Stack_HCI"      "9": "Azure_Stack_HCI"
-
-      "10": "Setup_VSSB_Servers"      "10": "Setup_VSSB_Servers"
-
-      "11": "Exit"      "11": "Exit"
-
-    log_directory: "{{ ansible_env.PWD }}/logs"    log_directory: "{{ ansible_env.PWD }}/logs"
-
-    current_timestamp: "{{ ansible_date_time.year }}_{{ ansible_date_time.month }}_{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}_{{ ansible_date_time.minute }}_{{ ansible_date_time.second }}"    current_timestamp: "{{ ansible_date_time.year }}_{{ ansible_date_time.month }}_{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}_{{ ansible_date_time.minute }}_{{ ansible_date_time.second }}"
-
-    log_file: "{{ log_directory }}/Ucptoolkit_HA{{ current_timestamp }}.log"    log_file: "{{ log_directory }}/Ucptoolkit_HA{{ current_timestamp }}.log"
-
-        
-
-  tasks:  tasks:
-
-    - name: Display welcome screen    - name: Display welcome screen
-
-      debug:      debug:
-
-        msg: |        msg: |
-
-                    
-
-          Welcome to Ucptoolkit for HA Nodes!!!          Welcome to Ucptoolkit for HA Nodes!!!
-
-                    
-
-          Please select the appropriate option from the menu below as per your requirement...          Please select the appropriate option from the menu below as per your requirement...
-
-          {% for key, value in ha_menu_options.items() %}          {% for key, value in ha_menu_options.items() %}
-
-          {{ key }}: {{ value }}          {{ key }}: {{ value }}
-
-          {% endfor %}          {% endfor %}
-
-
-
-    - name: Create logs directory if it doesn't exist    - name: Create logs directory if it doesn't exist
-
-      file:      file:
-
-        path: "{{ log_directory }}"        path: "{{ log_directory }}"
-
-        state: directory        state: directory
-
-        mode: '0755'        mode: '0755'
-
-
-
-    - name: Prompt user for menu selection    - name: Prompt user for menu selection
-
-      pause:      pause:
-
-        prompt: |        prompt: |
-
-                    
-
-          Please select your option now (1-11)          Please select your option now (1-11)
-
-      register: user_selection      register: user_selection
-
-
-
-    - name: Validate user selection    - name: Validate user selection
-
-      fail:      fail:
-
-        msg: "Invalid option selected. Please enter a number between 1 and 11."        msg: "Invalid option selected. Please enter a number between 1 and 11."
-
-      when: user_selection.user_input not in ha_menu_options.keys()      when: user_selection.user_input not in ha_menu_options.keys()
-
-
-
-    - name: Display selected option    - name: Display selected option
-
-      debug:      debug:
-
-        msg: "Perfect! You have selected option {{ user_selection.user_input }}: {{ ha_menu_options[user_selection.user_input] }}"        msg: "Perfect! You have selected option {{ user_selection.user_input }}: {{ ha_menu_options[user_selection.user_input] }}"
-
-
-
-    - name: Log operation start    - name: Log operation start
-
-      lineinfile:      lineinfile:
-
-        path: "{{ log_file }}"        path: "{{ log_file }}"
-
-        line: "{{ ansible_date_time.iso8601 }} - INFO - Starting operation: {{ ha_menu_options[user_selection.user_input] }}"        line: "{{ ansible_date_time.iso8601 }} - INFO - Starting operation: {{ ha_menu_options[user_selection.user_input] }}"
-
-        create: yes        create: yes
-
-
-
-    - name: Exit playbook    # Call appropriate module based on selection
-
-      debug:    - name: Execute UCP All (Default)
-
-        msg: "Exiting Ucptoolkit HA. Goodbye!"      include_tasks: tasks/ucp_all_tasks.yml
-
-      when: user_selection.user_input == "11"      when: user_selection.user_input in ["1", "9", "10"]
-
-
-
-    - name: End playbook execution on exit    - name: Execute BIOS Load
-
-      meta: end_play      include_tasks: tasks/ucp_bios_load_tasks.yml
-
-      when: user_selection.user_input == "11"      when: user_selection.user_input == "2"
-
-
-
-    - name: Log operation completion    - name: Execute BIOS Save
-
-      lineinfile:      include_tasks: tasks/ucp_bios_save_tasks.yml
-
-        path: "{{ log_file }}"      when: user_selection.user_input == "3"
-
-        line: "{{ ansible_date_time.iso8601 }} - INFO - Completed operation: {{ ha_menu_options[user_selection.user_input] }}"
     - name: Execute Firmware Update
       include_tasks: tasks/ucp_firmware_tasks.yml
       when: user_selection.user_input == "4"

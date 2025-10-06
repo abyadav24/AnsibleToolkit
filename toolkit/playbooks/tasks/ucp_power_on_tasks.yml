@@ -1,0 +1,38 @@
+---
+# Task file for UCP Power On operations
+- name: Read servers CSV file path
+  pause:
+    prompt: "Enter the path to your servers CSV file"
+  register: servers_csv_path
+
+- name: Verify servers CSV file exists
+  stat:
+    path: "{{ servers_csv_path.user_input }}"
+  register: csv_file_check
+  failed_when: not csv_file_check.stat.exists
+
+- name: Power on all servers
+  ucp_power_on:
+    servers_csv: "{{ servers_csv_path.user_input }}"
+    ilorest_path: "{{ ilorest_path | default('ilorest') }}"
+  register: power_on_result
+
+- name: Display power on results
+  debug:
+    msg: |
+      Power On Results:
+      - Successfully powered on: {{ power_on_result.powered_on_servers | length }} servers
+      - Failed: {{ power_on_result.failed_servers | length }} servers
+      
+      Successful servers: {{ power_on_result.powered_on_servers | join(', ') }}
+      {% if power_on_result.failed_servers %}
+      Failed servers:
+      {% for failed in power_on_result.failed_servers %}
+      - {{ failed.ipaddress }}: {{ failed.error }}
+      {% endfor %}
+      {% endif %}
+
+- name: Log power on operation
+  lineinfile:
+    path: "{{ log_file }}"
+    line: "{{ ansible_date_time.iso8601 }} - INFO - Power On completed: {{ power_on_result.powered_on_servers | length }} successful, {{ power_on_result.failed_servers | length }} failed"

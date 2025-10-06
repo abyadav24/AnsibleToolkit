@@ -1,0 +1,185 @@
+---
+# Process individual server network discovery
+- name: "Log server processing start"
+  shell: |
+    echo "=== Processing {{ server_item.hostname }} ({{ server_item.ipv4 }}) ===" >> {{ settings.log_file }}
+    echo "Vendor: {{ server_item.vendor }}, Model: {{ server_item.model }}" >> {{ settings.log_file }}
+
+- name: "Get network adapters for {{ server_item.hostname }}"
+  server_api_call:
+    url: "https://{{ server_item.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters"
+    username: "{{ server_item.username }}"
+    password: "{{ server_item.password }}"
+    timeout: 30
+    validate_certs: false
+  register: adapters_result
+  ignore_errors: true
+
+- name: "Log adapter collection result for {{ server_item.hostname }}"
+  shell: |
+    echo "Network Adapters API Status: {{ adapters_result.status_code | default('Failed') }}" >> {{ settings.log_file }}
+    {% if adapters_result.failed | default(true) %}
+    echo "Error: {{ adapters_result.msg | default('Unknown error') }}" >> {{ settings.log_file }}
+    {% else %}
+    echo "Found {{ adapters_result.content.get('Members@odata.count', 0) }} network adapters" >> {{ settings.log_file }}
+    {% endif %}
+
+- name: "Process successful adapter discovery for {{ server_item.hostname }}"
+  block:
+    - name: "Get details for each adapter"
+      server_api_call:
+        url: "https://{{ server_item.ipv4 }}{{ adapter_item['@odata.id'] }}"
+        username: "{{ server_item.username }}"
+        password: "{{ server_item.password }}"
+        timeout: 30
+        validate_certs: false
+      register: adapter_details
+      ignore_errors: true
+      loop: "{{ adapters_result.content.Members }}"
+      loop_control:
+        loop_var: adapter_item
+
+    - name: "Log adapter details for {{ server_item.hostname }}"
+      shell: |
+        {% for result in adapter_details.results %}
+        {% if not result.failed | default(true) %}
+        echo "Adapter {{ loop.index }} Details:" >> {{ settings.log_file }}
+        echo "  Name: {{ result.content.Name | default('Unknown') }}" >> {{ settings.log_file }}
+        echo "  Manufacturer: {{ result.content.Manufacturer | default('Unknown') }}" >> {{ settings.log_file }}
+        echo "  Model: {{ result.content.Model | default('Unknown') }}" >> {{ settings.log_file }}
+        echo "  Part Number: {{ result.content.PartNumber | default('Unknown') }}" >> {{ settings.log_file }}
+        echo "  Serial Number: {{ result.content.SerialNumber | default('Unknown') }}" >> {{ settings.log_file }}
+        echo "  Firmware Version: {{ result.content.Controllers[0].FirmwarePackageVersion | default('Unknown') if result.content.Controllers is defined and result.content.Controllers | length > 0 else 'Unknown' }}" >> {{ settings.log_file }}
+        {% endif %}
+        {% endfor %}
+
+    - name: "Get ports for each adapter on {{ server_item.hostname }}"
+      server_api_call:
+        url: "https://{{ server_item.ipv4 }}{{ adapter_item['@odata.id'] }}/Ports"
+        username: "{{ server_item.username }}"
+        password: "{{ server_item.password }}"
+        timeout: 30
+        validate_certs: false
+      register: ports_collections
+      ignore_errors: true
+      loop: "{{ adapters_result.content.Members }}"
+      loop_control:
+        loop_var: adapter_item
+
+    - name: "Get port details for {{ server_item.hostname }}"
+      server_api_call:
+        url: "https://{{ server_item.ipv4 }}{{ port_item['@odata.id'] }}"
+        username: "{{ server_item.username }}"
+        password: "{{ server_item.password }}"
+        timeout: 30
+        validate_certs: false
+      register: port_details
+      ignore_errors: true
+      vars:
+        all_ports: >-
+          {{
+            ports_collections.results 
+            | selectattr('content', 'defined')
+            | map(attribute='content')
+            | map(attribute='Members', default=[])
+            | flatten
+          }}
+      loop: "{{ all_ports }}"
+      loop_control:
+        loop_var: port_item
+
+    - name: "Log port details for {{ server_item.hostname }}"
+      shell: |
+        {% for result in port_details.results %}
+        {% if not result.failed | default(true) %}
+        echo "Port {{ loop.index }} Details:" >> {{ settings.log_file }}
+        echo "  ID: {{ result.content.Id | default('Unknown') }}" >> {{ settings.log_file }}
+        echo "  Name: {{ result.content.Name | default('Unknown') }}" >> {{ settings.log_file }}
+        echo "  MAC Address: {{ result.content.Ethernet.AssociatedMACAddresses[0] | default('Unknown') if result.content.Ethernet is defined and result.content.Ethernet.AssociatedMACAddresses is defined and result.content.Ethernet.AssociatedMACAddresses | length > 0 else 'Unknown' }}" >> {{ settings.log_file }}
+        echo "  Link Status: {{ result.content.LinkStatus | default('Unknown') }}" >> {{ settings.log_file }}
+        echo "  Speed: {{ result.content.CurrentSpeedGbps | default('Unknown') }}Gbps" >> {{ settings.log_file }}
+        {% endif %}
+        {% endfor %}
+
+    - name: "Create formatted report for {{ server_item.hostname }}"
+      copy:
+        content: |
+          # Network Card Discovery Report for {{ server_item.hostname }}
+          
+          ## Server Information
+          - **Hostname:** {{ server_item.hostname }}
+          - **IP Address:** {{ server_item.ipv4 }}
+          - **Vendor:** {{ server_item.vendor }}
+          - **Model:** {{ server_item.model }}
+          - **Discovery Status:** SUCCESS
+          
+          ## Network Cards
+          
+          {% for adapter in adapter_details.results %}
+          {% if not adapter.failed | default(true) %}
+          ### Network Card {{ loop.index }}
+          
+          | Property | Value |
+          |----------|-------|
+          | Name | {{ adapter.content.Name | default('Unknown') }} |
+          | Manufacturer | {{ adapter.content.Manufacturer | default('Unknown') }} |
+          | Model | {{ adapter.content.Model | default('Unknown') }} |
+          | Part Number | {{ adapter.content.PartNumber | default('Unknown') }} |
+          | Serial Number | {{ adapter.content.SerialNumber | default('Unknown') }} |
+          | Firmware Version | {{ adapter.content.Controllers[0].FirmwarePackageVersion | default('Unknown') if adapter.content.Controllers is defined and adapter.content.Controllers | length > 0 else 'Unknown' }} |
+          
+          #### Ports
+          
+          | Port ID | Name | MAC Address | Link Status | Speed (Gbps) |
+          |---------|------|-------------|-------------|--------------|
+          {% for port in port_details.results %}
+          {% if not port.failed | default(true) %}
+          | {{ port.content.Id | default('?') }} | {{ port.content.Name | default('Unknown') }} | {{ port.content.Ethernet.AssociatedMACAddresses[0] | default('Unknown') if port.content.Ethernet is defined and port.content.Ethernet.AssociatedMACAddresses is defined and port.content.Ethernet.AssociatedMACAddresses | length > 0 else 'Unknown' }} | {{ port.content.LinkStatus | default('Unknown') }} | {{ port.content.CurrentSpeedGbps | default('?') }} |
+          {% endif %}
+          {% endfor %}
+          
+          {% endif %}
+          {% endfor %}
+        dest: "/tmp/{{ server_item.hostname }}_network_discovery.md"
+
+  when: 
+    - not adapters_result.failed | default(true)
+    - adapters_result.content is defined
+    - adapters_result.content.Members is defined
+
+- name: "Handle failed discovery for {{ server_item.hostname }}"
+  block:
+    - name: "Log discovery failure"
+      shell: |
+        echo "DISCOVERY FAILED for {{ server_item.hostname }}" >> {{ settings.log_file }}
+        echo "Error: {{ adapters_result.msg | default('Unknown error') }}" >> {{ settings.log_file }}
+
+    - name: "Create failure report for {{ server_item.hostname }}"
+      copy:
+        content: |
+          # Network Card Discovery Report for {{ server_item.hostname }}
+          
+          ## Server Information
+          - **Hostname:** {{ server_item.hostname }}
+          - **IP Address:** {{ server_item.ipv4 }}
+          - **Vendor:** {{ server_item.vendor }}
+          - **Model:** {{ server_item.model }}
+          - **Discovery Status:** FAILED
+          
+          ## Error Information
+          - **Error Message:** {{ adapters_result.msg | default('Unknown error') }}
+          - **Status Code:** {{ adapters_result.status_code | default('N/A') }}
+          
+          ## Possible Causes
+          - Authentication failure (check username/password)
+          - Network connectivity issues
+          - Server not supporting Redfish API
+          - Different API endpoint path for this vendor
+        dest: "/tmp/{{ server_item.hostname }}_network_discovery_FAILED.md"
+
+  when: adapters_result.failed | default(true)
+
+- name: "Log server processing completion"
+  shell: |
+    echo "=== Completed processing {{ server_item.hostname }} ===" >> {{ settings.log_file }}
+    echo "---" >> {{ settings.log_file }}

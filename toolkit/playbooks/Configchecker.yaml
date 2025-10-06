@@ -1,0 +1,148 @@
+---
+# Final Network Card Discovery with Table Output
+- name: Network Card Discovery - Final Version
+  hosts: localhost
+  gather_facts: true
+  vars_files:
+    - ../config/version_config.yaml
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  environment:
+    ANSIBLE_LIBRARY: "{{ playbook_dir }}/../plugins/modules"
+  tasks:
+    - name: Generate timestamped log file paths for network discovery
+      set_fact:
+        log_timestamp: "{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
+        configchecker_log_file: "{{ playbook_dir }}/logs/configchecker_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
+        discovery_module_log_file: "{{ playbook_dir }}/logs/NetworkDiscovery_AnsibleModule_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
+        discovery_table_file: "{{ playbook_dir }}/logs/network_discovery_table_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt"
+        discovery_csv_file: "{{ playbook_dir }}/logs/network_discovery_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.csv"
+
+    - name: Initialize timestamped log files for network discovery
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Network Card Discovery Started" > {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Log Timestamp: {{ log_timestamp }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Starting network card discovery process" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Network Discovery Ansible Module Operations Log Started" > {{ discovery_module_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Module initialization completed" >> {{ discovery_module_log_file }}
+
+    - name: Load configuration
+      include_vars: ../config/version_config.yaml
+
+    - name: Log configuration loading
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Configuration loaded successfully" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] Version config file: ../config/version_config.yaml" >> {{ configchecker_log_file }}
+
+    - name: Read server details from CSV file
+      read_csv:
+        path: "../config/smci-server.csv"
+      register: server_list
+
+    - name: Log server list reading
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Server CSV file read successfully" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] CSV file path: ../config/smci-server.csv" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Number of servers found: {{ server_list.list | length }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] Servers to process:" >> {{ configchecker_log_file }}
+        {% for server in server_list.list %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker]   - {{ server.hostname }} ({{ server.ipv4 }})" >> {{ configchecker_log_file }}
+        {% endfor %}
+
+    - name: Initialize table file
+      copy:
+        content: |
+          ╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+          ║                                                                                           NETWORK CARD DISCOVERY REPORT                                                                                          ║
+          ╠═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+          ║ Server       │ IP Address      │ Vendor       │ Card Name            │ Manufacturer │ Model              │ Part Number  │ Serial Number      │ Firmware     │ Ports  │ MAC Address       ║
+          ╠═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+        dest: "{{ discovery_table_file }}"
+
+    - name: Log table file initialization
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Network discovery table file initialized" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] Table file path: {{ discovery_table_file }}" >> {{ configchecker_log_file }}
+
+    - name: Initialize CSV file
+      copy:
+        content: "Server,IP Address,Vendor,Card Name,Manufacturer,Model,Part Number,Serial Number,Firmware,Port Count,MAC Address,Status\n"
+        dest: "{{ discovery_csv_file }}"
+
+    - name: Log CSV file initialization
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Network discovery CSV file initialized" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] CSV file path: {{ discovery_csv_file }}" >> {{ configchecker_log_file }}
+
+    - name: Log start of server processing
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Starting individual server processing" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Processing {{ server_list.list | length }} servers in total" >> {{ configchecker_log_file }}
+
+    - name: Process each server
+      include_tasks: ../plugins/module_utils/process_single_server_discovery.yaml
+      vars:
+        server_data: "{{ item }}"
+      loop: "{{ server_list.list }}"
+
+    - name: Log completion of server processing
+      shell: |
+        echo "Completed processing all servers at $(date)" >> {{ configchecker_log_file }}
+        echo "All individual server discoveries completed" >> {{ configchecker_log_file }}
+
+    - name: "Add table footer"
+      shell: |
+        echo "╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝" >> {{ discovery_table_file }}
+
+    - name: Log table footer addition
+      shell: |
+        echo "Table footer added at $(date)" >> {{ configchecker_log_file }}
+        echo "Network discovery table completed" >> {{ configchecker_log_file }}
+
+    - name: Display the table
+      shell: cat {{ discovery_table_file }}
+      register: table_output
+
+    - name: Log table display
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Table output displayed successfully" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] Table file size: $(wc -l {{ discovery_table_file }} | cut -d' ' -f1) lines" >> {{ configchecker_log_file }}
+
+    - name: Show final results
+      debug:
+        msg: "{{ table_output.stdout_lines }}"
+
+    - name: Display completion message
+      debug:
+        msg: |
+          
+          ===============================================================
+          NETWORK CARD DISCOVERY COMPLETED SUCCESSFULLY
+          ===============================================================
+          
+          Files Generated:
+          📋 Table Format: {{ discovery_table_file }}
+          📊 CSV Format: {{ discovery_csv_file }}
+          📑 Detailed Logs: {{ configchecker_log_file }}
+          
+          Summary:
+          - Total Servers Processed: {{ server_list.list | length }}
+          - Check files for complete network card inventory
+          
+          Commands to view results:
+          cat {{ discovery_table_file }}
+          cat {{ discovery_csv_file }}
+
+    - name: Log final completion
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Network Card Discovery Completed Successfully" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Total servers processed: {{ server_list.list | length }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Generated files:" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker]   - Table: {{ discovery_table_file }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker]   - CSV: {{ discovery_csv_file }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker]   - Log files: {{ configchecker_log_file }} and {{ discovery_module_log_file }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Process completed successfully" >> {{ configchecker_log_file }}
+
+
+
+

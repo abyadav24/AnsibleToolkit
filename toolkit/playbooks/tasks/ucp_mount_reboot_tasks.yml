@@ -1,0 +1,65 @@
+---
+# Task file for UCP Mount and Reboot operations
+- name: Read servers CSV file path
+  pause:
+    prompt: "Enter the path to your servers CSV file"
+  register: servers_csv_path
+
+- name: Verify servers CSV file exists
+  stat:
+    path: "{{ servers_csv_path.user_input }}"
+  register: csv_file_check
+  failed_when: not csv_file_check.stat.exists
+
+- name: Get ISO URL
+  pause:
+    prompt: |
+      Please navigate to http://[IPv6]:8081 of this jumphost in a browser 
+      and provide the URL for the ISO file to mount
+  register: iso_url_input
+
+- name: Validate ISO URL
+  fail:
+    msg: "ISO URL is required"
+  when: iso_url_input.user_input == ''
+
+- name: Get sleep duration (optional)
+  pause:
+    prompt: "Enter sleep duration after operations in seconds (press Enter for default 1800)"
+  register: sleep_duration_input
+
+- name: Set sleep duration
+  set_fact:
+    sleep_duration: "{{ sleep_duration_input.user_input | int if sleep_duration_input.user_input != '' and sleep_duration_input.user_input | int > 0 else 1800 }}"
+
+- name: Mount ISO and reboot all servers
+  ucp_mount_reboot:
+    servers_csv: "{{ servers_csv_path.user_input }}"
+    iso_url: "{{ iso_url_input.user_input }}"
+    ilorest_path: "{{ ilorest_path | default('ilorest') }}"
+    manage_nginx: true
+    sleep_duration: "{{ sleep_duration }}"
+  register: mount_reboot_result
+
+- name: Display mount and reboot results
+  debug:
+    msg: |
+      Mount and Reboot Results:
+      - Successfully mounted and rebooted: {{ mount_reboot_result.mounted_servers | length }} servers
+      - Failed: {{ mount_reboot_result.failed_servers | length }} servers
+      
+      ISO URL: {{ iso_url_input.user_input }}
+      Sleep Duration: {{ sleep_duration }} seconds
+      
+      Successful servers: {{ mount_reboot_result.mounted_servers | join(', ') }}
+      {% if mount_reboot_result.failed_servers %}
+      Failed servers:
+      {% for failed in mount_reboot_result.failed_servers %}
+      - {{ failed.ipaddress }}: {{ failed.error }}
+      {% endfor %}
+      {% endif %}
+
+- name: Log mount and reboot operation
+  lineinfile:
+    path: "{{ log_file }}"
+    line: "{{ ansible_date_time.iso8601 }} - INFO - Mount and Reboot completed: {{ mount_reboot_result.mounted_servers | length }} successful, {{ mount_reboot_result.failed_servers | length }} failed"
