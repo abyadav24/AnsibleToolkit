@@ -43,16 +43,27 @@
 
 # Multiple servers input
 - block:
-    - name: Get servers CSV file path
-      pause:
-        prompt: "Enter the path to your servers CSV file"
-      register: servers_csv_input
+    - name: Set standard servers CSV file path
+      set_fact:
+        servers_csv_path: "{{ playbook_dir }}/../config/smci-server.csv"
+
+    - name: Log CSV file path
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [BiosSave] Using servers CSV file: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
 
     - name: Verify servers CSV file exists
       stat:
-        path: "{{ servers_csv_input.user_input }}"
+        path: "{{ servers_csv_path }}"
       register: csv_file_check
       failed_when: not csv_file_check.stat.exists
+
+    - name: Log CSV file validation
+      shell: |
+        if [ "{{ csv_file_check.stat.exists }}" = "True" ]; then
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [BiosSave] CSV file validation successful" >> {{ ha_module_log_file }}
+        else
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [BiosSave] CSV file not found: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
+        fi
 
   when: input_method.user_input == '2'
 
@@ -85,7 +96,7 @@
 # Save BIOS configuration - Multiple servers
 - name: Save BIOS configuration from multiple servers
   ucp_bios_save:
-    servers_csv: "{{ servers_csv_input.user_input }}"
+    servers_csv: "{{ servers_csv_path }}"
     output_directory: "{{ output_directory }}"
     ilorest_path: "{{ ilorest_path | default('ilorest') }}"
   register: bios_save_result

@@ -1,15 +1,26 @@
 ---
 # Task file for UCP Mount and Reboot operations
-- name: Read servers CSV file path
-  pause:
-    prompt: "Enter the path to your servers CSV file"
-  register: servers_csv_path
+- name: Set standard servers CSV file path
+  set_fact:
+    servers_csv_path: "{{ playbook_dir }}/../config/smci-server.csv"
+
+- name: Log CSV file path
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [MountReboot] Using servers CSV file: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
 
 - name: Verify servers CSV file exists
   stat:
-    path: "{{ servers_csv_path.user_input }}"
+    path: "{{ servers_csv_path }}"
   register: csv_file_check
   failed_when: not csv_file_check.stat.exists
+
+- name: Log CSV file validation
+  shell: |
+    if [ "{{ csv_file_check.stat.exists }}" = "True" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [MountReboot] CSV file validation successful" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [MountReboot] CSV file not found: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
+    fi
 
 - name: Get ISO URL
   pause:
@@ -34,7 +45,7 @@
 
 - name: Mount ISO and reboot all servers
   ucp_mount_reboot:
-    servers_csv: "{{ servers_csv_path.user_input }}"
+    servers_csv: "{{ servers_csv_path }}"
     iso_url: "{{ iso_url_input.user_input }}"
     ilorest_path: "{{ ilorest_path | default('ilorest') }}"
     manage_nginx: true

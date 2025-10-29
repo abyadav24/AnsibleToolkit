@@ -1,15 +1,26 @@
 ---
 # Task file for UCP All (Complete Setup) operations
-- name: Read servers CSV file path
-  pause:
-    prompt: "Enter the path to your servers CSV file (must include ipaddress, username, password, model columns)"
-  register: servers_csv_path
+- name: Set standard servers CSV file path
+  set_fact:
+    servers_csv_path: "{{ playbook_dir }}/../config/smci-server.csv"
+
+- name: Log CSV file path
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Using servers CSV file: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
 
 - name: Verify servers CSV file exists
   stat:
-    path: "{{ servers_csv_path.user_input }}"
+    path: "{{ servers_csv_path }}"
   register: csv_file_check
   failed_when: not csv_file_check.stat.exists
+
+- name: Log CSV file validation
+  shell: |
+    if [ "{{ csv_file_check.stat.exists }}" = "True" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] CSV file validation successful" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [UcpAll] CSV file not found: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
+    fi
 
 - name: Determine solution type based on selection
   set_fact:
@@ -97,7 +108,7 @@
 
 - name: Execute complete UCP setup
   ucp_all:
-    servers_csv: "{{ servers_csv_path.user_input }}"
+    servers_csv: "{{ servers_csv_path }}"
     solution_type: "{{ solution_type }}"
     spv_url_g2: "{{ spv_g2_url_input.user_input }}"
     spv_url_g3: "{{ spv_g3_url_input.user_input }}"
