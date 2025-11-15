@@ -23,9 +23,23 @@ This toolkit provides comprehensive automation for server management tasks inclu
 - Network access to target servers
 - Valid BMC credentials
 
+### Offline Support
+
+The toolkit includes **bundled Python dependencies** for air-gapped environments:
+- ✅ No internet connection required for prettytable functionality
+- ✅ Libraries are automatically loaded from `vendor/python-libs/`
+- ✅ Run `./setup_offline_libs.sh` to verify offline setup
+
 ## Quick Start
 
-### 1. Configuration Setup
+### 1. Offline Library Setup (Optional)
+
+```bash
+# Verify offline libraries are working
+./setup_offline_libs.sh
+```
+
+### 2. Configuration Setup
 
 Configure your servers in `servers.csv`:
 ```csv

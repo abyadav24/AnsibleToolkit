@@ -22,7 +22,14 @@ import minios
 import cisconexus
 import networkconfig
 import helper
-from prettytable import PrettyTable
+
+# Import prettytable with offline support
+try:
+    from ansible.module_utils.offline_libs import import_prettytable
+    PrettyTable, _ = import_prettytable()
+except ImportError:
+    from prettytable import PrettyTable
+
 import copy
 
 import loginit

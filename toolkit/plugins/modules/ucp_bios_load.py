@@ -94,11 +94,18 @@ def read_servers_csv(csv_file):
     servers = []
     try:
         with open(csv_file, 'r') as file:
-            reader = csv.DictReader(file, delimiter=',', 
-                                  fieldnames=['ipaddress', 'username', 'password', 'model', 'sn'])
-            next(reader)  # Skip header
+            # Use the actual field names from the CSV file
+            reader = csv.DictReader(file, delimiter=',')
             for row in reader:
-                servers.append(row)
+                # Map the actual CSV fields to expected format - using IPv6 instead of IPv4
+                server_info = {
+                    'ipaddress': row['Host'].strip(),  # Using IPv6 Host field instead of IPv4
+                    'username': row['Username'].strip(),
+                    'password': row['Password'].strip(),
+                    'model': row['Model'].strip(),
+                    'sn': row['Serial Number'].strip()
+                }
+                servers.append(server_info)
         return servers, None
     except Exception as e:
         return None, str(e)

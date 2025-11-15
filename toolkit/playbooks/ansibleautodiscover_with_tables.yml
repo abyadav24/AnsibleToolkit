@@ -24,6 +24,13 @@
         toolkit_config:
           use_target_nodes: false
           nodes: []
+          network_interface: auto
+          interface_priority:
+            - enp0s9
+            - enp0s8
+            - eth0
+            - eth1
+            - enp0s3
       when: not config_file_stat.stat.exists
       
     - name: Display target nodes message when use_target_nodes is true
@@ -106,6 +113,91 @@
           - Using Interface Discovery: Yes
           {% endif %}
           
+    - name: Auto-detect available network interfaces
+      shell: |
+        # Get all UP interfaces (excluding loopback)
+        for iface in /sys/class/net/*; do
+          name=$(basename "$iface")
+          if [ "$name" != "lo" ] && [ -f "$iface/operstate" ]; then
+            state=$(cat "$iface/operstate")
+            if [ "$state" = "up" ]; then
+              # Check if interface has an IP address (IPv4 or IPv6 link-local)
+              if ip addr show "$name" | grep -q 'inet\|inet6.*fe80'; then
+                echo "$name"
+              fi
+            fi
+          fi
+        done
+      register: all_available_interfaces
+      when: 
+        - not (toolkit_config.use_target_nodes | bool)
+        - toolkit_config.network_interface | default("auto") == "auto" or toolkit_config.network_interface | default("auto") == ""
+      changed_when: false
+      
+    - name: Find preferred interface from priority list
+      set_fact:
+        preferred_interface: "{{ item }}"
+      when: 
+        - not (toolkit_config.use_target_nodes | bool)
+        - toolkit_config.network_interface | default("auto") == "auto" or toolkit_config.network_interface | default("auto") == ""
+        - item in all_available_interfaces.stdout_lines
+        - preferred_interface is not defined
+      loop: "{{ toolkit_config.interface_priority | default(['enp0s9', 'enp0s8', 'eth0', 'eth1', 'enp0s3']) }}"
+      loop_control:
+        label: "{{ item }}"
+      
+    - name: Prompt user to select network interface
+      pause:
+        prompt: |
+          Please select the network interface to use for discovery:
+          1. enp0s9
+          2. enp0s8
+          3. enp0s3
+          Enter 1, 2, or 3:
+      register: user_interface_prompt
+      when:
+        - not (toolkit_config.use_target_nodes | bool)
+        - toolkit_config.network_interface | default('auto') == 'auto' or toolkit_config.network_interface | default('auto') == ''
+
+    - name: Validate user interface input
+      fail:
+        msg: "Invalid interface selection. Please choose 1, 2, or 3."
+      when:
+        - not (toolkit_config.use_target_nodes | bool)
+        - toolkit_config.network_interface | default('auto') == 'auto' or toolkit_config.network_interface | default('auto') == ''
+        - user_interface_prompt.user_input is defined
+        - user_interface_prompt.user_input not in ['1','2','3']
+
+    - name: Set user interface choice fact
+      set_fact:
+        user_interface_choice: "{{ user_interface_prompt.user_input }}"
+      when:
+        - not (toolkit_config.use_target_nodes | bool)
+        - toolkit_config.network_interface | default('auto') == 'auto' or toolkit_config.network_interface | default('auto') == ''
+        - user_interface_prompt.user_input is defined
+        - user_interface_prompt.user_input in ['1','2','3']
+
+    - name: Set interface variable
+      set_fact:
+        selected_interface: >-
+          {% if toolkit_config.network_interface is defined and toolkit_config.network_interface != "auto" and toolkit_config.network_interface != "" -%}
+          {{ toolkit_config.network_interface }}
+          {%- elif user_interface_choice is defined and user_interface_choice in ['1','2','3'] -%}
+          {{ ( {'1': 'enp0s9', '2': 'enp0s8', '3': 'enp0s3'} )[user_interface_choice] }}
+          {%- elif preferred_interface is defined -%}
+          {{ preferred_interface }}
+          {%- elif all_available_interfaces is defined and all_available_interfaces.stdout_lines | length > 0 -%}
+          {{ all_available_interfaces.stdout_lines[0] }}
+          {%- else -%}
+          enp0s8
+          {%- endif %}
+      when: not (toolkit_config.use_target_nodes | bool)
+      
+    - name: Display selected interface
+      debug:
+        msg: "Using network interface: {{ selected_interface | default('auto-detect from all interfaces') }}"
+      when: not (toolkit_config.use_target_nodes | bool)
+          
     - name: Confirm to start discovery
       pause:
         prompt: "Press Enter to start discovery or Ctrl+C to abort"
@@ -113,7 +205,7 @@
         
     - name: Discover servers and switches on the network
       ansibleautodiscover:
-        interface: "{{ interface | default('enp0s8') if not (use_target_nodes | default(false)) else omit }}"
+        interface: "{{ selected_interface | default(omit) if not (use_target_nodes | default(false)) else omit }}"
         target_nodes: "{{ toolkit_config.nodes if (use_target_nodes | default(false)) else omit }}"
         discover_servers: "{{ discover_servers }}"
         discover_switches: "{{ discover_switches }}"
@@ -135,11 +227,16 @@
       debug:
         msg: "{{ table_output.message }}"
         
-    - name: Append discovered servers to existing CSV
+    - name: Remove existing CSV file and create new one with proper headers
+      copy:
+        content: "Type,Host,Model,SKU,Serial Number,IPv4 Address,Username,Password\n"
+        dest: "{{ playbook_dir }}/../config/server.csv"
+      when: discovery_result.servers | length > 0 and discover_servers
+        
+    - name: Write discovered servers to CSV with all details
       lineinfile:
-        path: "{{ playbook_dir }}/../config/smci-server.csv"
-        line: "{{ item.host | regex_replace('fe80::[a-f0-9:]+%.*', 'server_' + item.serial_number) }},{{ item.ipv4_address | default('N/A') }},{{ item.username }},{{ item.password }},{{ item.vendor | default('supermicro') }},{{ item.model }},{{ item.type }},{{ item.sku | default('N/A') }}"
-        create: yes
+        path: "{{ playbook_dir }}/../config/server.csv"
+        line: "{{ item.type }},{{ item.host }},{{ item.model }},{{ item.sku | default('N/A') }},{{ item.serial_number }},{{ item.ipv4_address | default('N/A') }},{{ item.username }},{{ item.password }}"
         insertafter: EOF
       loop: "{{ discovery_result.servers }}"
       when: discovery_result.servers | length > 0 and discover_servers
@@ -153,10 +250,17 @@
       loop: "{{ discovery_result.switches }}"
       when: discovery_result.switches | length > 0 and discover_switches
         
+    - name: Create logs directory if it doesn't exist
+      file:
+        path: "{{ playbook_dir }}/../logs"
+        state: directory
+        mode: '0755'
+      when: (discovery_result.servers | length > 0 and discover_servers) or (discovery_result.switches | length > 0 and discover_switches)
+
     - name: Generate discovery report
       template:
         src: discovery_report.md.j2
-        dest: ../logs/discovery_report_{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}.md
+        dest: "{{ playbook_dir }}/../logs/discovery_report_{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}.md"
       vars:
         discovery_type: "{{ discovery_description }}"
         user_selection: "{{ user_choice.user_input }}"
@@ -168,7 +272,7 @@
           Discovery Complete! Discovery Type: {{ discovery_description }}
           Files updated:
           {% if discovery_result.servers | length > 0 and discover_servers %}
-          - ../config/smci-server.csv ({{ discovery_result.servers | length }} servers appended)
+          - ../config/server.csv ({{ discovery_result.servers | length }} servers appended)
           {% endif %}
           {% if discovery_result.switches | length > 0 and discover_switches %}
           - ../config/smci-switches.csv ({{ discovery_result.switches | length }} switches appended)

@@ -1,0 +1,11 @@
+# Python dependencies for Supermicro Ansible Toolkit
+# These libraries are bundled in the vendor/python-libs directory for offline use
+
+prettytable>=3.0.0
+wcwidth>=0.2.0
+
+# Optional dependencies (may be required for full functionality)
+# requests>=2.25.0
+# urllib3>=1.26.0
+# pexpect>=4.8.0
+# redfish>=3.0.0

@@ -1,0 +1,5 @@
+#!/bin/bash
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+source "$SCRIPT_DIR/venv/bin/activate"
+export PYTHONPATH="$SCRIPT_DIR/ilorest/usr/lib/python3/dist-packages:$PYTHONPATH"
+"$SCRIPT_DIR/ilorest/usr/bin/ilorest" "$@"

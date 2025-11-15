@@ -1,26 +1,34 @@
 ---
 # Task file for UCP User Creation operations
-- name: Set standard servers CSV file path
+- name: Set target configuration based on use_target_nodes setting
   set_fact:
-    servers_csv_path: "{{ playbook_dir }}/../config/smci-server.csv"
+    servers_csv_path: "{{ playbook_dir }}/../config/server.csv"
+    use_target_nodes_enabled: "{{ hostvars['localhost']['use_target_nodes_enabled'] | default(false) }}"
+    target_nodes_list: "{{ hostvars['localhost']['target_nodes'] | default([]) }}"
 
-- name: Log CSV file path
+- name: Log target configuration
   shell: |
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UserCreation] Using servers CSV file: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
+    if [ "{{ use_target_nodes_enabled }}" = "True" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UserCreation] Using target nodes from config: {{ target_nodes_list | join(', ') }}" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UserCreation] Using servers from CSV file: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
+    fi
 
-- name: Verify servers CSV file exists
+- name: Verify servers CSV file exists (when using CSV mode)
   stat:
     path: "{{ servers_csv_path }}"
   register: csv_file_check
   failed_when: not csv_file_check.stat.exists
+  when: not use_target_nodes_enabled
 
-- name: Log CSV file validation
+- name: Log CSV file validation (when using CSV mode)
   shell: |
     if [ "{{ csv_file_check.stat.exists }}" = "True" ]; then
       echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UserCreation] CSV file validation successful" >> {{ ha_module_log_file }}
     else
       echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [UserCreation] CSV file not found: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
     fi
+  when: not use_target_nodes_enabled
 
 - name: Get new username (optional, default: admin)
   pause:
@@ -56,7 +64,7 @@
     new_username: "{{ new_username }}"
     new_password: "{{ new_password }}"
     user_role: "{{ user_role }}"
-    ilorest_path: "{{ ilorest_path | default('ilorest') }}"
+    ilorest_path: "{{ hostvars['localhost']['ilorest_path'] | default(playbook_dir + '/../vendor/tools/ilorest_wrapper.sh') }}"
   register: user_creation_result
 
 - name: Display user creation results

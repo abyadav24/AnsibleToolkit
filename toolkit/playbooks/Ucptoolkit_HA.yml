@@ -22,11 +22,182 @@
     ha_module_log_file: "{{ log_directory }}/UcpToolkitHA_AnsibleModule_{{ current_timestamp }}.log"
     
   tasks:
+    # Load and validate toolkit configuration
+    - name: Load toolkit configuration
+      slurp:
+        src: "{{ playbook_dir }}/../config/toolkit_config.json"
+      register: toolkit_config_content
+
+    - name: Parse toolkit configuration
+      set_fact:
+        toolkit_config: "{{ toolkit_config_content.content | b64decode | from_json }}"
+
+    - name: Log toolkit configuration status
+      debug:
+        msg:
+          - "Toolkit Configuration Loaded:"
+          - "  use_target_nodes: {{ toolkit_config.use_target_nodes }}"
+          - "  target nodes: {{ toolkit_config.nodes | default([]) }}"
+
+    - name: Pause for configuration review
+      pause:
+        seconds: 3
+
+    # Validate configuration and setup target source
+    - name: Check if use_target_nodes is set to true
+      set_fact:
+        use_target_nodes_enabled: "{{ toolkit_config.use_target_nodes == 'true' }}"
+
+    - name: Set target source based on configuration
+      set_fact:
+        target_source: "{{ 'config_nodes' if use_target_nodes_enabled else 'csv_servers' }}"
+
+    - name: Log target configuration decision
+      debug:
+        msg:
+          - "Target Configuration Decision:"
+          - "  use_target_nodes enabled: {{ use_target_nodes_enabled }}"
+          - "  target source: {{ target_source }}"
+          - "  Will use: {{ 'Nodes from toolkit_config.json' if use_target_nodes_enabled else 'Servers from server.csv' }}"
+
+    - name: Pause for target configuration review
+      pause:
+        seconds: 2
+
+    # Validate target nodes configuration
+    - name: Check if nodes are defined in config
+      fail:
+        msg: "use_target_nodes is true but no nodes are defined in toolkit_config.json"
+      when: use_target_nodes_enabled and (toolkit_config.nodes is not defined or toolkit_config.nodes | length == 0)
+
+    - name: Log target nodes from config
+      debug:
+        msg: "Using target nodes from config: {{ toolkit_config.nodes }}"
+      when: use_target_nodes_enabled
+
+    - name: Pause for target nodes review
+      pause:
+        seconds: 2
+      when: use_target_nodes_enabled
+
+    # Validate server.csv when needed
+    - name: Check if server.csv exists
+      stat:
+        path: "{{ playbook_dir }}/../config/server.csv"
+      register: server_csv_check
+      when: not use_target_nodes_enabled
+
+    - name: Fail if server.csv missing when needed
+      fail:
+        msg: "use_target_nodes is false but server.csv file is missing at {{ playbook_dir }}/../config/server.csv"
+      when: not use_target_nodes_enabled and not server_csv_check.stat.exists
+
+    - name: Log server.csv validation
+      debug:
+        msg: "Using servers from CSV: {{ playbook_dir }}/../config/server.csv"
+      when: not use_target_nodes_enabled
+
+    - name: Pause for CSV validation review
+      pause:
+        seconds: 2
+      when: not use_target_nodes_enabled
+
+    # Validate AnsibleMediakit folder
+    - name: Check if AnsibleMediakit is already mounted
+      stat:
+        path: /mnt/AnsibleMediakit
+      register: mediakit_mount_check
+
+    - name: Display current mount status
+      debug:
+        msg:
+          - "AnsibleMediakit Mount Check:"
+          - "  Already mounted: {{ 'YES' if mediakit_mount_check.stat.exists else 'NO' }}"
+
+    - name: Create mount point directory
+      file:
+        path: /mnt/AnsibleMediakit
+        state: directory
+        mode: '0755'
+      become: yes
+      when: not mediakit_mount_check.stat.exists
+
+    - name: Mount AnsibleMediakit using VirtualBox shared folder
+      mount:
+        path: /mnt/AnsibleMediakit
+        src: AnsibleMediakit
+        fstype: vboxsf
+        opts: uid=1000,gid=1000
+        state: mounted
+      become: yes
+      when: not mediakit_mount_check.stat.exists
+      ignore_errors: yes
+
+    - name: Display mount success message
+      debug:
+        msg: "✅ AnsibleMediakit mounted successfully at /mnt/AnsibleMediakit"
+      when: not mediakit_mount_check.stat.exists
+
+    - name: List contents of mounted AnsibleMediakit
+      find:
+        paths: /mnt/AnsibleMediakit
+        file_type: directory
+        depth: 1
+      register: mediakit_contents
+
+    - name: Check for required folder structure
+      stat:
+        path: "{{ item }}"
+      register: folder_checks
+      loop:
+        - /mnt/AnsibleMediakit/DS
+        - /mnt/AnsibleMediakit/HA
+        - /mnt/AnsibleMediakit/HA/BiosTemplates/HA G6
+        - /mnt/AnsibleMediakit/HA/SPV/HA G6
+        - /mnt/AnsibleMediakit/Other
+
+    - name: Check folder validation results
+      set_fact:
+        available_folders: "{{ mediakit_contents.files | map(attribute='path') | map('basename') | list }}"
+        missing_folders: "{{ folder_checks.results | selectattr('stat.exists', 'equalto', false) | map(attribute='item') | map('basename') | list }}"
+
+    - name: Display folder validation status
+      debug:
+        msg:
+          - "AnsibleMediakit Folder Validation:"
+          - "  Mount location: /mnt/AnsibleMediakit"
+          - "  Mount status: {{ 'MOUNTED' if mediakit_mount_check.stat.exists or not folder_checks.results[0].stat.exists else 'FAILED' }}"
+          - "  Available folders: {{ available_folders }}"
+          - "  Missing required folders: {{ missing_folders if missing_folders | length > 0 else 'None' }}"
+          - "  Required structure verified: {{ 'YES' if missing_folders | length == 0 else 'NO' }}"
+
+    - name: Pause for mount validation review
+      pause:
+        seconds: 3
+
+    - name: Warn about missing required folders
+      debug:
+        msg:
+          - "⚠️ WARNING: Some required folders are missing:"
+          - "{{ missing_folders }}"
+          - "Please ensure the AnsibleMediakit shared folder contains the required structure."
+      when: missing_folders | length > 0
+
+    - name: Pause for missing folders warning
+      pause:
+        seconds: 5
+      when: missing_folders | length > 0
+
     - name: Display welcome screen
       debug:
         msg: 
           - ""
           - "Welcome to Ucptoolkit for HA Nodes!!!"
+          - ""
+          - "Configuration Status:"
+          - "  Target Source: {{ target_source }}"
+          - "  Nodes/Servers: {{ toolkit_config.nodes | length if use_target_nodes_enabled else 'CSV File' }}"
+          - "  AnsibleMediakit: Mounted at /mnt/AnsibleMediakit"
           - ""
           - "Please select the appropriate option from the menu below as per your requirement..."
           - ""
@@ -42,6 +213,10 @@
           - "10: Setup_VSSB_Servers"
           - "11: Exit"
           - ""
+
+    - name: Pause for welcome screen review
+      pause:
+        seconds: 4
 
     - name: Create logs directory if it doesn't exist
       file:

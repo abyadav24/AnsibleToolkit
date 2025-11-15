@@ -1,0 +1,2 @@
+Type,Host,Model,SKU,Serial Number,IPv4 Address,Username,Password
+HA_Server,fe80::7ea6:2aff:fe6e:cd2a%enp0s8,Hitachi Advanced Server HA810 G6,P77750-B21,3M1D30109L,172.23.55.101,admin,cmb9.admin

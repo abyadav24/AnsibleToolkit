@@ -16,10 +16,10 @@
 
 {% if discovery_result.servers | length > 0 %}
 ```
-Type          | Host                               | Model                              | SKU        | Serial Number | Username | Password  
---------------|------------------------------------|------------------------------------|------------|---------------|----------|----------
+Type          | Host                               | Model                              | SKU        | Serial Number | IPv4 Address   | Username | Password  
+--------------|------------------------------------|------------------------------------|------------|---------------|----------------|----------|----------
 {% for server in discovery_result.servers -%}
-{{ "%-13s" | format(server.type) }} | {{ "%-34s" | format(server.host) }} | {{ "%-34s" | format(server.model) }} | {{ "%-10s" | format(server.sku) }} | {{ "%-13s" | format(server.serial_number) }} | {{ "%-8s" | format(server.username) }} | {{ server.password }}
+{{ "%-13s" | format(server.type) }} | {{ "%-34s" | format(server.host) }} | {{ "%-34s" | format(server.model) }} | {{ "%-10s" | format(server.sku) }} | {{ "%-13s" | format(server.serial_number) }} | {{ "%-14s" | format(server.ipv4_address | default('N/A')) }} | {{ "%-8s" | format(server.username) }} | {{ server.password }}
 {% endfor -%}
 ```
 {% else %}

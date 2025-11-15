@@ -26,40 +26,84 @@
 
     - name: Read servers from CSV
       community.general.read_csv:
-        path: /home/ubuntu/smci/ansible-toolkit/toolkit/config/smci-server.csv
+        path: "{{ playbook_dir }}/../config/server.csv"
+        delimiter: ','
       register: server_list
 
-    - name: Get BIOS info for each server
-      shell: >
-        /home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa
-        -i {{ item.ipv4 }}
-        -u {{ item.username }}
-        -p {{ item.password }}
-        -c GetSystemInfo
-      loop: "{{ server_list.list }}"
-      register: bios_info
-      ignore_errors: yes
-
-    - name: Extract all BMC MAC addresses.
+    - name: Filter out header row and categorize servers
       set_fact:
-        mac_list: "{{ mac_list | default([]) + [ { 'server': item.item.ipv4, 'mac': (item.stdout | regex_search('BMC MAC address\\.*\\s*([0-9A-Fa-f:]+)', '\\1')) | default('') } ] }}"
-      loop: "{{ bios_info.results }}"
-      loop_control:
-        loop_var: item
+        ha_servers: "{{ server_list.list | selectattr('Type', 'match', 'HA_Server') | list }}"
+        ds_servers: "{{ server_list.list | rejectattr('Type', 'match', 'HA_Server') | rejectattr('Type', 'equalto', 'Type') | list }}"
+        all_servers: "{{ server_list.list | selectattr('Type', 'defined') | rejectattr('Type', 'equalto', 'Type') | list }}"
 
-    - name: Print all MAC addresses (for verification)
+    - name: Debug server categories
       debug:
-        msg: "Server: {{ item.server }} | BMC MAC: {{ item.mac }}"
-      loop: "{{ mac_list }}"
+        msg: |
+          Total servers: {{ all_servers | length }}
+          HA Servers: {{ ha_servers | length }}
+          DS/Supermicro Servers: {{ ds_servers | length }}
+
+    - name: Get MAC addresses for HA servers using ilorest
+      shell: |
+        /home/ubuntu/smci/AnsibleToolkit/toolkit/vendor/tools/ilorest_wrapper.sh rawget "/redfish/v1/Managers/1/EthernetInterfaces/1/" -u {{ item['Username'] }} -p {{ item['Password'] }} --url {{ item['IPv4 Address'] }}
+      loop: "{{ ha_servers }}"
+      register: ha_mac_info
+      ignore_errors: yes
+      when: 
+        - ha_servers | length > 0
+        - password_choice == 'unique'
+
+    - name: Get MAC addresses for DS/Supermicro servers using saa tool
+      shell: >
+        {{ playbook_dir }}/../../saa_1.3.0_Linux_x86_64/saa
+        -i {{ item['IPv4 Address'] }}
+        -u {{ item['Username'] }}
+        -p {{ item['Password'] }}
+        -c GetSystemInfo
+      loop: "{{ ds_servers }}"
+      register: ds_mac_info
+      ignore_errors: yes
+      when: 
+        - ds_servers | length > 0
+        - password_choice == 'unique'
+
+    - name: Extract MAC addresses from HA servers
+      set_fact:
+        ha_mac_list: "{{ ha_mac_list | default([]) + [ { 'server': item.item['IPv4 Address'], 'mac': extracted_mac } ] }}"
+      loop: "{{ ha_mac_info.results | default([]) }}"
       loop_control:
         loop_var: item
+      vars:
+        mac_regex_result: "{{ item.stdout | regex_search('\"MACAddress\":\\s*\"([0-9A-Fa-f:]+)\"', '\\1') }}"
+        extracted_mac: "{{ mac_regex_result[0] if mac_regex_result else '' }}"
+      when: 
+        - ha_servers | length > 0
+        - password_choice == 'unique'
+        - item.rc == 0
+        - item.stdout is defined
+        - extracted_mac != ''
+
+    - name: Extract MAC addresses from DS/Supermicro servers
+      set_fact:
+        ds_mac_list: "{{ ds_mac_list | default([]) + [ { 'server': item.item['IPv4 Address'], 'mac': (item.stdout | regex_search('BMC MAC address\\.*\\s*([0-9A-Fa-f:]+)', '\\1')) | default('') } ] }}"
+      loop: "{{ ds_mac_info.results | default([]) }}"
+      loop_control:
+        loop_var: item
+      when: 
+        - ds_servers | length > 0
+        - password_choice == 'unique'
+
+    - name: Combine MAC lists
+      set_fact:
+        mac_list: "{{ (ha_mac_list | default([])) + (ds_mac_list | default([])) }}"
+      when: password_choice == 'unique'
 
     - name: Prepare updated server list with new passwords
       set_fact:
         updated_servers: "{{ updated_servers | default([]) + [ new_server ] }}"
       vars:
         mac_entry: >-
-          {{ (mac_list | selectattr('server', 'equalto', item.ipv4) | map(attribute='mac') | list | first) }}
+          {{ (mac_list | default([]) | selectattr('server', 'equalto', item['IPv4 Address']) | map(attribute='mac') | list | first) if password_choice == 'unique' else '' }}
         mac_value: >-
           {% if mac_entry is string %}
             {{ mac_entry }}
@@ -76,41 +120,90 @@
           {% else %}
             UCPMSP.{{ mac_last6 }}
           {% endif %}
-        new_server: "{{ item | combine({ 'password': new_password | trim }) }}"
-      loop: "{{ server_list.list }}"
+        new_server: "{{ item | combine({ 'Password': new_password | trim }) }}"
+      loop: "{{ all_servers }}"
       loop_control:
         loop_var: item
 
-    - name: Show updated servers with new passwords
-      debug:
-        msg: "{{ updated_servers }}"
-
-    - name: Update passwords on each server using ipmitool
-      loop: "{{ updated_servers }}"
+    - name: Update passwords on HA servers using ilorest
+      shell: |
+        /home/ubuntu/smci/AnsibleToolkit/toolkit/vendor/tools/ilorest_wrapper.sh iloaccounts changepass {{ item['Username'] }} {{ item['Password'] }} --url {{ item['IPv4 Address'] }} -u {{ item['Username'] }} -p {{ current_password }}
+      loop: "{{ updated_servers | selectattr('Type', 'match', 'HA_Server') | list }}"
       loop_control:
         loop_var: item
       vars:
-        current_password: "{{ server_list.list | selectattr('ipv4', 'equalto', item.ipv4) | map(attribute='password') | first }}"
-      command: >
-        ipmitool -I lanplus -H {{ item.ipv4 }}
-        -U {{ item.username }} -P '{{ current_password }}'
-        user set password 4 '{{ item.password }}'
-      register: ipmi_results
+        current_password: "{{ all_servers | selectattr('IPv4 Address', 'equalto', item['IPv4 Address']) | map(attribute='Password') | first }}"
+      register: ilorest_results
       no_log: true
       ignore_errors: yes
+      when: updated_servers | selectattr('Type', 'match', 'HA_Server') | list | length > 0
 
-    - name: Print SMCI Servers update results per server
+    - name: Fallback - Update passwords on HA servers using ipmitool
+      command: >
+        ipmitool -I lanplus -H {{ item.item['IPv4 Address'] }}
+        -U {{ item.item['Username'] }} -P '{{ current_password }}'
+        user set password 4 '{{ item.item['Password'] }}'
+      loop: "{{ ilorest_results.results | default([]) | selectattr('rc', 'ne', 0) | list }}"
+      loop_control:
+        loop_var: item
+      vars:
+        current_password: "{{ all_servers | selectattr('IPv4 Address', 'equalto', item.item['IPv4 Address']) | map(attribute='Password') | first }}"
+      register: ha_ipmi_fallback_results
+      no_log: true
+      ignore_errors: yes
+      when: 
+        - ilorest_results is defined
+        - ilorest_results.results | default([]) | selectattr('rc', 'ne', 0) | list | length > 0
+
+    - name: Update passwords on DS/Supermicro servers using saa tool
+      shell: >
+        {{ playbook_dir }}/../../saa_1.3.0_Linux_x86_64/saa
+        -i {{ item['IPv4 Address'] }}
+        -u {{ item['Username'] }}
+        -p {{ current_password }}
+        -c SetUserPassword
+        --userid 4
+        --newpassword {{ item['Password'] }}
+      loop: "{{ updated_servers | rejectattr('Type', 'match', 'HA_Server') | list }}"
+      loop_control:
+        loop_var: item
+      vars:
+        current_password: "{{ all_servers | selectattr('IPv4 Address', 'equalto', item['IPv4 Address']) | map(attribute='Password') | first }}"
+      register: saa_results
+      no_log: true
+      ignore_errors: yes
+      when: updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length > 0
+
+    - name: Fallback - Update passwords on DS/Supermicro servers using ipmitool
+      command: >
+        ipmitool -I lanplus -H {{ item.item['IPv4 Address'] }}
+        -U {{ item.item['Username'] }} -P '{{ current_password }}'
+        user set password 4 '{{ item.item['Password'] }}'
+      loop: "{{ saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list }}"
+      loop_control:
+        loop_var: item
+      vars:
+        current_password: "{{ all_servers | selectattr('IPv4 Address', 'equalto', item.item['IPv4 Address']) | map(attribute='Password') | first }}"
+      register: ipmi_fallback_results
+      no_log: true
+      ignore_errors: yes
+      when: 
+        - saa_results is defined
+        - saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list | length > 0
+
+    - name: Print password update results summary
       debug:
         msg: |
-          Server: {{ item.item.ipv4 }}
-          Changed: {{ item.changed }}
-          RC: {{ item.rc }}
-          Stdout: {{ item.stdout }}
-          Stderr: {{ item.stderr }}
-      loop: "{{ ipmi_results.results }}"
+          Password update summary:
+          - HA Servers (ilorest): {{ (ilorest_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ilorest_results.results | default([]) | length) }} successful
+          - HA Servers (ipmitool fallback): {{ (ha_ipmi_fallback_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ha_ipmi_fallback_results.results | default([]) | length) }} successful  
+          - DS/Supermicro Servers (saa): {{ (saa_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_results.results | default([]) | length) }} successful
+          - DS/Supermicro Servers (ipmitool fallback): {{ (ipmi_fallback_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ipmi_fallback_results.results | default([]) | length) }} successful
+      when: 
+        - ilorest_results is defined or saa_results is defined or ha_ipmi_fallback_results is defined or ipmi_fallback_results is defined
 
-    - name: Write updated servers to CSV file overwriting original 
+    - name: Write updated servers to CSV file
       template:
         src: updated_servers.csv.j2
-        dest: /home/ubuntu/smci/ansible-toolkit/toolkit/config/smci-server.csv
+        dest: "{{ playbook_dir }}/../config/server.csv"
         backup: yes

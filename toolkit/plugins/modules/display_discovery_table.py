@@ -6,11 +6,18 @@ import logging
 import os
 from datetime import datetime
 
+# Import offline libraries support
 try:
-    from prettytable import PrettyTable
-    HAS_PRETTYTABLE = True
+    from ansible.module_utils.offline_libs import import_prettytable
+    PrettyTable, HAS_PRETTYTABLE = import_prettytable()
 except ImportError:
-    HAS_PRETTYTABLE = False
+    # Fallback to direct import
+    try:
+        from prettytable import PrettyTable
+        HAS_PRETTYTABLE = True
+    except ImportError:
+        HAS_PRETTYTABLE = False
+        PrettyTable = None
 
 # Setup logging
 def setup_logging():

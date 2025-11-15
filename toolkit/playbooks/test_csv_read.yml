@@ -1,0 +1,31 @@
+---
+- name: Test CSV Reading
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  
+  tasks:
+    - name: Read server information from CSV
+      read_csv:
+        path: "{{ playbook_dir }}/../config/server.csv"
+      register: server_data
+
+    - name: Display CSV data
+      debug:
+        var: server_data
+
+    - name: Set server facts from CSV
+      set_fact:
+        server_ip: "{{ server_data.list[0]['IPv4 Address'] }}"
+        server_user: "{{ server_data.list[0]['Username'] }}"
+        server_password: "{{ server_data.list[0]['Password'] }}"
+
+    - name: Display extracted values
+      debug:
+        msg: |
+          Extracted Values:
+          - IP Address: '{{ server_ip }}'
+          - Username: '{{ server_user }}'
+          - Password: '{{ server_password }}'
+          - IP Length: {{ server_ip | length }}
+          - IP Empty: {{ server_ip == '' }}

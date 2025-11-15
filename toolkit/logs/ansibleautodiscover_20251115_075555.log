@@ -1,0 +1,1187 @@
+2025-11-15 07:55:55,935 - INFO - Logging initialized. Log file: /home/ubuntu/smci/AnsibleToolkit/toolkit/logs/ansibleautodiscover_20251115_075555.log
+2025-11-15 07:55:55,936 - INFO - Starting ansibleautodiscover module
+2025-11-15 07:55:55,940 - INFO - Module parameters - interface: enp0s8, target_nodes: None, discover_servers: True, discover_switches: False
+2025-11-15 07:55:55,940 - INFO - Authentication - server usernames: 1, server passwords: 1, switch usernames: 1, switch passwords: 1
+2025-11-15 07:55:55,941 - INFO - Starting IPv6 device discovery...
+2025-11-15 07:55:55,941 - DEBUG - Starting module execution...
+2025-11-15 07:55:55,941 - DEBUG - Starting IPv6 neighbor discovery...
+2025-11-15 07:55:55,942 - DEBUG - Will scan interfaces: ['enp0s8']
+2025-11-15 07:55:55,942 - DEBUG - Pinging multicast on interface enp0s8...
+2025-11-15 07:55:56,953 - DEBUG - Parsing ping responses from interface enp0s8...
+2025-11-15 07:55:56,956 - DEBUG - Found IPv6 device: fe80::a00:27ff:fe50:fb24%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::5eed:8cff:fe36:b6aa%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::5eed:8cff:fe36:c630%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::5eba:2cff:fe38:9948%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::6a05:caff:feee:fd14%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::7ea6:2aff:fe6e:cd2a%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::5eed:8cff:fe01:2de8%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::5eed:8cff:fe36:b60e%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::5eed:8cff:fe01:2dec%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::323e:a7ff:fe32:b584%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::5eed:8cff:fe01:2d68%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::7ea6:2aff:fe6e:b726%enp0s8
+2025-11-15 07:55:56,957 - DEBUG - Found IPv6 device: fe80::7ea6:2aff:fe6d:724a%enp0s8
+2025-11-15 07:55:56,958 - DEBUG - Found IPv6 device: fe80::5eed:8cff:fe36:b674%enp0s8
+2025-11-15 07:55:56,958 - DEBUG - Found IPv6 device: fe80::b2a1:f404:5a76:deaa%enp0s8
+2025-11-15 07:55:56,959 - DEBUG - Found IPv6 device: fe80::b56c:71f0:fb08:edfc%enp0s8
+2025-11-15 07:55:56,959 - DEBUG - Found IPv6 device: fe80::5eed:8cff:fe36:c614%enp0s8
+2025-11-15 07:55:56,959 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe1c:3d00%enp0s8
+2025-11-15 07:55:56,959 - DEBUG - Found IPv6 device: fe80::5eed:8cff:feab:480e%enp0s8
+2025-11-15 07:55:56,960 - DEBUG - Found IPv6 device: fe80::63d1:c3c8:33b2:8f5a%enp0s8
+2025-11-15 07:55:56,960 - DEBUG - Found IPv6 device: fe80::5eed:8cff:fe01:2dfc%enp0s8
+2025-11-15 07:55:56,960 - DEBUG - Found IPv6 device: fe80::7ea6:2aff:fe6e:ab64%enp0s8
+2025-11-15 07:55:56,960 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe21:9958%enp0s8
+2025-11-15 07:55:56,961 - DEBUG - Found IPv6 device: fe80::7ea6:2aff:fe6e:ab6c%enp0s8
+2025-11-15 07:55:56,961 - DEBUG - Found IPv6 device: fe80::7ea6:2aff:fe6e:c730%enp0s8
+2025-11-15 07:55:56,961 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe1c:3da8%enp0s8
+2025-11-15 07:55:56,961 - DEBUG - Found IPv6 device: fe80::7ea6:2aff:fe6e:b652%enp0s8
+2025-11-15 07:55:56,961 - DEBUG - Found IPv6 device: fe80::7ea6:2aff:fe6e:8b1e%enp0s8
+2025-11-15 07:55:56,961 - DEBUG - Found IPv6 device: fe80::7ec2:55ff:feed:1412%enp0s8
+2025-11-15 07:55:56,961 - DEBUG - Found IPv6 device: fe80::f439:4ec2:bbe1:fe72%enp0s8
+2025-11-15 07:55:56,961 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe1c:3df0%enp0s8
+2025-11-15 07:55:56,961 - DEBUG - Found IPv6 device: fe80::da1f:ccff:fe89:29cc%enp0s8
+2025-11-15 07:55:56,961 - DEBUG - Found IPv6 device: fe80::762d:6265:cb9e:e0da%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::da1f:ccff:fe83:33a8%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe17:76ca%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe17:da7e%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::9f1b:a234:bb6a:1939%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe1c:3e32%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::2f12:a7f4:131b:4c95%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::38f3:35e4:617e:ad65%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::9783:1311:29bf:a59c%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe1c:3670%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::2592:27a4:4208:84d0%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::e90e:deb3:d28:eafc%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::4a16:9721:f64a:38e3%enp0s8
+2025-11-15 07:55:56,962 - DEBUG - Found IPv6 device: fe80::4091:be03:6e4e:526%enp0s8
+2025-11-15 07:55:56,963 - DEBUG - Found IPv6 device: fe80::35df:49bc:df42:ad58%enp0s8
+2025-11-15 07:55:56,963 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe1c:3d0c%enp0s8
+2025-11-15 07:55:56,963 - DEBUG - Found IPv6 device: fe80::85a3:8d13:5eb8:2dde%enp0s8
+2025-11-15 07:55:56,963 - DEBUG - Found IPv6 device: fe80::cfae:8a5a:8faa:d383%enp0s8
+2025-11-15 07:55:56,964 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe1c:3df2%enp0s8
+2025-11-15 07:55:56,964 - DEBUG - Found IPv6 device: fe80::323e:a7ff:fe01:6dfe%enp0s8
+2025-11-15 07:55:56,964 - DEBUG - Found IPv6 device: fe80::85c1:5730:9ba3:d2c%enp0s8
+2025-11-15 07:55:56,964 - DEBUG - Found IPv6 device: fe80::7ec2:55ff:feed:138e%enp0s8
+2025-11-15 07:55:56,965 - DEBUG - Found IPv6 device: fe80::da1f:ccff:fefb:edc0%enp0s8
+2025-11-15 07:55:56,965 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe21:995a%enp0s8
+2025-11-15 07:55:56,965 - DEBUG - Found IPv6 device: fe80::8e84:74ff:fec0:b310%enp0s8
+2025-11-15 07:55:56,966 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe17:76cc%enp0s8
+2025-11-15 07:55:56,966 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe1c:3672%enp0s8
+2025-11-15 07:55:56,966 - DEBUG - Found IPv6 device: fe80::8e84:74ff:fec0:5620%enp0s8
+2025-11-15 07:55:56,966 - DEBUG - Found IPv6 device: fe80::3381:20d5:c507:3e19%enp0s8
+2025-11-15 07:55:56,966 - DEBUG - Found IPv6 device: fe80::c859:5d4c:26ce:318f%enp0s8
+2025-11-15 07:55:56,967 - DEBUG - Found IPv6 device: fe80::925a:8ff:fe1e:5086%enp0s8
+2025-11-15 07:55:56,967 - DEBUG - Found IPv6 device: fe80::925a:8ff:fe1e:508a%enp0s8
+2025-11-15 07:55:56,967 - DEBUG - Found IPv6 device: fe80::b696:91ff:fec8:7426%enp0s8
+2025-11-15 07:55:56,967 - DEBUG - Found IPv6 device: fe80::b696:91ff:fec9:c970%enp0s8
+2025-11-15 07:55:56,968 - DEBUG - Found IPv6 device: fe80::8e84:74ff:fed2:910%enp0s8
+2025-11-15 07:55:56,968 - DEBUG - Found IPv6 device: fe80::925a:8ff:fe1e:4e16%enp0s8
+2025-11-15 07:55:56,968 - DEBUG - Found IPv6 device: fe80::250:56ff:feb8:5b5c%enp0s8
+2025-11-15 07:55:56,969 - DEBUG - Found IPv6 device: fe80::250:56ff:feb8:4a0%enp0s8
+2025-11-15 07:55:56,969 - DEBUG - Found IPv6 device: fe80::7ec2:55ff:feed:14b6%enp0s8
+2025-11-15 07:55:56,969 - DEBUG - Found IPv6 device: fe80::250:56ff:feb8:b5e7%enp0s8
+2025-11-15 07:55:56,969 - DEBUG - Found IPv6 device: fe80::8e84:74ff:fec0:95b0%enp0s8
+2025-11-15 07:55:56,969 - DEBUG - Found IPv6 device: fe80::7ec2:55ff:feed:1272%enp0s8
+2025-11-15 07:55:56,970 - DEBUG - Found IPv6 device: fe80::323e:a7ff:fe32:b520%enp0s8
+2025-11-15 07:55:56,970 - DEBUG - Found IPv6 device: fe80::5af3:9cff:fea9:cb78%enp0s8
+2025-11-15 07:55:56,970 - DEBUG - Found IPv6 device: fe80::5af3:9cff:fea9:cd5a%enp0s8
+2025-11-15 07:55:56,970 - DEBUG - Found IPv6 device: fe80::2403:ee50:59a9:ec30%enp0s8
+2025-11-15 07:55:56,971 - DEBUG - Found IPv6 device: fe80::dac4:97ff:fe36:ab41%enp0s8
+2025-11-15 07:55:56,971 - DEBUG - Found IPv6 device: fe80::dac4:97ff:fe36:aa9f%enp0s8
+2025-11-15 07:55:56,972 - DEBUG - Found IPv6 device: fe80::323e:a7ff:fe2c:dd04%enp0s8
+2025-11-15 07:55:56,972 - DEBUG - Found IPv6 device: fe80::323e:a7ff:fe32:b588%enp0s8
+2025-11-15 07:55:56,972 - DEBUG - Found IPv6 device: fe80::dac4:97ff:fe36:7aea%enp0s8
+2025-11-15 07:55:56,972 - DEBUG - Found IPv6 device: fe80::250:56ff:feb8:5535%enp0s8
+2025-11-15 07:55:56,973 - DEBUG - Found IPv6 device: fe80::9640:c9ff:fe17:da80%enp0s8
+2025-11-15 07:55:56,973 - DEBUG - Total IPv6 devices found: 85
+2025-11-15 07:55:56,973 - DEBUG - Warning: Found 85 devices, limiting to first 50 for performance
+2025-11-15 07:55:56,973 - INFO - Found 50 IPv6 devices
+2025-11-15 07:55:56,974 - DEBUG - Found 50 IPv6 devices, starting discovery...
+2025-11-15 07:55:56,974 - DEBUG - Starting server discovery phase...
+2025-11-15 07:55:56,974 - DEBUG - Starting server discovery for 50 nodes
+2025-11-15 07:55:56,974 - DEBUG - Phase 1: Quick IPMI port filtering...
+2025-11-15 07:55:56,974 - DEBUG - Quick check 1/50: fe80::a00:27ff:fe50:fb24%enp0s8
+2025-11-15 07:55:56,974 - DEBUG - Quick IPMI check for fe80::a00:27ff:fe50:fb24%enp0s8
+2025-11-15 07:55:56,974 - DEBUG - Quick IPMI check fe80::a00:27ff:fe50:fb24%enp0s8: PASS
+2025-11-15 07:55:56,975 - DEBUG - Added fe80::a00:27ff:fe50:fb24%enp0s8 to potential servers list
+2025-11-15 07:55:56,975 - DEBUG - Quick check 2/50: fe80::5eed:8cff:fe36:b6aa%enp0s8
+2025-11-15 07:55:56,975 - DEBUG - Quick IPMI check for fe80::5eed:8cff:fe36:b6aa%enp0s8
+2025-11-15 07:55:56,976 - DEBUG - Quick IPMI check fe80::5eed:8cff:fe36:b6aa%enp0s8: PASS
+2025-11-15 07:55:56,976 - DEBUG - Added fe80::5eed:8cff:fe36:b6aa%enp0s8 to potential servers list
+2025-11-15 07:55:56,977 - DEBUG - Quick check 3/50: fe80::5eed:8cff:fe36:c630%enp0s8
+2025-11-15 07:55:56,977 - DEBUG - Quick IPMI check for fe80::5eed:8cff:fe36:c630%enp0s8
+2025-11-15 07:55:56,977 - DEBUG - Quick IPMI check fe80::5eed:8cff:fe36:c630%enp0s8: PASS
+2025-11-15 07:55:56,978 - DEBUG - Added fe80::5eed:8cff:fe36:c630%enp0s8 to potential servers list
+2025-11-15 07:55:56,978 - DEBUG - Quick check 4/50: fe80::5eba:2cff:fe38:9948%enp0s8
+2025-11-15 07:55:56,978 - DEBUG - Quick IPMI check for fe80::5eba:2cff:fe38:9948%enp0s8
+2025-11-15 07:55:56,979 - DEBUG - Quick IPMI check fe80::5eba:2cff:fe38:9948%enp0s8: PASS
+2025-11-15 07:55:56,979 - DEBUG - Added fe80::5eba:2cff:fe38:9948%enp0s8 to potential servers list
+2025-11-15 07:55:56,979 - DEBUG - Quick check 5/50: fe80::6a05:caff:feee:fd14%enp0s8
+2025-11-15 07:55:56,980 - DEBUG - Quick IPMI check for fe80::6a05:caff:feee:fd14%enp0s8
+2025-11-15 07:55:56,980 - DEBUG - Quick IPMI check fe80::6a05:caff:feee:fd14%enp0s8: PASS
+2025-11-15 07:55:56,980 - DEBUG - Added fe80::6a05:caff:feee:fd14%enp0s8 to potential servers list
+2025-11-15 07:55:56,981 - DEBUG - Quick check 6/50: fe80::7ea6:2aff:fe6e:cd2a%enp0s8
+2025-11-15 07:55:56,981 - DEBUG - Quick IPMI check for fe80::7ea6:2aff:fe6e:cd2a%enp0s8
+2025-11-15 07:55:56,981 - DEBUG - Quick IPMI check fe80::7ea6:2aff:fe6e:cd2a%enp0s8: PASS
+2025-11-15 07:55:56,981 - DEBUG - Added fe80::7ea6:2aff:fe6e:cd2a%enp0s8 to potential servers list
+2025-11-15 07:55:56,982 - DEBUG - Quick check 7/50: fe80::5eed:8cff:fe01:2de8%enp0s8
+2025-11-15 07:55:56,982 - DEBUG - Quick IPMI check for fe80::5eed:8cff:fe01:2de8%enp0s8
+2025-11-15 07:55:56,982 - DEBUG - Quick IPMI check fe80::5eed:8cff:fe01:2de8%enp0s8: PASS
+2025-11-15 07:55:56,982 - DEBUG - Added fe80::5eed:8cff:fe01:2de8%enp0s8 to potential servers list
+2025-11-15 07:55:56,982 - DEBUG - Quick check 8/50: fe80::5eed:8cff:fe36:b60e%enp0s8
+2025-11-15 07:55:56,982 - DEBUG - Quick IPMI check for fe80::5eed:8cff:fe36:b60e%enp0s8
+2025-11-15 07:55:56,982 - DEBUG - Quick IPMI check fe80::5eed:8cff:fe36:b60e%enp0s8: PASS
+2025-11-15 07:55:56,982 - DEBUG - Added fe80::5eed:8cff:fe36:b60e%enp0s8 to potential servers list
+2025-11-15 07:55:56,983 - DEBUG - Quick check 9/50: fe80::5eed:8cff:fe01:2dec%enp0s8
+2025-11-15 07:55:56,983 - DEBUG - Quick IPMI check for fe80::5eed:8cff:fe01:2dec%enp0s8
+2025-11-15 07:55:56,983 - DEBUG - Quick IPMI check fe80::5eed:8cff:fe01:2dec%enp0s8: PASS
+2025-11-15 07:55:56,984 - DEBUG - Added fe80::5eed:8cff:fe01:2dec%enp0s8 to potential servers list
+2025-11-15 07:55:56,984 - DEBUG - Quick check 10/50: fe80::323e:a7ff:fe32:b584%enp0s8
+2025-11-15 07:55:56,984 - DEBUG - Quick IPMI check for fe80::323e:a7ff:fe32:b584%enp0s8
+2025-11-15 07:55:56,985 - DEBUG - Quick IPMI check fe80::323e:a7ff:fe32:b584%enp0s8: PASS
+2025-11-15 07:55:56,985 - DEBUG - Added fe80::323e:a7ff:fe32:b584%enp0s8 to potential servers list
+2025-11-15 07:55:56,985 - DEBUG - Quick check 11/50: fe80::5eed:8cff:fe01:2d68%enp0s8
+2025-11-15 07:55:56,986 - DEBUG - Quick IPMI check for fe80::5eed:8cff:fe01:2d68%enp0s8
+2025-11-15 07:55:56,986 - DEBUG - Quick IPMI check fe80::5eed:8cff:fe01:2d68%enp0s8: PASS
+2025-11-15 07:55:56,986 - DEBUG - Added fe80::5eed:8cff:fe01:2d68%enp0s8 to potential servers list
+2025-11-15 07:55:56,987 - DEBUG - Quick check 12/50: fe80::7ea6:2aff:fe6e:b726%enp0s8
+2025-11-15 07:55:56,987 - DEBUG - Quick IPMI check for fe80::7ea6:2aff:fe6e:b726%enp0s8
+2025-11-15 07:55:56,987 - DEBUG - Quick IPMI check fe80::7ea6:2aff:fe6e:b726%enp0s8: PASS
+2025-11-15 07:55:56,988 - DEBUG - Added fe80::7ea6:2aff:fe6e:b726%enp0s8 to potential servers list
+2025-11-15 07:55:56,988 - DEBUG - Quick check 13/50: fe80::7ea6:2aff:fe6d:724a%enp0s8
+2025-11-15 07:55:56,988 - DEBUG - Quick IPMI check for fe80::7ea6:2aff:fe6d:724a%enp0s8
+2025-11-15 07:55:56,988 - DEBUG - Quick IPMI check fe80::7ea6:2aff:fe6d:724a%enp0s8: PASS
+2025-11-15 07:55:56,988 - DEBUG - Added fe80::7ea6:2aff:fe6d:724a%enp0s8 to potential servers list
+2025-11-15 07:55:56,989 - DEBUG - Quick check 14/50: fe80::5eed:8cff:fe36:b674%enp0s8
+2025-11-15 07:55:56,989 - DEBUG - Quick IPMI check for fe80::5eed:8cff:fe36:b674%enp0s8
+2025-11-15 07:55:56,989 - DEBUG - Quick IPMI check fe80::5eed:8cff:fe36:b674%enp0s8: PASS
+2025-11-15 07:55:56,989 - DEBUG - Added fe80::5eed:8cff:fe36:b674%enp0s8 to potential servers list
+2025-11-15 07:55:56,989 - DEBUG - Quick check 15/50: fe80::b2a1:f404:5a76:deaa%enp0s8
+2025-11-15 07:55:56,989 - DEBUG - Quick IPMI check for fe80::b2a1:f404:5a76:deaa%enp0s8
+2025-11-15 07:55:56,989 - DEBUG - Quick IPMI check fe80::b2a1:f404:5a76:deaa%enp0s8: PASS
+2025-11-15 07:55:56,990 - DEBUG - Added fe80::b2a1:f404:5a76:deaa%enp0s8 to potential servers list
+2025-11-15 07:55:56,990 - DEBUG - Quick check 16/50: fe80::b56c:71f0:fb08:edfc%enp0s8
+2025-11-15 07:55:56,990 - DEBUG - Quick IPMI check for fe80::b56c:71f0:fb08:edfc%enp0s8
+2025-11-15 07:55:56,990 - DEBUG - Quick IPMI check fe80::b56c:71f0:fb08:edfc%enp0s8: PASS
+2025-11-15 07:55:56,991 - DEBUG - Added fe80::b56c:71f0:fb08:edfc%enp0s8 to potential servers list
+2025-11-15 07:55:56,991 - DEBUG - Quick check 17/50: fe80::5eed:8cff:fe36:c614%enp0s8
+2025-11-15 07:55:56,992 - DEBUG - Quick IPMI check for fe80::5eed:8cff:fe36:c614%enp0s8
+2025-11-15 07:55:56,992 - DEBUG - Quick IPMI check fe80::5eed:8cff:fe36:c614%enp0s8: PASS
+2025-11-15 07:55:56,992 - DEBUG - Added fe80::5eed:8cff:fe36:c614%enp0s8 to potential servers list
+2025-11-15 07:55:56,992 - DEBUG - Quick check 18/50: fe80::9640:c9ff:fe1c:3d00%enp0s8
+2025-11-15 07:55:56,993 - DEBUG - Quick IPMI check for fe80::9640:c9ff:fe1c:3d00%enp0s8
+2025-11-15 07:55:56,993 - DEBUG - Quick IPMI check fe80::9640:c9ff:fe1c:3d00%enp0s8: PASS
+2025-11-15 07:55:56,994 - DEBUG - Added fe80::9640:c9ff:fe1c:3d00%enp0s8 to potential servers list
+2025-11-15 07:55:56,994 - DEBUG - Quick check 19/50: fe80::5eed:8cff:feab:480e%enp0s8
+2025-11-15 07:55:56,994 - DEBUG - Quick IPMI check for fe80::5eed:8cff:feab:480e%enp0s8
+2025-11-15 07:55:56,994 - DEBUG - Quick IPMI check fe80::5eed:8cff:feab:480e%enp0s8: PASS
+2025-11-15 07:55:56,995 - DEBUG - Added fe80::5eed:8cff:feab:480e%enp0s8 to potential servers list
+2025-11-15 07:55:56,995 - DEBUG - Quick check 20/50: fe80::63d1:c3c8:33b2:8f5a%enp0s8
+2025-11-15 07:55:56,995 - DEBUG - Quick IPMI check for fe80::63d1:c3c8:33b2:8f5a%enp0s8
+2025-11-15 07:55:56,996 - DEBUG - Quick IPMI check fe80::63d1:c3c8:33b2:8f5a%enp0s8: PASS
+2025-11-15 07:55:56,996 - DEBUG - Added fe80::63d1:c3c8:33b2:8f5a%enp0s8 to potential servers list
+2025-11-15 07:55:56,996 - DEBUG - Quick check 21/50: fe80::5eed:8cff:fe01:2dfc%enp0s8
+2025-11-15 07:55:56,997 - DEBUG - Quick IPMI check for fe80::5eed:8cff:fe01:2dfc%enp0s8
+2025-11-15 07:55:56,997 - DEBUG - Quick IPMI check fe80::5eed:8cff:fe01:2dfc%enp0s8: PASS
+2025-11-15 07:55:56,997 - DEBUG - Added fe80::5eed:8cff:fe01:2dfc%enp0s8 to potential servers list
+2025-11-15 07:55:56,997 - DEBUG - Quick check 22/50: fe80::7ea6:2aff:fe6e:ab64%enp0s8
+2025-11-15 07:55:56,997 - DEBUG - Quick IPMI check for fe80::7ea6:2aff:fe6e:ab64%enp0s8
+2025-11-15 07:55:56,997 - DEBUG - Quick IPMI check fe80::7ea6:2aff:fe6e:ab64%enp0s8: PASS
+2025-11-15 07:55:56,997 - DEBUG - Added fe80::7ea6:2aff:fe6e:ab64%enp0s8 to potential servers list
+2025-11-15 07:55:56,997 - DEBUG - Quick check 23/50: fe80::9640:c9ff:fe21:9958%enp0s8
+2025-11-15 07:55:56,997 - DEBUG - Quick IPMI check for fe80::9640:c9ff:fe21:9958%enp0s8
+2025-11-15 07:55:56,997 - DEBUG - Quick IPMI check fe80::9640:c9ff:fe21:9958%enp0s8: PASS
+2025-11-15 07:55:56,998 - DEBUG - Added fe80::9640:c9ff:fe21:9958%enp0s8 to potential servers list
+2025-11-15 07:55:56,998 - DEBUG - Quick check 24/50: fe80::7ea6:2aff:fe6e:ab6c%enp0s8
+2025-11-15 07:55:56,999 - DEBUG - Quick IPMI check for fe80::7ea6:2aff:fe6e:ab6c%enp0s8
+2025-11-15 07:55:56,999 - DEBUG - Quick IPMI check fe80::7ea6:2aff:fe6e:ab6c%enp0s8: PASS
+2025-11-15 07:55:56,999 - DEBUG - Added fe80::7ea6:2aff:fe6e:ab6c%enp0s8 to potential servers list
+2025-11-15 07:55:56,999 - DEBUG - Quick check 25/50: fe80::7ea6:2aff:fe6e:c730%enp0s8
+2025-11-15 07:55:57,000 - DEBUG - Quick IPMI check for fe80::7ea6:2aff:fe6e:c730%enp0s8
+2025-11-15 07:55:57,000 - DEBUG - Quick IPMI check fe80::7ea6:2aff:fe6e:c730%enp0s8: PASS
+2025-11-15 07:55:57,000 - DEBUG - Added fe80::7ea6:2aff:fe6e:c730%enp0s8 to potential servers list
+2025-11-15 07:55:57,001 - DEBUG - Quick check 26/50: fe80::9640:c9ff:fe1c:3da8%enp0s8
+2025-11-15 07:55:57,001 - DEBUG - Quick IPMI check for fe80::9640:c9ff:fe1c:3da8%enp0s8
+2025-11-15 07:55:57,001 - DEBUG - Quick IPMI check fe80::9640:c9ff:fe1c:3da8%enp0s8: PASS
+2025-11-15 07:55:57,002 - DEBUG - Added fe80::9640:c9ff:fe1c:3da8%enp0s8 to potential servers list
+2025-11-15 07:55:57,002 - DEBUG - Quick check 27/50: fe80::7ea6:2aff:fe6e:b652%enp0s8
+2025-11-15 07:55:57,002 - DEBUG - Quick IPMI check for fe80::7ea6:2aff:fe6e:b652%enp0s8
+2025-11-15 07:55:57,003 - DEBUG - Quick IPMI check fe80::7ea6:2aff:fe6e:b652%enp0s8: PASS
+2025-11-15 07:55:57,003 - DEBUG - Added fe80::7ea6:2aff:fe6e:b652%enp0s8 to potential servers list
+2025-11-15 07:55:57,003 - DEBUG - Quick check 28/50: fe80::7ea6:2aff:fe6e:8b1e%enp0s8
+2025-11-15 07:55:57,003 - DEBUG - Quick IPMI check for fe80::7ea6:2aff:fe6e:8b1e%enp0s8
+2025-11-15 07:55:57,004 - DEBUG - Quick IPMI check fe80::7ea6:2aff:fe6e:8b1e%enp0s8: PASS
+2025-11-15 07:55:57,004 - DEBUG - Added fe80::7ea6:2aff:fe6e:8b1e%enp0s8 to potential servers list
+2025-11-15 07:55:57,004 - DEBUG - Quick check 29/50: fe80::7ec2:55ff:feed:1412%enp0s8
+2025-11-15 07:55:57,004 - DEBUG - Quick IPMI check for fe80::7ec2:55ff:feed:1412%enp0s8
+2025-11-15 07:55:57,004 - DEBUG - Quick IPMI check fe80::7ec2:55ff:feed:1412%enp0s8: PASS
+2025-11-15 07:55:57,005 - DEBUG - Added fe80::7ec2:55ff:feed:1412%enp0s8 to potential servers list
+2025-11-15 07:55:57,005 - DEBUG - Quick check 30/50: fe80::f439:4ec2:bbe1:fe72%enp0s8
+2025-11-15 07:55:57,005 - DEBUG - Quick IPMI check for fe80::f439:4ec2:bbe1:fe72%enp0s8
+2025-11-15 07:55:57,006 - DEBUG - Quick IPMI check fe80::f439:4ec2:bbe1:fe72%enp0s8: PASS
+2025-11-15 07:55:57,006 - DEBUG - Added fe80::f439:4ec2:bbe1:fe72%enp0s8 to potential servers list
+2025-11-15 07:55:57,006 - DEBUG - Quick check 31/50: fe80::9640:c9ff:fe1c:3df0%enp0s8
+2025-11-15 07:55:57,007 - DEBUG - Quick IPMI check for fe80::9640:c9ff:fe1c:3df0%enp0s8
+2025-11-15 07:55:57,007 - DEBUG - Quick IPMI check fe80::9640:c9ff:fe1c:3df0%enp0s8: PASS
+2025-11-15 07:55:57,007 - DEBUG - Added fe80::9640:c9ff:fe1c:3df0%enp0s8 to potential servers list
+2025-11-15 07:55:57,008 - DEBUG - Quick check 32/50: fe80::da1f:ccff:fe89:29cc%enp0s8
+2025-11-15 07:55:57,008 - DEBUG - Quick IPMI check for fe80::da1f:ccff:fe89:29cc%enp0s8
+2025-11-15 07:55:57,008 - DEBUG - Quick IPMI check fe80::da1f:ccff:fe89:29cc%enp0s8: PASS
+2025-11-15 07:55:57,009 - DEBUG - Added fe80::da1f:ccff:fe89:29cc%enp0s8 to potential servers list
+2025-11-15 07:55:57,009 - DEBUG - Quick check 33/50: fe80::762d:6265:cb9e:e0da%enp0s8
+2025-11-15 07:55:57,009 - DEBUG - Quick IPMI check for fe80::762d:6265:cb9e:e0da%enp0s8
+2025-11-15 07:55:57,009 - DEBUG - Quick IPMI check fe80::762d:6265:cb9e:e0da%enp0s8: PASS
+2025-11-15 07:55:57,010 - DEBUG - Added fe80::762d:6265:cb9e:e0da%enp0s8 to potential servers list
+2025-11-15 07:55:57,010 - DEBUG - Quick check 34/50: fe80::da1f:ccff:fe83:33a8%enp0s8
+2025-11-15 07:55:57,010 - DEBUG - Quick IPMI check for fe80::da1f:ccff:fe83:33a8%enp0s8
+2025-11-15 07:55:57,010 - DEBUG - Quick IPMI check fe80::da1f:ccff:fe83:33a8%enp0s8: PASS
+2025-11-15 07:55:57,010 - DEBUG - Added fe80::da1f:ccff:fe83:33a8%enp0s8 to potential servers list
+2025-11-15 07:55:57,010 - DEBUG - Quick check 35/50: fe80::9640:c9ff:fe17:76ca%enp0s8
+2025-11-15 07:55:57,010 - DEBUG - Quick IPMI check for fe80::9640:c9ff:fe17:76ca%enp0s8
+2025-11-15 07:55:57,010 - DEBUG - Quick IPMI check fe80::9640:c9ff:fe17:76ca%enp0s8: PASS
+2025-11-15 07:55:57,010 - DEBUG - Added fe80::9640:c9ff:fe17:76ca%enp0s8 to potential servers list
+2025-11-15 07:55:57,010 - DEBUG - Quick check 36/50: fe80::9640:c9ff:fe17:da7e%enp0s8
+2025-11-15 07:55:57,010 - DEBUG - Quick IPMI check for fe80::9640:c9ff:fe17:da7e%enp0s8
+2025-11-15 07:55:57,010 - DEBUG - Quick IPMI check fe80::9640:c9ff:fe17:da7e%enp0s8: PASS
+2025-11-15 07:55:57,010 - DEBUG - Added fe80::9640:c9ff:fe17:da7e%enp0s8 to potential servers list
+2025-11-15 07:55:57,010 - DEBUG - Quick check 37/50: fe80::9f1b:a234:bb6a:1939%enp0s8
+2025-11-15 07:55:57,010 - DEBUG - Quick IPMI check for fe80::9f1b:a234:bb6a:1939%enp0s8
+2025-11-15 07:55:57,010 - DEBUG - Quick IPMI check fe80::9f1b:a234:bb6a:1939%enp0s8: PASS
+2025-11-15 07:55:57,010 - DEBUG - Added fe80::9f1b:a234:bb6a:1939%enp0s8 to potential servers list
+2025-11-15 07:55:57,010 - DEBUG - Quick check 38/50: fe80::9640:c9ff:fe1c:3e32%enp0s8
+2025-11-15 07:55:57,010 - DEBUG - Quick IPMI check for fe80::9640:c9ff:fe1c:3e32%enp0s8
+2025-11-15 07:55:57,011 - DEBUG - Quick IPMI check fe80::9640:c9ff:fe1c:3e32%enp0s8: PASS
+2025-11-15 07:55:57,011 - DEBUG - Added fe80::9640:c9ff:fe1c:3e32%enp0s8 to potential servers list
+2025-11-15 07:55:57,011 - DEBUG - Quick check 39/50: fe80::2f12:a7f4:131b:4c95%enp0s8
+2025-11-15 07:55:57,011 - DEBUG - Quick IPMI check for fe80::2f12:a7f4:131b:4c95%enp0s8
+2025-11-15 07:55:57,011 - DEBUG - Quick IPMI check fe80::2f12:a7f4:131b:4c95%enp0s8: PASS
+2025-11-15 07:55:57,011 - DEBUG - Added fe80::2f12:a7f4:131b:4c95%enp0s8 to potential servers list
+2025-11-15 07:55:57,011 - DEBUG - Quick check 40/50: fe80::38f3:35e4:617e:ad65%enp0s8
+2025-11-15 07:55:57,011 - DEBUG - Quick IPMI check for fe80::38f3:35e4:617e:ad65%enp0s8
+2025-11-15 07:55:57,011 - DEBUG - Quick IPMI check fe80::38f3:35e4:617e:ad65%enp0s8: PASS
+2025-11-15 07:55:57,011 - DEBUG - Added fe80::38f3:35e4:617e:ad65%enp0s8 to potential servers list
+2025-11-15 07:55:57,011 - DEBUG - Quick check 41/50: fe80::9783:1311:29bf:a59c%enp0s8
+2025-11-15 07:55:57,012 - DEBUG - Quick IPMI check for fe80::9783:1311:29bf:a59c%enp0s8
+2025-11-15 07:55:57,012 - DEBUG - Quick IPMI check fe80::9783:1311:29bf:a59c%enp0s8: PASS
+2025-11-15 07:55:57,013 - DEBUG - Added fe80::9783:1311:29bf:a59c%enp0s8 to potential servers list
+2025-11-15 07:55:57,013 - DEBUG - Quick check 42/50: fe80::9640:c9ff:fe1c:3670%enp0s8
+2025-11-15 07:55:57,013 - DEBUG - Quick IPMI check for fe80::9640:c9ff:fe1c:3670%enp0s8
+2025-11-15 07:55:57,013 - DEBUG - Quick IPMI check fe80::9640:c9ff:fe1c:3670%enp0s8: PASS
+2025-11-15 07:55:57,014 - DEBUG - Added fe80::9640:c9ff:fe1c:3670%enp0s8 to potential servers list
+2025-11-15 07:55:57,014 - DEBUG - Quick check 43/50: fe80::2592:27a4:4208:84d0%enp0s8
+2025-11-15 07:55:57,014 - DEBUG - Quick IPMI check for fe80::2592:27a4:4208:84d0%enp0s8
+2025-11-15 07:55:57,015 - DEBUG - Quick IPMI check fe80::2592:27a4:4208:84d0%enp0s8: PASS
+2025-11-15 07:55:57,015 - DEBUG - Added fe80::2592:27a4:4208:84d0%enp0s8 to potential servers list
+2025-11-15 07:55:57,016 - DEBUG - Quick check 44/50: fe80::e90e:deb3:d28:eafc%enp0s8
+2025-11-15 07:55:57,016 - DEBUG - Quick IPMI check for fe80::e90e:deb3:d28:eafc%enp0s8
+2025-11-15 07:55:57,016 - DEBUG - Quick IPMI check fe80::e90e:deb3:d28:eafc%enp0s8: PASS
+2025-11-15 07:55:57,016 - DEBUG - Added fe80::e90e:deb3:d28:eafc%enp0s8 to potential servers list
+2025-11-15 07:55:57,017 - DEBUG - Quick check 45/50: fe80::4a16:9721:f64a:38e3%enp0s8
+2025-11-15 07:55:57,017 - DEBUG - Quick IPMI check for fe80::4a16:9721:f64a:38e3%enp0s8
+2025-11-15 07:55:57,017 - DEBUG - Quick IPMI check fe80::4a16:9721:f64a:38e3%enp0s8: PASS
+2025-11-15 07:55:57,018 - DEBUG - Added fe80::4a16:9721:f64a:38e3%enp0s8 to potential servers list
+2025-11-15 07:55:57,018 - DEBUG - Quick check 46/50: fe80::4091:be03:6e4e:526%enp0s8
+2025-11-15 07:55:57,018 - DEBUG - Quick IPMI check for fe80::4091:be03:6e4e:526%enp0s8
+2025-11-15 07:55:57,018 - DEBUG - Quick IPMI check fe80::4091:be03:6e4e:526%enp0s8: PASS
+2025-11-15 07:55:57,019 - DEBUG - Added fe80::4091:be03:6e4e:526%enp0s8 to potential servers list
+2025-11-15 07:55:57,019 - DEBUG - Quick check 47/50: fe80::35df:49bc:df42:ad58%enp0s8
+2025-11-15 07:55:57,019 - DEBUG - Quick IPMI check for fe80::35df:49bc:df42:ad58%enp0s8
+2025-11-15 07:55:57,020 - DEBUG - Quick IPMI check fe80::35df:49bc:df42:ad58%enp0s8: PASS
+2025-11-15 07:55:57,020 - DEBUG - Added fe80::35df:49bc:df42:ad58%enp0s8 to potential servers list
+2025-11-15 07:55:57,020 - DEBUG - Quick check 48/50: fe80::9640:c9ff:fe1c:3d0c%enp0s8
+2025-11-15 07:55:57,020 - DEBUG - Quick IPMI check for fe80::9640:c9ff:fe1c:3d0c%enp0s8
+2025-11-15 07:55:57,021 - DEBUG - Quick IPMI check fe80::9640:c9ff:fe1c:3d0c%enp0s8: PASS
+2025-11-15 07:55:57,021 - DEBUG - Added fe80::9640:c9ff:fe1c:3d0c%enp0s8 to potential servers list
+2025-11-15 07:55:57,021 - DEBUG - Quick check 49/50: fe80::85a3:8d13:5eb8:2dde%enp0s8
+2025-11-15 07:55:57,022 - DEBUG - Quick IPMI check for fe80::85a3:8d13:5eb8:2dde%enp0s8
+2025-11-15 07:55:57,022 - DEBUG - Quick IPMI check fe80::85a3:8d13:5eb8:2dde%enp0s8: PASS
+2025-11-15 07:55:57,022 - DEBUG - Added fe80::85a3:8d13:5eb8:2dde%enp0s8 to potential servers list
+2025-11-15 07:55:57,023 - DEBUG - Quick check 50/50: fe80::cfae:8a5a:8faa:d383%enp0s8
+2025-11-15 07:55:57,023 - DEBUG - Quick IPMI check for fe80::cfae:8a5a:8faa:d383%enp0s8
+2025-11-15 07:55:57,023 - DEBUG - Quick IPMI check fe80::cfae:8a5a:8faa:d383%enp0s8: PASS
+2025-11-15 07:55:57,024 - DEBUG - Added fe80::cfae:8a5a:8faa:d383%enp0s8 to potential servers list
+2025-11-15 07:55:57,024 - DEBUG - Phase 1 complete: 50 potential servers out of 50 IPv6 devices
+2025-11-15 07:55:57,024 - DEBUG - Phase 2: Detailed server discovery...
+2025-11-15 07:55:57,025 - DEBUG - Processing server 1/50: fe80::a00:27ff:fe50:fb24%enp0s8
+2025-11-15 07:55:57,025 - DEBUG - Fast server discovery for fe80::a00:27ff:fe50:fb24%enp0s8 with username admin
+2025-11-15 07:55:57,025 - DEBUG - Attempting fast Redfish connection to https://[fe80::a00:27ff:fe50:fb24%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:55:57,031 - DEBUG - Starting new HTTPS connection (1): fe80::a00:27ff:fe50:fb24%enp0s8:443
+2025-11-15 07:55:57,032 - DEBUG - Exception during fast server discovery for fe80::a00:27ff:fe50:fb24%enp0s8: HTTPSConnectionPool(host='fe80::a00:27ff:fe50:fb24%enp0s8', port=443): Max retries exceeded with url: /redfish/v1/Systems/1 (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x75da3e58b7c0>: Failed to establish a new connection: [Errno 111] Connection refused'))
+2025-11-15 07:55:57,035 - DEBUG - No server discovered at fe80::a00:27ff:fe50:fb24%enp0s8
+2025-11-15 07:55:57,036 - DEBUG - Processing server 2/50: fe80::5eed:8cff:fe36:b6aa%enp0s8
+2025-11-15 07:55:57,037 - DEBUG - Fast server discovery for fe80::5eed:8cff:fe36:b6aa%enp0s8 with username admin
+2025-11-15 07:55:57,037 - DEBUG - Attempting fast Redfish connection to https://[fe80::5eed:8cff:fe36:b6aa%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:55:57,039 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe36:b6aa%enp0s8:443
+2025-11-15 07:56:00,411 - DEBUG - Exception during fast server discovery for fe80::5eed:8cff:fe36:b6aa%enp0s8: HTTPSConnectionPool(host='fe80::5eed:8cff:fe36:b6aa%enp0s8', port=443): Read timed out. (read timeout=3)
+2025-11-15 07:56:00,414 - DEBUG - No server discovered at fe80::5eed:8cff:fe36:b6aa%enp0s8
+2025-11-15 07:56:00,414 - DEBUG - Processing server 3/50: fe80::5eed:8cff:fe36:c630%enp0s8
+2025-11-15 07:56:00,414 - DEBUG - Fast server discovery for fe80::5eed:8cff:fe36:c630%enp0s8 with username admin
+2025-11-15 07:56:00,414 - DEBUG - Attempting fast Redfish connection to https://[fe80::5eed:8cff:fe36:c630%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:00,418 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe36:c630%enp0s8:443
+2025-11-15 07:56:01,029 - DEBUG - https://fe80::5eed:8cff:fe36:c630%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:01,034 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:01,035 - DEBUG - Server info - SKU: NA, Model: Hitachi Advanced Server HA820 G3, Serial: CNX24401KJ
+2025-11-15 07:56:01,035 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:01,036 - DEBUG - Attempting to resolve IPv4 for fe80::5eed:8cff:fe36:c630%enp0s8
+2025-11-15 07:56:01,036 - DEBUG - Cleaned IPv6: fe80::5eed:8cff:fe36:c630
+2025-11-15 07:56:01,045 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb DELAY
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 DELAY
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c DEL...
+2025-11-15 07:56:01,046 - DEBUG - Found line: fe80::5eed:8cff:fe36:c630 dev enp0s8 lladdr 5c:ed:8c:36:c6:30 DELAY
+2025-11-15 07:56:01,048 - DEBUG - Found MAC 5c:ed:8c:36:c6:30 for fe80::5eed:8cff:fe36:c630%enp0s8
+2025-11-15 07:56:01,055 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:01,056 - DEBUG - Attempting direct REST query for fe80::5eed:8cff:fe36:c630
+2025-11-15 07:56:01,056 - DEBUG - Trying URL: https://[fe80::5eed:8cff:fe36:c630]/redfish/v1/Managers/BMC/EthernetInterfaces/1
+2025-11-15 07:56:01,058 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe36:c630:443
+2025-11-15 07:56:01,059 - DEBUG - Direct query failed: HTTPSConnectionPool(host='fe80::5eed:8cff:fe36:c630', port=443): Max retries exceeded with url: /redfish/v1/Managers/BMC/EthernetInterfaces/1 (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x75da3e58b970>: Failed to establish a new connection: [Errno 22] Invalid argument'))
+2025-11-15 07:56:01,060 - DEBUG - Trying known working IP ranges with correlation...
+2025-11-15 07:56:01,060 - DEBUG - Scanning range 172.23.55.90-119
+2025-11-15 07:56:04,076 - DEBUG - Correlating 172.23.55.93 with fe80::5eed:8cff:fe36:c630%enp0s8
+2025-11-15 07:56:04,080 - DEBUG - Starting new HTTPS connection (1): 172.23.55.93:443
+2025-11-15 07:56:06,188 - DEBUG - Correlating 172.23.55.94 with fe80::5eed:8cff:fe36:c630%enp0s8
+2025-11-15 07:56:06,191 - DEBUG - Starting new HTTPS connection (1): 172.23.55.94:443
+2025-11-15 07:56:06,394 - DEBUG - https://172.23.55.94:443 "GET /redfish/v1 HTTP/1.1" 200 1611
+2025-11-15 07:56:06,402 - DEBUG - Found correlated IPv4 172.23.55.94 for fe80::5eed:8cff:fe36:c630%enp0s8
+2025-11-15 07:56:06,403 - DEBUG - Resolved IPv4 address 172.23.55.94 for server fe80::5eed:8cff:fe36:c630%enp0s8
+2025-11-15 07:56:06,404 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:06,405 - DEBUG - Processing server 4/50: fe80::5eba:2cff:fe38:9948%enp0s8
+2025-11-15 07:56:06,405 - DEBUG - Fast server discovery for fe80::5eba:2cff:fe38:9948%enp0s8 with username admin
+2025-11-15 07:56:06,407 - DEBUG - Attempting fast Redfish connection to https://[fe80::5eba:2cff:fe38:9948%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:06,410 - DEBUG - Starting new HTTPS connection (1): fe80::5eba:2cff:fe38:9948%enp0s8:443
+2025-11-15 07:56:07,146 - DEBUG - https://fe80::5eba:2cff:fe38:9948%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:07,151 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:07,152 - DEBUG - Server info - SKU: P05173-B21, Model: ProLiant DL380 Gen10 Plus, Serial: SGH146Y6R4
+2025-11-15 07:56:07,152 - DEBUG - Identified server type: Server_ProLiant_DL380_Gen10_Plus
+2025-11-15 07:56:07,153 - DEBUG - Attempting to resolve IPv4 for fe80::5eba:2cff:fe38:9948%enp0s8
+2025-11-15 07:56:07,153 - DEBUG - Cleaned IPv6: fe80::5eba:2cff:fe38:9948
+2025-11-15 07:56:07,160 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb REACHABLE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 REACHABLE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:a...
+2025-11-15 07:56:07,160 - DEBUG - Found line: fe80::5eba:2cff:fe38:9948 dev enp0s8 lladdr 5c:ba:2c:38:99:48 REACHABLE
+2025-11-15 07:56:07,161 - DEBUG - Found MAC 5c:ba:2c:38:99:48 for fe80::5eba:2cff:fe38:9948%enp0s8
+2025-11-15 07:56:07,171 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:07,171 - DEBUG - Attempting direct REST query for fe80::5eba:2cff:fe38:9948
+2025-11-15 07:56:07,172 - DEBUG - Trying URL: https://[fe80::5eba:2cff:fe38:9948]/redfish/v1/Managers/BMC/EthernetInterfaces/1
+2025-11-15 07:56:07,175 - DEBUG - Starting new HTTPS connection (1): fe80::5eba:2cff:fe38:9948:443
+2025-11-15 07:56:07,178 - DEBUG - Direct query failed: HTTPSConnectionPool(host='fe80::5eba:2cff:fe38:9948', port=443): Max retries exceeded with url: /redfish/v1/Managers/BMC/EthernetInterfaces/1 (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x75da3f270b20>: Failed to establish a new connection: [Errno 22] Invalid argument'))
+2025-11-15 07:56:07,179 - DEBUG - Trying known working IP ranges with correlation...
+2025-11-15 07:56:07,180 - DEBUG - Scanning range 172.23.55.90-119
+2025-11-15 07:56:10,198 - DEBUG - Correlating 172.23.55.93 with fe80::5eba:2cff:fe38:9948%enp0s8
+2025-11-15 07:56:10,201 - DEBUG - Starting new HTTPS connection (1): 172.23.55.93:443
+2025-11-15 07:56:12,311 - DEBUG - Correlating 172.23.55.94 with fe80::5eba:2cff:fe38:9948%enp0s8
+2025-11-15 07:56:12,314 - DEBUG - Starting new HTTPS connection (1): 172.23.55.94:443
+2025-11-15 07:56:12,544 - DEBUG - https://172.23.55.94:443 "GET /redfish/v1 HTTP/1.1" 200 1611
+2025-11-15 07:56:12,547 - DEBUG - Found correlated IPv4 172.23.55.94 for fe80::5eba:2cff:fe38:9948%enp0s8
+2025-11-15 07:56:12,548 - DEBUG - Resolved IPv4 address 172.23.55.94 for server fe80::5eba:2cff:fe38:9948%enp0s8
+2025-11-15 07:56:12,549 - DEBUG - Successfully discovered server: Server_ProLiant_DL380_Gen10_Plus
+2025-11-15 07:56:12,549 - DEBUG - Processing server 5/50: fe80::6a05:caff:feee:fd14%enp0s8
+2025-11-15 07:56:12,549 - DEBUG - Fast server discovery for fe80::6a05:caff:feee:fd14%enp0s8 with username admin
+2025-11-15 07:56:12,550 - DEBUG - Attempting fast Redfish connection to https://[fe80::6a05:caff:feee:fd14%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:12,551 - DEBUG - Starting new HTTPS connection (1): fe80::6a05:caff:feee:fd14%enp0s8:443
+2025-11-15 07:56:12,654 - DEBUG - https://fe80::6a05:caff:feee:fd14%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 404 0
+2025-11-15 07:56:12,657 - DEBUG - Redfish response status: 404
+2025-11-15 07:56:12,658 - DEBUG - Failed to connect to Redfish on fe80::6a05:caff:feee:fd14%enp0s8
+2025-11-15 07:56:12,658 - DEBUG - No server discovered at fe80::6a05:caff:feee:fd14%enp0s8
+2025-11-15 07:56:12,659 - DEBUG - Processing server 6/50: fe80::7ea6:2aff:fe6e:cd2a%enp0s8
+2025-11-15 07:56:12,659 - DEBUG - Fast server discovery for fe80::7ea6:2aff:fe6e:cd2a%enp0s8 with username admin
+2025-11-15 07:56:12,659 - DEBUG - Attempting fast Redfish connection to https://[fe80::7ea6:2aff:fe6e:cd2a%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:12,661 - DEBUG - Starting new HTTPS connection (1): fe80::7ea6:2aff:fe6e:cd2a%enp0s8:443
+2025-11-15 07:56:12,925 - DEBUG - https://fe80::7ea6:2aff:fe6e:cd2a%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:12,929 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:12,931 - DEBUG - Server info - SKU: P77750-B21, Model: Hitachi Advanced Server HA810 G6, Serial: 3M1D30109L
+2025-11-15 07:56:12,931 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:12,932 - DEBUG - Attempting to resolve IPv4 for fe80::7ea6:2aff:fe6e:cd2a%enp0s8
+2025-11-15 07:56:12,932 - DEBUG - Cleaned IPv6: fe80::7ea6:2aff:fe6e:cd2a
+2025-11-15 07:56:12,937 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb REACHABLE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 REACHABLE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:a...
+2025-11-15 07:56:12,938 - DEBUG - Found line: fe80::7ea6:2aff:fe6e:cd2a dev enp0s8 lladdr 7c:a6:2a:6e:cd:2a REACHABLE
+2025-11-15 07:56:12,938 - DEBUG - Found MAC 7c:a6:2a:6e:cd:2a for fe80::7ea6:2aff:fe6e:cd2a%enp0s8
+2025-11-15 07:56:12,944 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:12,945 - DEBUG - Found IPv4 172.23.55.101 via MAC mapping
+2025-11-15 07:56:12,945 - DEBUG - Resolved IPv4 address 172.23.55.101 for server fe80::7ea6:2aff:fe6e:cd2a%enp0s8
+2025-11-15 07:56:12,945 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:12,946 - DEBUG - Processing server 7/50: fe80::5eed:8cff:fe01:2de8%enp0s8
+2025-11-15 07:56:12,946 - DEBUG - Fast server discovery for fe80::5eed:8cff:fe01:2de8%enp0s8 with username admin
+2025-11-15 07:56:12,946 - DEBUG - Attempting fast Redfish connection to https://[fe80::5eed:8cff:fe01:2de8%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:12,948 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe01:2de8%enp0s8:443
+2025-11-15 07:56:14,479 - DEBUG - https://fe80::5eed:8cff:fe01:2de8%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:14,489 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:14,493 - DEBUG - Server info - SKU: P60577-B21, Model: Hitachi Advanced Server HA815 G3, Serial: SGH323YN27
+2025-11-15 07:56:14,495 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:14,496 - DEBUG - Attempting to resolve IPv4 for fe80::5eed:8cff:fe01:2de8%enp0s8
+2025-11-15 07:56:14,496 - DEBUG - Cleaned IPv6: fe80::5eed:8cff:fe01:2de8
+2025-11-15 07:56:14,510 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb REACHABLE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 REACHABLE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:a...
+2025-11-15 07:56:14,510 - DEBUG - Found line: fe80::5eed:8cff:fe01:2de8 dev enp0s8 lladdr 5c:ed:8c:01:2d:e8 REACHABLE
+2025-11-15 07:56:14,511 - DEBUG - Found MAC 5c:ed:8c:01:2d:e8 for fe80::5eed:8cff:fe01:2de8%enp0s8
+2025-11-15 07:56:14,523 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:14,523 - DEBUG - Found IPv4 172.23.55.116 via MAC mapping
+2025-11-15 07:56:14,524 - DEBUG - Resolved IPv4 address 172.23.55.116 for server fe80::5eed:8cff:fe01:2de8%enp0s8
+2025-11-15 07:56:14,524 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:14,524 - DEBUG - Processing server 8/50: fe80::5eed:8cff:fe36:b60e%enp0s8
+2025-11-15 07:56:14,524 - DEBUG - Fast server discovery for fe80::5eed:8cff:fe36:b60e%enp0s8 with username admin
+2025-11-15 07:56:14,524 - DEBUG - Attempting fast Redfish connection to https://[fe80::5eed:8cff:fe36:b60e%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:14,529 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe36:b60e%enp0s8:443
+2025-11-15 07:56:15,237 - DEBUG - https://fe80::5eed:8cff:fe36:b60e%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:15,244 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:15,245 - DEBUG - Server info - SKU: NA, Model: Hitachi Advanced Server HA820 G3, Serial: CNX24401KF
+2025-11-15 07:56:15,246 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:15,246 - DEBUG - Attempting to resolve IPv4 for fe80::5eed:8cff:fe36:b60e%enp0s8
+2025-11-15 07:56:15,246 - DEBUG - Cleaned IPv6: fe80::5eed:8cff:fe36:b60e
+2025-11-15 07:56:15,256 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb REACHABLE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 REACHABLE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:a...
+2025-11-15 07:56:15,257 - DEBUG - Found line: fe80::5eed:8cff:fe36:b60e dev enp0s8 lladdr 5c:ed:8c:36:b6:0e REACHABLE
+2025-11-15 07:56:15,257 - DEBUG - Found MAC 5c:ed:8c:36:b6:0e for fe80::5eed:8cff:fe36:b60e%enp0s8
+2025-11-15 07:56:15,266 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:15,267 - DEBUG - Attempting direct REST query for fe80::5eed:8cff:fe36:b60e
+2025-11-15 07:56:15,267 - DEBUG - Trying URL: https://[fe80::5eed:8cff:fe36:b60e]/redfish/v1/Managers/BMC/EthernetInterfaces/1
+2025-11-15 07:56:15,271 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe36:b60e:443
+2025-11-15 07:56:15,272 - DEBUG - Direct query failed: HTTPSConnectionPool(host='fe80::5eed:8cff:fe36:b60e', port=443): Max retries exceeded with url: /redfish/v1/Managers/BMC/EthernetInterfaces/1 (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x75da3e58a860>: Failed to establish a new connection: [Errno 22] Invalid argument'))
+2025-11-15 07:56:15,272 - DEBUG - Trying known working IP ranges with correlation...
+2025-11-15 07:56:15,273 - DEBUG - Scanning range 172.23.55.90-119
+2025-11-15 07:56:18,289 - DEBUG - Correlating 172.23.55.93 with fe80::5eed:8cff:fe36:b60e%enp0s8
+2025-11-15 07:56:18,292 - DEBUG - Starting new HTTPS connection (1): 172.23.55.93:443
+2025-11-15 07:56:20,408 - DEBUG - Correlating 172.23.55.94 with fe80::5eed:8cff:fe36:b60e%enp0s8
+2025-11-15 07:56:20,411 - DEBUG - Starting new HTTPS connection (1): 172.23.55.94:443
+2025-11-15 07:56:20,636 - DEBUG - https://172.23.55.94:443 "GET /redfish/v1 HTTP/1.1" 200 1611
+2025-11-15 07:56:20,639 - DEBUG - Found correlated IPv4 172.23.55.94 for fe80::5eed:8cff:fe36:b60e%enp0s8
+2025-11-15 07:56:20,640 - DEBUG - Resolved IPv4 address 172.23.55.94 for server fe80::5eed:8cff:fe36:b60e%enp0s8
+2025-11-15 07:56:20,641 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:20,641 - DEBUG - Processing server 9/50: fe80::5eed:8cff:fe01:2dec%enp0s8
+2025-11-15 07:56:20,641 - DEBUG - Fast server discovery for fe80::5eed:8cff:fe01:2dec%enp0s8 with username admin
+2025-11-15 07:56:20,642 - DEBUG - Attempting fast Redfish connection to https://[fe80::5eed:8cff:fe01:2dec%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:20,644 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe01:2dec%enp0s8:443
+2025-11-15 07:56:21,207 - DEBUG - https://fe80::5eed:8cff:fe01:2dec%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:21,213 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:21,213 - DEBUG - Server info - SKU: P60577-B21, Model: Hitachi Advanced Server HA815 G3, Serial: SGH323YN20
+2025-11-15 07:56:21,214 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:21,214 - DEBUG - Attempting to resolve IPv4 for fe80::5eed:8cff:fe01:2dec%enp0s8
+2025-11-15 07:56:21,214 - DEBUG - Cleaned IPv6: fe80::5eed:8cff:fe01:2dec
+2025-11-15 07:56:21,219 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb REACHABLE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 REACHABLE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:a...
+2025-11-15 07:56:21,220 - DEBUG - Found line: fe80::5eed:8cff:fe01:2dec dev enp0s8 lladdr 5c:ed:8c:01:2d:ec REACHABLE
+2025-11-15 07:56:21,220 - DEBUG - Found MAC 5c:ed:8c:01:2d:ec for fe80::5eed:8cff:fe01:2dec%enp0s8
+2025-11-15 07:56:21,224 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:21,224 - DEBUG - Found IPv4 172.23.55.117 via MAC mapping
+2025-11-15 07:56:21,224 - DEBUG - Resolved IPv4 address 172.23.55.117 for server fe80::5eed:8cff:fe01:2dec%enp0s8
+2025-11-15 07:56:21,224 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:21,225 - DEBUG - Processing server 10/50: fe80::323e:a7ff:fe32:b584%enp0s8
+2025-11-15 07:56:21,225 - DEBUG - Fast server discovery for fe80::323e:a7ff:fe32:b584%enp0s8 with username admin
+2025-11-15 07:56:21,225 - DEBUG - Attempting fast Redfish connection to https://[fe80::323e:a7ff:fe32:b584%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:21,226 - DEBUG - Starting new HTTPS connection (1): fe80::323e:a7ff:fe32:b584%enp0s8:443
+2025-11-15 07:56:24,230 - DEBUG - Exception during fast server discovery for fe80::323e:a7ff:fe32:b584%enp0s8: HTTPSConnectionPool(host='fe80::323e:a7ff:fe32:b584%enp0s8', port=443): Max retries exceeded with url: /redfish/v1/Systems/1 (Caused by ConnectTimeoutError(<urllib3.connection.HTTPSConnection object at 0x75da3e58b340>, 'Connection to fe80::323e:a7ff:fe32:b584%enp0s8 timed out. (connect timeout=3)'))
+2025-11-15 07:56:24,231 - DEBUG - No server discovered at fe80::323e:a7ff:fe32:b584%enp0s8
+2025-11-15 07:56:24,231 - DEBUG - Processing server 11/50: fe80::5eed:8cff:fe01:2d68%enp0s8
+2025-11-15 07:56:24,231 - DEBUG - Fast server discovery for fe80::5eed:8cff:fe01:2d68%enp0s8 with username admin
+2025-11-15 07:56:24,232 - DEBUG - Attempting fast Redfish connection to https://[fe80::5eed:8cff:fe01:2d68%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:24,233 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe01:2d68%enp0s8:443
+2025-11-15 07:56:25,481 - DEBUG - https://fe80::5eed:8cff:fe01:2d68%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:25,493 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:25,494 - DEBUG - Server info - SKU: P60577-B21, Model: Hitachi Advanced Server HA815 G3, Serial: SGH323YN2G
+2025-11-15 07:56:25,495 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:25,495 - DEBUG - Attempting to resolve IPv4 for fe80::5eed:8cff:fe01:2d68%enp0s8
+2025-11-15 07:56:25,496 - DEBUG - Cleaned IPv6: fe80::5eed:8cff:fe01:2d68
+2025-11-15 07:56:25,501 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb REACHABLE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 REACHABLE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:a...
+2025-11-15 07:56:25,502 - DEBUG - Found line: fe80::5eed:8cff:fe01:2d68 dev enp0s8 lladdr 5c:ed:8c:01:2d:68 REACHABLE
+2025-11-15 07:56:25,503 - DEBUG - Found MAC 5c:ed:8c:01:2d:68 for fe80::5eed:8cff:fe01:2d68%enp0s8
+2025-11-15 07:56:25,508 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:25,509 - DEBUG - Found IPv4 172.23.55.119 via MAC mapping
+2025-11-15 07:56:25,509 - DEBUG - Resolved IPv4 address 172.23.55.119 for server fe80::5eed:8cff:fe01:2d68%enp0s8
+2025-11-15 07:56:25,510 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:25,510 - DEBUG - Processing server 12/50: fe80::7ea6:2aff:fe6e:b726%enp0s8
+2025-11-15 07:56:25,511 - DEBUG - Fast server discovery for fe80::7ea6:2aff:fe6e:b726%enp0s8 with username admin
+2025-11-15 07:56:25,511 - DEBUG - Attempting fast Redfish connection to https://[fe80::7ea6:2aff:fe6e:b726%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:25,513 - DEBUG - Starting new HTTPS connection (1): fe80::7ea6:2aff:fe6e:b726%enp0s8:443
+2025-11-15 07:56:25,757 - DEBUG - https://fe80::7ea6:2aff:fe6e:b726%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:25,759 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:25,761 - DEBUG - Server info - SKU: P77820-B21, Model: Hitachi Advanced Server HA820 G6, Serial: 2M2D3001ZZ
+2025-11-15 07:56:25,761 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:25,762 - DEBUG - Attempting to resolve IPv4 for fe80::7ea6:2aff:fe6e:b726%enp0s8
+2025-11-15 07:56:25,762 - DEBUG - Cleaned IPv6: fe80::7ea6:2aff:fe6e:b726
+2025-11-15 07:56:25,767 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb REACHABLE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 REACHABLE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:a...
+2025-11-15 07:56:25,768 - DEBUG - Found line: fe80::7ea6:2aff:fe6e:b726 dev enp0s8 lladdr 7c:a6:2a:6e:b7:26 REACHABLE
+2025-11-15 07:56:25,768 - DEBUG - Found MAC 7c:a6:2a:6e:b7:26 for fe80::7ea6:2aff:fe6e:b726%enp0s8
+2025-11-15 07:56:25,773 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:25,773 - DEBUG - Found IPv4 172.23.55.98 via MAC mapping
+2025-11-15 07:56:25,774 - DEBUG - Resolved IPv4 address 172.23.55.98 for server fe80::7ea6:2aff:fe6e:b726%enp0s8
+2025-11-15 07:56:25,774 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:25,775 - DEBUG - Processing server 13/50: fe80::7ea6:2aff:fe6d:724a%enp0s8
+2025-11-15 07:56:25,775 - DEBUG - Fast server discovery for fe80::7ea6:2aff:fe6d:724a%enp0s8 with username admin
+2025-11-15 07:56:25,775 - DEBUG - Attempting fast Redfish connection to https://[fe80::7ea6:2aff:fe6d:724a%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:25,777 - DEBUG - Starting new HTTPS connection (1): fe80::7ea6:2aff:fe6d:724a%enp0s8:443
+2025-11-15 07:56:26,062 - DEBUG - https://fe80::7ea6:2aff:fe6d:724a%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:26,065 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:26,066 - DEBUG - Server info - SKU: P77820-B21, Model: Hitachi Advanced Server HA820 G6, Serial: 2M2D3001ZY
+2025-11-15 07:56:26,067 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:26,067 - DEBUG - Attempting to resolve IPv4 for fe80::7ea6:2aff:fe6d:724a%enp0s8
+2025-11-15 07:56:26,069 - DEBUG - Cleaned IPv6: fe80::7ea6:2aff:fe6d:724a
+2025-11-15 07:56:26,074 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb REACHABLE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 REACHABLE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:a...
+2025-11-15 07:56:26,074 - DEBUG - Found line: fe80::7ea6:2aff:fe6d:724a dev enp0s8 lladdr 7c:a6:2a:6d:72:4a REACHABLE
+2025-11-15 07:56:26,075 - DEBUG - Found MAC 7c:a6:2a:6d:72:4a for fe80::7ea6:2aff:fe6d:724a%enp0s8
+2025-11-15 07:56:26,079 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:26,080 - DEBUG - Found IPv4 172.23.55.97 via MAC mapping
+2025-11-15 07:56:26,080 - DEBUG - Resolved IPv4 address 172.23.55.97 for server fe80::7ea6:2aff:fe6d:724a%enp0s8
+2025-11-15 07:56:26,080 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:26,081 - DEBUG - Processing server 14/50: fe80::5eed:8cff:fe36:b674%enp0s8
+2025-11-15 07:56:26,081 - DEBUG - Fast server discovery for fe80::5eed:8cff:fe36:b674%enp0s8 with username admin
+2025-11-15 07:56:26,082 - DEBUG - Attempting fast Redfish connection to https://[fe80::5eed:8cff:fe36:b674%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:26,083 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe36:b674%enp0s8:443
+2025-11-15 07:56:26,871 - DEBUG - https://fe80::5eed:8cff:fe36:b674%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:26,878 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:26,879 - DEBUG - Server info - SKU: WC3382-018, Model: Hitachi Advanced Server HA810 G3, Serial: CNX24300K3
+2025-11-15 07:56:26,879 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:26,879 - DEBUG - Attempting to resolve IPv4 for fe80::5eed:8cff:fe36:b674%enp0s8
+2025-11-15 07:56:26,879 - DEBUG - Cleaned IPv6: fe80::5eed:8cff:fe36:b674
+2025-11-15 07:56:26,886 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb REACHABLE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 REACHABLE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:a...
+2025-11-15 07:56:26,886 - DEBUG - Found line: fe80::5eed:8cff:fe36:b674 dev enp0s8 lladdr 5c:ed:8c:36:b6:74 REACHABLE
+2025-11-15 07:56:26,887 - DEBUG - Found MAC 5c:ed:8c:36:b6:74 for fe80::5eed:8cff:fe36:b674%enp0s8
+2025-11-15 07:56:26,892 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:26,892 - DEBUG - Attempting direct REST query for fe80::5eed:8cff:fe36:b674
+2025-11-15 07:56:26,893 - DEBUG - Trying URL: https://[fe80::5eed:8cff:fe36:b674]/redfish/v1/Managers/BMC/EthernetInterfaces/1
+2025-11-15 07:56:26,895 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe36:b674:443
+2025-11-15 07:56:26,896 - DEBUG - Direct query failed: HTTPSConnectionPool(host='fe80::5eed:8cff:fe36:b674', port=443): Max retries exceeded with url: /redfish/v1/Managers/BMC/EthernetInterfaces/1 (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x75da3e58bb50>: Failed to establish a new connection: [Errno 22] Invalid argument'))
+2025-11-15 07:56:26,896 - DEBUG - Trying known working IP ranges with correlation...
+2025-11-15 07:56:26,897 - DEBUG - Scanning range 172.23.55.90-119
+2025-11-15 07:56:29,923 - DEBUG - Correlating 172.23.55.93 with fe80::5eed:8cff:fe36:b674%enp0s8
+2025-11-15 07:56:29,928 - DEBUG - Starting new HTTPS connection (1): 172.23.55.93:443
+2025-11-15 07:56:32,136 - DEBUG - Correlating 172.23.55.94 with fe80::5eed:8cff:fe36:b674%enp0s8
+2025-11-15 07:56:32,139 - DEBUG - Starting new HTTPS connection (1): 172.23.55.94:443
+2025-11-15 07:56:32,338 - DEBUG - https://172.23.55.94:443 "GET /redfish/v1 HTTP/1.1" 200 1611
+2025-11-15 07:56:32,342 - DEBUG - Found correlated IPv4 172.23.55.94 for fe80::5eed:8cff:fe36:b674%enp0s8
+2025-11-15 07:56:32,344 - DEBUG - Resolved IPv4 address 172.23.55.94 for server fe80::5eed:8cff:fe36:b674%enp0s8
+2025-11-15 07:56:32,344 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:32,344 - DEBUG - Processing server 15/50: fe80::b2a1:f404:5a76:deaa%enp0s8
+2025-11-15 07:56:32,345 - DEBUG - Fast server discovery for fe80::b2a1:f404:5a76:deaa%enp0s8 with username admin
+2025-11-15 07:56:32,345 - DEBUG - Attempting fast Redfish connection to https://[fe80::b2a1:f404:5a76:deaa%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:32,354 - DEBUG - Starting new HTTPS connection (1): fe80::b2a1:f404:5a76:deaa%enp0s8:443
+2025-11-15 07:56:32,594 - DEBUG - https://fe80::b2a1:f404:5a76:deaa%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 561
+2025-11-15 07:56:32,598 - DEBUG - Redfish response status: 401
+2025-11-15 07:56:32,599 - DEBUG - Failed to connect to Redfish on fe80::b2a1:f404:5a76:deaa%enp0s8
+2025-11-15 07:56:32,600 - DEBUG - No server discovered at fe80::b2a1:f404:5a76:deaa%enp0s8
+2025-11-15 07:56:32,600 - DEBUG - Processing server 16/50: fe80::b56c:71f0:fb08:edfc%enp0s8
+2025-11-15 07:56:32,600 - DEBUG - Fast server discovery for fe80::b56c:71f0:fb08:edfc%enp0s8 with username admin
+2025-11-15 07:56:32,601 - DEBUG - Attempting fast Redfish connection to https://[fe80::b56c:71f0:fb08:edfc%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:32,603 - DEBUG - Starting new HTTPS connection (1): fe80::b56c:71f0:fb08:edfc%enp0s8:443
+2025-11-15 07:56:35,698 - DEBUG - Exception during fast server discovery for fe80::b56c:71f0:fb08:edfc%enp0s8: HTTPSConnectionPool(host='fe80::b56c:71f0:fb08:edfc%enp0s8', port=443): Read timed out. (read timeout=3)
+2025-11-15 07:56:35,699 - DEBUG - No server discovered at fe80::b56c:71f0:fb08:edfc%enp0s8
+2025-11-15 07:56:35,699 - DEBUG - Processing server 17/50: fe80::5eed:8cff:fe36:c614%enp0s8
+2025-11-15 07:56:35,699 - DEBUG - Fast server discovery for fe80::5eed:8cff:fe36:c614%enp0s8 with username admin
+2025-11-15 07:56:35,700 - DEBUG - Attempting fast Redfish connection to https://[fe80::5eed:8cff:fe36:c614%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:35,706 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe36:c614%enp0s8:443
+2025-11-15 07:56:36,635 - DEBUG - https://fe80::5eed:8cff:fe36:c614%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:36,645 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:36,649 - DEBUG - Server info - SKU: WC3382-018, Model: Hitachi Advanced Server HA810 G3, Serial: CNX24300K7
+2025-11-15 07:56:36,649 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:36,650 - DEBUG - Attempting to resolve IPv4 for fe80::5eed:8cff:fe36:c614%enp0s8
+2025-11-15 07:56:36,650 - DEBUG - Cleaned IPv6: fe80::5eed:8cff:fe36:c614
+2025-11-15 07:56:36,662 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STA...
+2025-11-15 07:56:36,662 - DEBUG - Found line: fe80::5eed:8cff:fe36:c614 dev enp0s8 lladdr 5c:ed:8c:36:c6:14 DELAY
+2025-11-15 07:56:36,663 - DEBUG - Found MAC 5c:ed:8c:36:c6:14 for fe80::5eed:8cff:fe36:c614%enp0s8
+2025-11-15 07:56:36,667 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:36,668 - DEBUG - Attempting direct REST query for fe80::5eed:8cff:fe36:c614
+2025-11-15 07:56:36,668 - DEBUG - Trying URL: https://[fe80::5eed:8cff:fe36:c614]/redfish/v1/Managers/BMC/EthernetInterfaces/1
+2025-11-15 07:56:36,670 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe36:c614:443
+2025-11-15 07:56:36,671 - DEBUG - Direct query failed: HTTPSConnectionPool(host='fe80::5eed:8cff:fe36:c614', port=443): Max retries exceeded with url: /redfish/v1/Managers/BMC/EthernetInterfaces/1 (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x75da3e58b0d0>: Failed to establish a new connection: [Errno 22] Invalid argument'))
+2025-11-15 07:56:36,672 - DEBUG - Trying known working IP ranges with correlation...
+2025-11-15 07:56:36,672 - DEBUG - Scanning range 172.23.55.90-119
+2025-11-15 07:56:39,686 - DEBUG - Correlating 172.23.55.93 with fe80::5eed:8cff:fe36:c614%enp0s8
+2025-11-15 07:56:39,688 - DEBUG - Starting new HTTPS connection (1): 172.23.55.93:443
+2025-11-15 07:56:41,798 - DEBUG - Correlating 172.23.55.94 with fe80::5eed:8cff:fe36:c614%enp0s8
+2025-11-15 07:56:41,801 - DEBUG - Starting new HTTPS connection (1): 172.23.55.94:443
+2025-11-15 07:56:41,990 - DEBUG - https://172.23.55.94:443 "GET /redfish/v1 HTTP/1.1" 200 1611
+2025-11-15 07:56:41,993 - DEBUG - Found correlated IPv4 172.23.55.94 for fe80::5eed:8cff:fe36:c614%enp0s8
+2025-11-15 07:56:41,994 - DEBUG - Resolved IPv4 address 172.23.55.94 for server fe80::5eed:8cff:fe36:c614%enp0s8
+2025-11-15 07:56:41,995 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:41,995 - DEBUG - Processing server 18/50: fe80::9640:c9ff:fe1c:3d00%enp0s8
+2025-11-15 07:56:41,996 - DEBUG - Fast server discovery for fe80::9640:c9ff:fe1c:3d00%enp0s8 with username admin
+2025-11-15 07:56:41,996 - DEBUG - Attempting fast Redfish connection to https://[fe80::9640:c9ff:fe1c:3d00%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:41,998 - DEBUG - Starting new HTTPS connection (1): fe80::9640:c9ff:fe1c:3d00%enp0s8:443
+2025-11-15 07:56:42,705 - DEBUG - https://fe80::9640:c9ff:fe1c:3d00%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:42,717 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:42,719 - DEBUG - Server info - SKU: 868704-B21, Model: Hitachi Advanced Server HA820, Serial: 2M29460JQP
+2025-11-15 07:56:42,720 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:42,720 - DEBUG - Attempting to resolve IPv4 for fe80::9640:c9ff:fe1c:3d00%enp0s8
+2025-11-15 07:56:42,721 - DEBUG - Cleaned IPv6: fe80::9640:c9ff:fe1c:3d00
+2025-11-15 07:56:42,726 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STA...
+2025-11-15 07:56:42,727 - DEBUG - Found line: fe80::9640:c9ff:fe1c:3d00 dev enp0s8 lladdr 94:40:c9:1c:3d:00 DELAY
+2025-11-15 07:56:42,727 - DEBUG - Found MAC 94:40:c9:1c:3d:00 for fe80::9640:c9ff:fe1c:3d00%enp0s8
+2025-11-15 07:56:42,733 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:42,734 - DEBUG - Found IPv4 172.23.55.114 via MAC mapping
+2025-11-15 07:56:42,734 - DEBUG - Resolved IPv4 address 172.23.55.114 for server fe80::9640:c9ff:fe1c:3d00%enp0s8
+2025-11-15 07:56:42,735 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:42,735 - DEBUG - Processing server 19/50: fe80::5eed:8cff:feab:480e%enp0s8
+2025-11-15 07:56:42,735 - DEBUG - Fast server discovery for fe80::5eed:8cff:feab:480e%enp0s8 with username admin
+2025-11-15 07:56:42,736 - DEBUG - Attempting fast Redfish connection to https://[fe80::5eed:8cff:feab:480e%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:42,738 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:feab:480e%enp0s8:443
+2025-11-15 07:56:43,417 - DEBUG - https://fe80::5eed:8cff:feab:480e%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:43,423 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:43,424 - DEBUG - Server info - SKU: G11, Model: Hitachi Advanced Server HA810 G3, Serial: BE32PP8328
+2025-11-15 07:56:43,424 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:43,425 - DEBUG - Attempting to resolve IPv4 for fe80::5eed:8cff:feab:480e%enp0s8
+2025-11-15 07:56:43,425 - DEBUG - Cleaned IPv6: fe80::5eed:8cff:feab:480e
+2025-11-15 07:56:43,429 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STA...
+2025-11-15 07:56:43,430 - DEBUG - Found line: fe80::5eed:8cff:feab:480e dev enp0s8 lladdr 5c:ed:8c:ab:48:0e DELAY
+2025-11-15 07:56:43,430 - DEBUG - Found MAC 5c:ed:8c:ab:48:0e for fe80::5eed:8cff:feab:480e%enp0s8
+2025-11-15 07:56:43,435 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:43,436 - DEBUG - Attempting direct REST query for fe80::5eed:8cff:feab:480e
+2025-11-15 07:56:43,436 - DEBUG - Trying URL: https://[fe80::5eed:8cff:feab:480e]/redfish/v1/Managers/BMC/EthernetInterfaces/1
+2025-11-15 07:56:43,438 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:feab:480e:443
+2025-11-15 07:56:43,439 - DEBUG - Direct query failed: HTTPSConnectionPool(host='fe80::5eed:8cff:feab:480e', port=443): Max retries exceeded with url: /redfish/v1/Managers/BMC/EthernetInterfaces/1 (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x75da3f271e70>: Failed to establish a new connection: [Errno 22] Invalid argument'))
+2025-11-15 07:56:43,439 - DEBUG - Trying known working IP ranges with correlation...
+2025-11-15 07:56:43,440 - DEBUG - Scanning range 172.23.55.90-119
+2025-11-15 07:56:46,461 - DEBUG - Correlating 172.23.55.93 with fe80::5eed:8cff:feab:480e%enp0s8
+2025-11-15 07:56:46,465 - DEBUG - Starting new HTTPS connection (1): 172.23.55.93:443
+2025-11-15 07:56:48,631 - DEBUG - Correlating 172.23.55.94 with fe80::5eed:8cff:feab:480e%enp0s8
+2025-11-15 07:56:48,633 - DEBUG - Starting new HTTPS connection (1): 172.23.55.94:443
+2025-11-15 07:56:48,834 - DEBUG - https://172.23.55.94:443 "GET /redfish/v1 HTTP/1.1" 200 1611
+2025-11-15 07:56:48,837 - DEBUG - Found correlated IPv4 172.23.55.94 for fe80::5eed:8cff:feab:480e%enp0s8
+2025-11-15 07:56:48,838 - DEBUG - Resolved IPv4 address 172.23.55.94 for server fe80::5eed:8cff:feab:480e%enp0s8
+2025-11-15 07:56:48,838 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:48,838 - DEBUG - Processing server 20/50: fe80::63d1:c3c8:33b2:8f5a%enp0s8
+2025-11-15 07:56:48,839 - DEBUG - Fast server discovery for fe80::63d1:c3c8:33b2:8f5a%enp0s8 with username admin
+2025-11-15 07:56:48,839 - DEBUG - Attempting fast Redfish connection to https://[fe80::63d1:c3c8:33b2:8f5a%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:48,841 - DEBUG - Starting new HTTPS connection (1): fe80::63d1:c3c8:33b2:8f5a%enp0s8:443
+2025-11-15 07:56:49,070 - DEBUG - https://fe80::63d1:c3c8:33b2:8f5a%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 4001
+2025-11-15 07:56:49,073 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:49,073 - DEBUG - Server info - SKU: To be filled by O.E.M., Model: DS120 G6, Serial: S913237X5618634
+2025-11-15 07:56:49,074 - DEBUG - Identified server type: DS120_G6
+2025-11-15 07:56:49,074 - DEBUG - Attempting to resolve IPv4 for fe80::63d1:c3c8:33b2:8f5a%enp0s8
+2025-11-15 07:56:49,075 - DEBUG - Cleaned IPv6: fe80::63d1:c3c8:33b2:8f5a
+2025-11-15 07:56:49,085 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STA...
+2025-11-15 07:56:49,086 - DEBUG - Found line: fe80::63d1:c3c8:33b2:8f5a dev enp0s8 lladdr 7c:c2:55:90:37:cf DELAY
+2025-11-15 07:56:49,087 - DEBUG - Found MAC 7c:c2:55:90:37:cf for fe80::63d1:c3c8:33b2:8f5a%enp0s8
+2025-11-15 07:56:49,092 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:49,092 - DEBUG - Found IPv4 172.23.55.95 via MAC mapping
+2025-11-15 07:56:49,093 - DEBUG - Resolved IPv4 address 172.23.55.95 for server fe80::63d1:c3c8:33b2:8f5a%enp0s8
+2025-11-15 07:56:49,093 - DEBUG - Successfully discovered server: DS120_G6
+2025-11-15 07:56:49,094 - DEBUG - Processing server 21/50: fe80::5eed:8cff:fe01:2dfc%enp0s8
+2025-11-15 07:56:49,094 - DEBUG - Fast server discovery for fe80::5eed:8cff:fe01:2dfc%enp0s8 with username admin
+2025-11-15 07:56:49,095 - DEBUG - Attempting fast Redfish connection to https://[fe80::5eed:8cff:fe01:2dfc%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:49,097 - DEBUG - Starting new HTTPS connection (1): fe80::5eed:8cff:fe01:2dfc%enp0s8:443
+2025-11-15 07:56:49,694 - DEBUG - https://fe80::5eed:8cff:fe01:2dfc%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:49,708 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:49,710 - DEBUG - Server info - SKU: P60577-B21, Model: Hitachi Advanced Server HA815 G3, Serial: SGH323YN2N
+2025-11-15 07:56:49,710 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:49,710 - DEBUG - Attempting to resolve IPv4 for fe80::5eed:8cff:fe01:2dfc%enp0s8
+2025-11-15 07:56:49,711 - DEBUG - Cleaned IPv6: fe80::5eed:8cff:fe01:2dfc
+2025-11-15 07:56:49,718 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STA...
+2025-11-15 07:56:49,718 - DEBUG - Found line: fe80::5eed:8cff:fe01:2dfc dev enp0s8 lladdr 5c:ed:8c:01:2d:fc DELAY
+2025-11-15 07:56:49,719 - DEBUG - Found MAC 5c:ed:8c:01:2d:fc for fe80::5eed:8cff:fe01:2dfc%enp0s8
+2025-11-15 07:56:49,731 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:49,732 - DEBUG - Found IPv4 172.23.55.118 via MAC mapping
+2025-11-15 07:56:49,732 - DEBUG - Resolved IPv4 address 172.23.55.118 for server fe80::5eed:8cff:fe01:2dfc%enp0s8
+2025-11-15 07:56:49,732 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:49,732 - DEBUG - Processing server 22/50: fe80::7ea6:2aff:fe6e:ab64%enp0s8
+2025-11-15 07:56:49,732 - DEBUG - Fast server discovery for fe80::7ea6:2aff:fe6e:ab64%enp0s8 with username admin
+2025-11-15 07:56:49,732 - DEBUG - Attempting fast Redfish connection to https://[fe80::7ea6:2aff:fe6e:ab64%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:49,735 - DEBUG - Starting new HTTPS connection (1): fe80::7ea6:2aff:fe6e:ab64%enp0s8:443
+2025-11-15 07:56:49,992 - DEBUG - https://fe80::7ea6:2aff:fe6e:ab64%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:49,996 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:49,998 - DEBUG - Server info - SKU: P77750-B21, Model: Hitachi Advanced Server HA810 G6, Serial: 3M1D30109P
+2025-11-15 07:56:49,998 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:49,998 - DEBUG - Attempting to resolve IPv4 for fe80::7ea6:2aff:fe6e:ab64%enp0s8
+2025-11-15 07:56:49,998 - DEBUG - Cleaned IPv6: fe80::7ea6:2aff:fe6e:ab64
+2025-11-15 07:56:50,003 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STA...
+2025-11-15 07:56:50,004 - DEBUG - Found line: fe80::7ea6:2aff:fe6e:ab64 dev enp0s8 lladdr 7c:a6:2a:6e:ab:64 DELAY
+2025-11-15 07:56:50,004 - DEBUG - Found MAC 7c:a6:2a:6e:ab:64 for fe80::7ea6:2aff:fe6e:ab64%enp0s8
+2025-11-15 07:56:50,009 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:50,010 - DEBUG - Found IPv4 172.23.55.104 via MAC mapping
+2025-11-15 07:56:50,010 - DEBUG - Resolved IPv4 address 172.23.55.104 for server fe80::7ea6:2aff:fe6e:ab64%enp0s8
+2025-11-15 07:56:50,010 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:50,010 - DEBUG - Processing server 23/50: fe80::9640:c9ff:fe21:9958%enp0s8
+2025-11-15 07:56:50,011 - DEBUG - Fast server discovery for fe80::9640:c9ff:fe21:9958%enp0s8 with username admin
+2025-11-15 07:56:50,011 - DEBUG - Attempting fast Redfish connection to https://[fe80::9640:c9ff:fe21:9958%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:50,012 - DEBUG - Starting new HTTPS connection (1): fe80::9640:c9ff:fe21:9958%enp0s8:443
+2025-11-15 07:56:50,356 - DEBUG - https://fe80::9640:c9ff:fe21:9958%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 None
+2025-11-15 07:56:50,358 - DEBUG - Redfish response status: 401
+2025-11-15 07:56:50,359 - DEBUG - Failed to connect to Redfish on fe80::9640:c9ff:fe21:9958%enp0s8
+2025-11-15 07:56:50,360 - DEBUG - No server discovered at fe80::9640:c9ff:fe21:9958%enp0s8
+2025-11-15 07:56:50,360 - DEBUG - Processing server 24/50: fe80::7ea6:2aff:fe6e:ab6c%enp0s8
+2025-11-15 07:56:50,360 - DEBUG - Fast server discovery for fe80::7ea6:2aff:fe6e:ab6c%enp0s8 with username admin
+2025-11-15 07:56:50,361 - DEBUG - Attempting fast Redfish connection to https://[fe80::7ea6:2aff:fe6e:ab6c%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:50,362 - DEBUG - Starting new HTTPS connection (1): fe80::7ea6:2aff:fe6e:ab6c%enp0s8:443
+2025-11-15 07:56:50,679 - DEBUG - https://fe80::7ea6:2aff:fe6e:ab6c%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:50,683 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:50,685 - DEBUG - Server info - SKU: P77750-B21, Model: Hitachi Advanced Server HA810 G6, Serial: 3M1D30109N
+2025-11-15 07:56:50,685 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:50,685 - DEBUG - Attempting to resolve IPv4 for fe80::7ea6:2aff:fe6e:ab6c%enp0s8
+2025-11-15 07:56:50,686 - DEBUG - Cleaned IPv6: fe80::7ea6:2aff:fe6e:ab6c
+2025-11-15 07:56:50,691 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c DEL...
+2025-11-15 07:56:50,692 - DEBUG - Found line: fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c DELAY
+2025-11-15 07:56:50,692 - DEBUG - Found MAC 7c:a6:2a:6e:ab:6c for fe80::7ea6:2aff:fe6e:ab6c%enp0s8
+2025-11-15 07:56:50,701 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:50,701 - DEBUG - Found IPv4 172.23.55.102 via MAC mapping
+2025-11-15 07:56:50,702 - DEBUG - Resolved IPv4 address 172.23.55.102 for server fe80::7ea6:2aff:fe6e:ab6c%enp0s8
+2025-11-15 07:56:50,702 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:50,703 - DEBUG - Processing server 25/50: fe80::7ea6:2aff:fe6e:c730%enp0s8
+2025-11-15 07:56:50,703 - DEBUG - Fast server discovery for fe80::7ea6:2aff:fe6e:c730%enp0s8 with username admin
+2025-11-15 07:56:50,703 - DEBUG - Attempting fast Redfish connection to https://[fe80::7ea6:2aff:fe6e:c730%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:50,705 - DEBUG - Starting new HTTPS connection (1): fe80::7ea6:2aff:fe6e:c730%enp0s8:443
+2025-11-15 07:56:51,111 - DEBUG - https://fe80::7ea6:2aff:fe6e:c730%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:51,123 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:51,124 - DEBUG - Server info - SKU: P77820-B21, Model: Hitachi Advanced Server HA820 G6, Serial: 2M2D300200
+2025-11-15 07:56:51,126 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:51,127 - DEBUG - Attempting to resolve IPv4 for fe80::7ea6:2aff:fe6e:c730%enp0s8
+2025-11-15 07:56:51,128 - DEBUG - Cleaned IPv6: fe80::7ea6:2aff:fe6e:c730
+2025-11-15 07:56:51,134 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c DEL...
+2025-11-15 07:56:51,135 - DEBUG - Found line: fe80::7ea6:2aff:fe6e:c730 dev enp0s8 lladdr 7c:a6:2a:6e:c7:30 DELAY
+2025-11-15 07:56:51,135 - DEBUG - Found MAC 7c:a6:2a:6e:c7:30 for fe80::7ea6:2aff:fe6e:c730%enp0s8
+2025-11-15 07:56:51,142 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:51,142 - DEBUG - Found IPv4 172.23.55.100 via MAC mapping
+2025-11-15 07:56:51,142 - DEBUG - Resolved IPv4 address 172.23.55.100 for server fe80::7ea6:2aff:fe6e:c730%enp0s8
+2025-11-15 07:56:51,142 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:51,142 - DEBUG - Processing server 26/50: fe80::9640:c9ff:fe1c:3da8%enp0s8
+2025-11-15 07:56:51,143 - DEBUG - Fast server discovery for fe80::9640:c9ff:fe1c:3da8%enp0s8 with username admin
+2025-11-15 07:56:51,143 - DEBUG - Attempting fast Redfish connection to https://[fe80::9640:c9ff:fe1c:3da8%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:51,145 - DEBUG - Starting new HTTPS connection (1): fe80::9640:c9ff:fe1c:3da8%enp0s8:443
+2025-11-15 07:56:51,812 - DEBUG - https://fe80::9640:c9ff:fe1c:3da8%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:51,823 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:51,827 - DEBUG - Server info - SKU: 868704-B21, Model: Hitachi Advanced Server HA820, Serial: 2M29460JQS
+2025-11-15 07:56:51,827 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:51,827 - DEBUG - Attempting to resolve IPv4 for fe80::9640:c9ff:fe1c:3da8%enp0s8
+2025-11-15 07:56:51,828 - DEBUG - Cleaned IPv6: fe80::9640:c9ff:fe1c:3da8
+2025-11-15 07:56:51,841 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c DEL...
+2025-11-15 07:56:51,841 - DEBUG - Found line: fe80::9640:c9ff:fe1c:3da8 dev enp0s8 lladdr 94:40:c9:1c:3d:a8 DELAY
+2025-11-15 07:56:51,842 - DEBUG - Found MAC 94:40:c9:1c:3d:a8 for fe80::9640:c9ff:fe1c:3da8%enp0s8
+2025-11-15 07:56:51,856 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:51,856 - DEBUG - Found IPv4 172.23.55.113 via MAC mapping
+2025-11-15 07:56:51,856 - DEBUG - Resolved IPv4 address 172.23.55.113 for server fe80::9640:c9ff:fe1c:3da8%enp0s8
+2025-11-15 07:56:51,856 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:51,857 - DEBUG - Processing server 27/50: fe80::7ea6:2aff:fe6e:b652%enp0s8
+2025-11-15 07:56:51,857 - DEBUG - Fast server discovery for fe80::7ea6:2aff:fe6e:b652%enp0s8 with username admin
+2025-11-15 07:56:51,857 - DEBUG - Attempting fast Redfish connection to https://[fe80::7ea6:2aff:fe6e:b652%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:51,861 - DEBUG - Starting new HTTPS connection (1): fe80::7ea6:2aff:fe6e:b652%enp0s8:443
+2025-11-15 07:56:52,259 - DEBUG - https://fe80::7ea6:2aff:fe6e:b652%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:52,267 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:52,270 - DEBUG - Server info - SKU: P77820-B21, Model: Hitachi Advanced Server HA820 G6, Serial: 2M2D3001ZX
+2025-11-15 07:56:52,270 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:52,271 - DEBUG - Attempting to resolve IPv4 for fe80::7ea6:2aff:fe6e:b652%enp0s8
+2025-11-15 07:56:52,271 - DEBUG - Cleaned IPv6: fe80::7ea6:2aff:fe6e:b652
+2025-11-15 07:56:52,284 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c DEL...
+2025-11-15 07:56:52,284 - DEBUG - Found line: fe80::7ea6:2aff:fe6e:b652 dev enp0s8 lladdr 7c:a6:2a:6e:b6:52 DELAY
+2025-11-15 07:56:52,285 - DEBUG - Found MAC 7c:a6:2a:6e:b6:52 for fe80::7ea6:2aff:fe6e:b652%enp0s8
+2025-11-15 07:56:52,295 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:52,296 - DEBUG - Found IPv4 172.23.55.99 via MAC mapping
+2025-11-15 07:56:52,297 - DEBUG - Resolved IPv4 address 172.23.55.99 for server fe80::7ea6:2aff:fe6e:b652%enp0s8
+2025-11-15 07:56:52,299 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:52,299 - DEBUG - Processing server 28/50: fe80::7ea6:2aff:fe6e:8b1e%enp0s8
+2025-11-15 07:56:52,299 - DEBUG - Fast server discovery for fe80::7ea6:2aff:fe6e:8b1e%enp0s8 with username admin
+2025-11-15 07:56:52,299 - DEBUG - Attempting fast Redfish connection to https://[fe80::7ea6:2aff:fe6e:8b1e%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:52,304 - DEBUG - Starting new HTTPS connection (1): fe80::7ea6:2aff:fe6e:8b1e%enp0s8:443
+2025-11-15 07:56:52,648 - DEBUG - https://fe80::7ea6:2aff:fe6e:8b1e%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:56:52,654 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:52,656 - DEBUG - Server info - SKU: P77750-B21, Model: Hitachi Advanced Server HA810 G6, Serial: 3M1D30109M
+2025-11-15 07:56:52,657 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:56:52,658 - DEBUG - Attempting to resolve IPv4 for fe80::7ea6:2aff:fe6e:8b1e%enp0s8
+2025-11-15 07:56:52,658 - DEBUG - Cleaned IPv6: fe80::7ea6:2aff:fe6e:8b1e
+2025-11-15 07:56:52,690 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c DEL...
+2025-11-15 07:56:52,690 - DEBUG - Found line: fe80::7ea6:2aff:fe6e:8b1e dev enp0s8 lladdr 7c:a6:2a:6e:8b:1e DELAY
+2025-11-15 07:56:52,690 - DEBUG - Found MAC 7c:a6:2a:6e:8b:1e for fe80::7ea6:2aff:fe6e:8b1e%enp0s8
+2025-11-15 07:56:52,700 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:52,701 - DEBUG - Found IPv4 172.23.55.103 via MAC mapping
+2025-11-15 07:56:52,701 - DEBUG - Resolved IPv4 address 172.23.55.103 for server fe80::7ea6:2aff:fe6e:8b1e%enp0s8
+2025-11-15 07:56:52,702 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:56:52,702 - DEBUG - Processing server 29/50: fe80::7ec2:55ff:feed:1412%enp0s8
+2025-11-15 07:56:52,702 - DEBUG - Fast server discovery for fe80::7ec2:55ff:feed:1412%enp0s8 with username admin
+2025-11-15 07:56:52,702 - DEBUG - Attempting fast Redfish connection to https://[fe80::7ec2:55ff:feed:1412%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:52,705 - DEBUG - Starting new HTTPS connection (1): fe80::7ec2:55ff:feed:1412%enp0s8:443
+2025-11-15 07:56:52,891 - DEBUG - https://fe80::7ec2:55ff:feed:1412%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 404 0
+2025-11-15 07:56:52,896 - DEBUG - Redfish response status: 404
+2025-11-15 07:56:52,898 - DEBUG - Failed to connect to Redfish on fe80::7ec2:55ff:feed:1412%enp0s8
+2025-11-15 07:56:52,898 - DEBUG - No server discovered at fe80::7ec2:55ff:feed:1412%enp0s8
+2025-11-15 07:56:52,899 - DEBUG - Processing server 30/50: fe80::f439:4ec2:bbe1:fe72%enp0s8
+2025-11-15 07:56:52,899 - DEBUG - Fast server discovery for fe80::f439:4ec2:bbe1:fe72%enp0s8 with username admin
+2025-11-15 07:56:52,900 - DEBUG - Attempting fast Redfish connection to https://[fe80::f439:4ec2:bbe1:fe72%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:52,903 - DEBUG - Starting new HTTPS connection (1): fe80::f439:4ec2:bbe1:fe72%enp0s8:443
+2025-11-15 07:56:53,237 - DEBUG - https://fe80::f439:4ec2:bbe1:fe72%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 561
+2025-11-15 07:56:53,242 - DEBUG - Redfish response status: 401
+2025-11-15 07:56:53,244 - DEBUG - Failed to connect to Redfish on fe80::f439:4ec2:bbe1:fe72%enp0s8
+2025-11-15 07:56:53,244 - DEBUG - No server discovered at fe80::f439:4ec2:bbe1:fe72%enp0s8
+2025-11-15 07:56:53,244 - DEBUG - Processing server 31/50: fe80::9640:c9ff:fe1c:3df0%enp0s8
+2025-11-15 07:56:53,245 - DEBUG - Fast server discovery for fe80::9640:c9ff:fe1c:3df0%enp0s8 with username admin
+2025-11-15 07:56:53,245 - DEBUG - Attempting fast Redfish connection to https://[fe80::9640:c9ff:fe1c:3df0%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:53,247 - DEBUG - Starting new HTTPS connection (1): fe80::9640:c9ff:fe1c:3df0%enp0s8:443
+2025-11-15 07:56:53,599 - DEBUG - https://fe80::9640:c9ff:fe1c:3df0%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 None
+2025-11-15 07:56:53,606 - DEBUG - Redfish response status: 401
+2025-11-15 07:56:53,607 - DEBUG - Failed to connect to Redfish on fe80::9640:c9ff:fe1c:3df0%enp0s8
+2025-11-15 07:56:53,608 - DEBUG - No server discovered at fe80::9640:c9ff:fe1c:3df0%enp0s8
+2025-11-15 07:56:53,609 - DEBUG - Processing server 32/50: fe80::da1f:ccff:fe89:29cc%enp0s8
+2025-11-15 07:56:53,609 - DEBUG - Fast server discovery for fe80::da1f:ccff:fe89:29cc%enp0s8 with username admin
+2025-11-15 07:56:53,610 - DEBUG - Attempting fast Redfish connection to https://[fe80::da1f:ccff:fe89:29cc%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:53,613 - DEBUG - Starting new HTTPS connection (1): fe80::da1f:ccff:fe89:29cc%enp0s8:443
+2025-11-15 07:56:53,932 - DEBUG - https://fe80::da1f:ccff:fe89:29cc%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 404 47
+2025-11-15 07:56:53,934 - DEBUG - Redfish response status: 404
+2025-11-15 07:56:53,935 - DEBUG - Failed to connect to Redfish on fe80::da1f:ccff:fe89:29cc%enp0s8
+2025-11-15 07:56:53,936 - DEBUG - No server discovered at fe80::da1f:ccff:fe89:29cc%enp0s8
+2025-11-15 07:56:53,936 - DEBUG - Processing server 33/50: fe80::762d:6265:cb9e:e0da%enp0s8
+2025-11-15 07:56:53,937 - DEBUG - Fast server discovery for fe80::762d:6265:cb9e:e0da%enp0s8 with username admin
+2025-11-15 07:56:53,937 - DEBUG - Attempting fast Redfish connection to https://[fe80::762d:6265:cb9e:e0da%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:53,939 - DEBUG - Starting new HTTPS connection (1): fe80::762d:6265:cb9e:e0da%enp0s8:443
+2025-11-15 07:56:54,243 - DEBUG - https://fe80::762d:6265:cb9e:e0da%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 4119
+2025-11-15 07:56:54,247 - DEBUG - Redfish response status: 200
+2025-11-15 07:56:54,248 - DEBUG - Server info - SKU: To be filled by O.E.M., Model: DS220 G6, Serial: S913244X5711324
+2025-11-15 07:56:54,248 - DEBUG - Identified server type: Server_DS220_G6
+2025-11-15 07:56:54,249 - DEBUG - Attempting to resolve IPv4 for fe80::762d:6265:cb9e:e0da%enp0s8
+2025-11-15 07:56:54,249 - DEBUG - Cleaned IPv6: fe80::762d:6265:cb9e:e0da
+2025-11-15 07:56:54,262 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c DEL...
+2025-11-15 07:56:54,262 - DEBUG - Found line: fe80::762d:6265:cb9e:e0da dev enp0s8 lladdr 7c:c2:55:90:37:97 DELAY
+2025-11-15 07:56:54,264 - DEBUG - Found MAC 7c:c2:55:90:37:97 for fe80::762d:6265:cb9e:e0da%enp0s8
+2025-11-15 07:56:54,271 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:56:54,271 - DEBUG - Attempting direct REST query for fe80::762d:6265:cb9e:e0da
+2025-11-15 07:56:54,272 - DEBUG - Trying URL: https://[fe80::762d:6265:cb9e:e0da]/redfish/v1/Managers/BMC/EthernetInterfaces/1
+2025-11-15 07:56:54,273 - DEBUG - Starting new HTTPS connection (1): fe80::762d:6265:cb9e:e0da:443
+2025-11-15 07:56:54,274 - DEBUG - Direct query failed: HTTPSConnectionPool(host='fe80::762d:6265:cb9e:e0da', port=443): Max retries exceeded with url: /redfish/v1/Managers/BMC/EthernetInterfaces/1 (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x75da3e58b520>: Failed to establish a new connection: [Errno 22] Invalid argument'))
+2025-11-15 07:56:54,275 - DEBUG - Trying known working IP ranges with correlation...
+2025-11-15 07:56:54,275 - DEBUG - Scanning range 172.23.55.90-119
+2025-11-15 07:56:57,295 - DEBUG - Correlating 172.23.55.93 with fe80::762d:6265:cb9e:e0da%enp0s8
+2025-11-15 07:56:57,299 - DEBUG - Starting new HTTPS connection (1): 172.23.55.93:443
+2025-11-15 07:56:59,528 - DEBUG - Correlating 172.23.55.94 with fe80::762d:6265:cb9e:e0da%enp0s8
+2025-11-15 07:56:59,532 - DEBUG - Starting new HTTPS connection (1): 172.23.55.94:443
+2025-11-15 07:56:59,834 - DEBUG - https://172.23.55.94:443 "GET /redfish/v1 HTTP/1.1" 200 1611
+2025-11-15 07:56:59,841 - DEBUG - Found correlated IPv4 172.23.55.94 for fe80::762d:6265:cb9e:e0da%enp0s8
+2025-11-15 07:56:59,844 - DEBUG - Resolved IPv4 address 172.23.55.94 for server fe80::762d:6265:cb9e:e0da%enp0s8
+2025-11-15 07:56:59,844 - DEBUG - Successfully discovered server: Server_DS220_G6
+2025-11-15 07:56:59,844 - DEBUG - Processing server 34/50: fe80::da1f:ccff:fe83:33a8%enp0s8
+2025-11-15 07:56:59,844 - DEBUG - Fast server discovery for fe80::da1f:ccff:fe83:33a8%enp0s8 with username admin
+2025-11-15 07:56:59,844 - DEBUG - Attempting fast Redfish connection to https://[fe80::da1f:ccff:fe83:33a8%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:56:59,847 - DEBUG - Starting new HTTPS connection (1): fe80::da1f:ccff:fe83:33a8%enp0s8:443
+2025-11-15 07:57:00,293 - DEBUG - https://fe80::da1f:ccff:fe83:33a8%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 404 47
+2025-11-15 07:57:00,300 - DEBUG - Redfish response status: 404
+2025-11-15 07:57:00,303 - DEBUG - Failed to connect to Redfish on fe80::da1f:ccff:fe83:33a8%enp0s8
+2025-11-15 07:57:00,304 - DEBUG - No server discovered at fe80::da1f:ccff:fe83:33a8%enp0s8
+2025-11-15 07:57:00,304 - DEBUG - Processing server 35/50: fe80::9640:c9ff:fe17:76ca%enp0s8
+2025-11-15 07:57:00,304 - DEBUG - Fast server discovery for fe80::9640:c9ff:fe17:76ca%enp0s8 with username admin
+2025-11-15 07:57:00,304 - DEBUG - Attempting fast Redfish connection to https://[fe80::9640:c9ff:fe17:76ca%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:00,307 - DEBUG - Starting new HTTPS connection (1): fe80::9640:c9ff:fe17:76ca%enp0s8:443
+2025-11-15 07:57:01,508 - DEBUG - https://fe80::9640:c9ff:fe17:76ca%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 None
+2025-11-15 07:57:01,513 - DEBUG - Redfish response status: 401
+2025-11-15 07:57:01,514 - DEBUG - Failed to connect to Redfish on fe80::9640:c9ff:fe17:76ca%enp0s8
+2025-11-15 07:57:01,514 - DEBUG - No server discovered at fe80::9640:c9ff:fe17:76ca%enp0s8
+2025-11-15 07:57:01,515 - DEBUG - Processing server 36/50: fe80::9640:c9ff:fe17:da7e%enp0s8
+2025-11-15 07:57:01,515 - DEBUG - Fast server discovery for fe80::9640:c9ff:fe17:da7e%enp0s8 with username admin
+2025-11-15 07:57:01,515 - DEBUG - Attempting fast Redfish connection to https://[fe80::9640:c9ff:fe17:da7e%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:01,517 - DEBUG - Starting new HTTPS connection (1): fe80::9640:c9ff:fe17:da7e%enp0s8:443
+2025-11-15 07:57:01,870 - DEBUG - https://fe80::9640:c9ff:fe17:da7e%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 None
+2025-11-15 07:57:01,883 - DEBUG - Redfish response status: 401
+2025-11-15 07:57:01,885 - DEBUG - Failed to connect to Redfish on fe80::9640:c9ff:fe17:da7e%enp0s8
+2025-11-15 07:57:01,885 - DEBUG - No server discovered at fe80::9640:c9ff:fe17:da7e%enp0s8
+2025-11-15 07:57:01,885 - DEBUG - Processing server 37/50: fe80::9f1b:a234:bb6a:1939%enp0s8
+2025-11-15 07:57:01,885 - DEBUG - Fast server discovery for fe80::9f1b:a234:bb6a:1939%enp0s8 with username admin
+2025-11-15 07:57:01,886 - DEBUG - Attempting fast Redfish connection to https://[fe80::9f1b:a234:bb6a:1939%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:01,889 - DEBUG - Starting new HTTPS connection (1): fe80::9f1b:a234:bb6a:1939%enp0s8:443
+2025-11-15 07:57:02,124 - DEBUG - https://fe80::9f1b:a234:bb6a:1939%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 561
+2025-11-15 07:57:02,127 - DEBUG - Redfish response status: 401
+2025-11-15 07:57:02,129 - DEBUG - Failed to connect to Redfish on fe80::9f1b:a234:bb6a:1939%enp0s8
+2025-11-15 07:57:02,133 - DEBUG - No server discovered at fe80::9f1b:a234:bb6a:1939%enp0s8
+2025-11-15 07:57:02,133 - DEBUG - Processing server 38/50: fe80::9640:c9ff:fe1c:3e32%enp0s8
+2025-11-15 07:57:02,133 - DEBUG - Fast server discovery for fe80::9640:c9ff:fe1c:3e32%enp0s8 with username admin
+2025-11-15 07:57:02,133 - DEBUG - Attempting fast Redfish connection to https://[fe80::9640:c9ff:fe1c:3e32%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:02,136 - DEBUG - Starting new HTTPS connection (1): fe80::9640:c9ff:fe1c:3e32%enp0s8:443
+2025-11-15 07:57:03,698 - DEBUG - https://fe80::9640:c9ff:fe1c:3e32%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 None
+2025-11-15 07:57:03,712 - DEBUG - Redfish response status: 200
+2025-11-15 07:57:03,715 - DEBUG - Server info - SKU: 868704-B21, Model: Hitachi Advanced Server HA820, Serial: 2M29460JQQ
+2025-11-15 07:57:03,716 - DEBUG - Identified server type: HA_Server
+2025-11-15 07:57:03,717 - DEBUG - Attempting to resolve IPv4 for fe80::9640:c9ff:fe1c:3e32%enp0s8
+2025-11-15 07:57:03,718 - DEBUG - Cleaned IPv6: fe80::9640:c9ff:fe1c:3e32
+2025-11-15 07:57:03,728 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c REA...
+2025-11-15 07:57:03,729 - DEBUG - Found line: fe80::9640:c9ff:fe1c:3e32 dev enp0s8 lladdr 94:40:c9:1c:3e:32 DELAY
+2025-11-15 07:57:03,729 - DEBUG - Found MAC 94:40:c9:1c:3e:32 for fe80::9640:c9ff:fe1c:3e32%enp0s8
+2025-11-15 07:57:03,739 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:57:03,740 - DEBUG - Found IPv4 172.23.55.115 via MAC mapping
+2025-11-15 07:57:03,740 - DEBUG - Resolved IPv4 address 172.23.55.115 for server fe80::9640:c9ff:fe1c:3e32%enp0s8
+2025-11-15 07:57:03,740 - DEBUG - Successfully discovered server: HA_Server
+2025-11-15 07:57:03,741 - DEBUG - Processing server 39/50: fe80::2f12:a7f4:131b:4c95%enp0s8
+2025-11-15 07:57:03,741 - DEBUG - Fast server discovery for fe80::2f12:a7f4:131b:4c95%enp0s8 with username admin
+2025-11-15 07:57:03,741 - DEBUG - Attempting fast Redfish connection to https://[fe80::2f12:a7f4:131b:4c95%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:03,745 - DEBUG - Starting new HTTPS connection (1): fe80::2f12:a7f4:131b:4c95%enp0s8:443
+2025-11-15 07:57:04,034 - DEBUG - https://fe80::2f12:a7f4:131b:4c95%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 561
+2025-11-15 07:57:04,039 - DEBUG - Redfish response status: 401
+2025-11-15 07:57:04,040 - DEBUG - Failed to connect to Redfish on fe80::2f12:a7f4:131b:4c95%enp0s8
+2025-11-15 07:57:04,040 - DEBUG - No server discovered at fe80::2f12:a7f4:131b:4c95%enp0s8
+2025-11-15 07:57:04,041 - DEBUG - Processing server 40/50: fe80::38f3:35e4:617e:ad65%enp0s8
+2025-11-15 07:57:04,041 - DEBUG - Fast server discovery for fe80::38f3:35e4:617e:ad65%enp0s8 with username admin
+2025-11-15 07:57:04,041 - DEBUG - Attempting fast Redfish connection to https://[fe80::38f3:35e4:617e:ad65%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:04,044 - DEBUG - Starting new HTTPS connection (1): fe80::38f3:35e4:617e:ad65%enp0s8:443
+2025-11-15 07:57:04,247 - DEBUG - https://fe80::38f3:35e4:617e:ad65%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 561
+2025-11-15 07:57:04,250 - DEBUG - Redfish response status: 401
+2025-11-15 07:57:04,251 - DEBUG - Failed to connect to Redfish on fe80::38f3:35e4:617e:ad65%enp0s8
+2025-11-15 07:57:04,251 - DEBUG - No server discovered at fe80::38f3:35e4:617e:ad65%enp0s8
+2025-11-15 07:57:04,252 - DEBUG - Processing server 41/50: fe80::9783:1311:29bf:a59c%enp0s8
+2025-11-15 07:57:04,252 - DEBUG - Fast server discovery for fe80::9783:1311:29bf:a59c%enp0s8 with username admin
+2025-11-15 07:57:04,252 - DEBUG - Attempting fast Redfish connection to https://[fe80::9783:1311:29bf:a59c%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:04,254 - DEBUG - Starting new HTTPS connection (1): fe80::9783:1311:29bf:a59c%enp0s8:443
+2025-11-15 07:57:04,457 - DEBUG - https://fe80::9783:1311:29bf:a59c%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 561
+2025-11-15 07:57:04,461 - DEBUG - Redfish response status: 401
+2025-11-15 07:57:04,462 - DEBUG - Failed to connect to Redfish on fe80::9783:1311:29bf:a59c%enp0s8
+2025-11-15 07:57:04,462 - DEBUG - No server discovered at fe80::9783:1311:29bf:a59c%enp0s8
+2025-11-15 07:57:04,462 - DEBUG - Processing server 42/50: fe80::9640:c9ff:fe1c:3670%enp0s8
+2025-11-15 07:57:04,462 - DEBUG - Fast server discovery for fe80::9640:c9ff:fe1c:3670%enp0s8 with username admin
+2025-11-15 07:57:04,462 - DEBUG - Attempting fast Redfish connection to https://[fe80::9640:c9ff:fe1c:3670%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:04,464 - DEBUG - Starting new HTTPS connection (1): fe80::9640:c9ff:fe1c:3670%enp0s8:443
+2025-11-15 07:57:04,797 - DEBUG - https://fe80::9640:c9ff:fe1c:3670%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 None
+2025-11-15 07:57:04,804 - DEBUG - Redfish response status: 401
+2025-11-15 07:57:04,805 - DEBUG - Failed to connect to Redfish on fe80::9640:c9ff:fe1c:3670%enp0s8
+2025-11-15 07:57:04,806 - DEBUG - No server discovered at fe80::9640:c9ff:fe1c:3670%enp0s8
+2025-11-15 07:57:04,806 - DEBUG - Processing server 43/50: fe80::2592:27a4:4208:84d0%enp0s8
+2025-11-15 07:57:04,807 - DEBUG - Fast server discovery for fe80::2592:27a4:4208:84d0%enp0s8 with username admin
+2025-11-15 07:57:04,807 - DEBUG - Attempting fast Redfish connection to https://[fe80::2592:27a4:4208:84d0%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:04,808 - DEBUG - Starting new HTTPS connection (1): fe80::2592:27a4:4208:84d0%enp0s8:443
+2025-11-15 07:57:05,087 - DEBUG - https://fe80::2592:27a4:4208:84d0%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 4058
+2025-11-15 07:57:05,092 - DEBUG - Redfish response status: 200
+2025-11-15 07:57:05,094 - DEBUG - Server info - SKU: To be filled by O.E.M., Model: DS120 G6, Serial: S913237X5509936
+2025-11-15 07:57:05,094 - DEBUG - Identified server type: DS120_G6
+2025-11-15 07:57:05,095 - DEBUG - Attempting to resolve IPv4 for fe80::2592:27a4:4208:84d0%enp0s8
+2025-11-15 07:57:05,095 - DEBUG - Cleaned IPv6: fe80::2592:27a4:4208:84d0
+2025-11-15 07:57:05,100 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb STALE
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c REA...
+2025-11-15 07:57:05,101 - DEBUG - Found line: fe80::2592:27a4:4208:84d0 dev enp0s8 lladdr 7c:c2:55:8d:08:11 DELAY
+2025-11-15 07:57:05,101 - DEBUG - Found MAC 7c:c2:55:8d:08:11 for fe80::2592:27a4:4208:84d0%enp0s8
+2025-11-15 07:57:05,106 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:57:05,106 - DEBUG - Attempting direct REST query for fe80::2592:27a4:4208:84d0
+2025-11-15 07:57:05,107 - DEBUG - Trying URL: https://[fe80::2592:27a4:4208:84d0]/redfish/v1/Managers/BMC/EthernetInterfaces/1
+2025-11-15 07:57:05,108 - DEBUG - Starting new HTTPS connection (1): fe80::2592:27a4:4208:84d0:443
+2025-11-15 07:57:05,109 - DEBUG - Direct query failed: HTTPSConnectionPool(host='fe80::2592:27a4:4208:84d0', port=443): Max retries exceeded with url: /redfish/v1/Managers/BMC/EthernetInterfaces/1 (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x75da3f273370>: Failed to establish a new connection: [Errno 22] Invalid argument'))
+2025-11-15 07:57:05,110 - DEBUG - Trying known working IP ranges with correlation...
+2025-11-15 07:57:05,110 - DEBUG - Scanning range 172.23.55.90-119
+2025-11-15 07:57:08,128 - DEBUG - Correlating 172.23.55.93 with fe80::2592:27a4:4208:84d0%enp0s8
+2025-11-15 07:57:08,145 - DEBUG - Starting new HTTPS connection (1): 172.23.55.93:443
+2025-11-15 07:57:10,375 - DEBUG - Correlating 172.23.55.94 with fe80::2592:27a4:4208:84d0%enp0s8
+2025-11-15 07:57:10,378 - DEBUG - Starting new HTTPS connection (1): 172.23.55.94:443
+2025-11-15 07:57:10,585 - DEBUG - https://172.23.55.94:443 "GET /redfish/v1 HTTP/1.1" 200 1611
+2025-11-15 07:57:10,588 - DEBUG - Found correlated IPv4 172.23.55.94 for fe80::2592:27a4:4208:84d0%enp0s8
+2025-11-15 07:57:10,589 - DEBUG - Resolved IPv4 address 172.23.55.94 for server fe80::2592:27a4:4208:84d0%enp0s8
+2025-11-15 07:57:10,589 - DEBUG - Successfully discovered server: DS120_G6
+2025-11-15 07:57:10,590 - DEBUG - Processing server 44/50: fe80::e90e:deb3:d28:eafc%enp0s8
+2025-11-15 07:57:10,590 - DEBUG - Fast server discovery for fe80::e90e:deb3:d28:eafc%enp0s8 with username admin
+2025-11-15 07:57:10,590 - DEBUG - Attempting fast Redfish connection to https://[fe80::e90e:deb3:d28:eafc%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:10,592 - DEBUG - Starting new HTTPS connection (1): fe80::e90e:deb3:d28:eafc%enp0s8:443
+2025-11-15 07:57:10,803 - DEBUG - https://fe80::e90e:deb3:d28:eafc%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 561
+2025-11-15 07:57:10,808 - DEBUG - Redfish response status: 401
+2025-11-15 07:57:10,809 - DEBUG - Failed to connect to Redfish on fe80::e90e:deb3:d28:eafc%enp0s8
+2025-11-15 07:57:10,809 - DEBUG - No server discovered at fe80::e90e:deb3:d28:eafc%enp0s8
+2025-11-15 07:57:10,810 - DEBUG - Processing server 45/50: fe80::4a16:9721:f64a:38e3%enp0s8
+2025-11-15 07:57:10,810 - DEBUG - Fast server discovery for fe80::4a16:9721:f64a:38e3%enp0s8 with username admin
+2025-11-15 07:57:10,810 - DEBUG - Attempting fast Redfish connection to https://[fe80::4a16:9721:f64a:38e3%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:10,812 - DEBUG - Starting new HTTPS connection (1): fe80::4a16:9721:f64a:38e3%enp0s8:443
+2025-11-15 07:57:10,963 - DEBUG - https://fe80::4a16:9721:f64a:38e3%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 400 345
+2025-11-15 07:57:10,965 - DEBUG - Redfish response status: 400
+2025-11-15 07:57:10,966 - DEBUG - Failed to connect to Redfish on fe80::4a16:9721:f64a:38e3%enp0s8
+2025-11-15 07:57:10,967 - DEBUG - No server discovered at fe80::4a16:9721:f64a:38e3%enp0s8
+2025-11-15 07:57:10,967 - DEBUG - Processing server 46/50: fe80::4091:be03:6e4e:526%enp0s8
+2025-11-15 07:57:10,967 - DEBUG - Fast server discovery for fe80::4091:be03:6e4e:526%enp0s8 with username admin
+2025-11-15 07:57:10,968 - DEBUG - Attempting fast Redfish connection to https://[fe80::4091:be03:6e4e:526%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:10,969 - DEBUG - Starting new HTTPS connection (1): fe80::4091:be03:6e4e:526%enp0s8:443
+2025-11-15 07:57:11,180 - DEBUG - https://fe80::4091:be03:6e4e:526%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 561
+2025-11-15 07:57:11,183 - DEBUG - Redfish response status: 401
+2025-11-15 07:57:11,185 - DEBUG - Failed to connect to Redfish on fe80::4091:be03:6e4e:526%enp0s8
+2025-11-15 07:57:11,188 - DEBUG - No server discovered at fe80::4091:be03:6e4e:526%enp0s8
+2025-11-15 07:57:11,189 - DEBUG - Processing server 47/50: fe80::35df:49bc:df42:ad58%enp0s8
+2025-11-15 07:57:11,190 - DEBUG - Fast server discovery for fe80::35df:49bc:df42:ad58%enp0s8 with username admin
+2025-11-15 07:57:11,190 - DEBUG - Attempting fast Redfish connection to https://[fe80::35df:49bc:df42:ad58%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:11,193 - DEBUG - Starting new HTTPS connection (1): fe80::35df:49bc:df42:ad58%enp0s8:443
+2025-11-15 07:57:11,338 - DEBUG - https://fe80::35df:49bc:df42:ad58%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 400 345
+2025-11-15 07:57:11,340 - DEBUG - Redfish response status: 400
+2025-11-15 07:57:11,341 - DEBUG - Failed to connect to Redfish on fe80::35df:49bc:df42:ad58%enp0s8
+2025-11-15 07:57:11,341 - DEBUG - No server discovered at fe80::35df:49bc:df42:ad58%enp0s8
+2025-11-15 07:57:11,341 - DEBUG - Processing server 48/50: fe80::9640:c9ff:fe1c:3d0c%enp0s8
+2025-11-15 07:57:11,341 - DEBUG - Fast server discovery for fe80::9640:c9ff:fe1c:3d0c%enp0s8 with username admin
+2025-11-15 07:57:11,341 - DEBUG - Attempting fast Redfish connection to https://[fe80::9640:c9ff:fe1c:3d0c%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:11,343 - DEBUG - Starting new HTTPS connection (1): fe80::9640:c9ff:fe1c:3d0c%enp0s8:443
+2025-11-15 07:57:11,708 - DEBUG - https://fe80::9640:c9ff:fe1c:3d0c%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 401 None
+2025-11-15 07:57:11,711 - DEBUG - Redfish response status: 401
+2025-11-15 07:57:11,712 - DEBUG - Failed to connect to Redfish on fe80::9640:c9ff:fe1c:3d0c%enp0s8
+2025-11-15 07:57:11,712 - DEBUG - No server discovered at fe80::9640:c9ff:fe1c:3d0c%enp0s8
+2025-11-15 07:57:11,712 - DEBUG - Processing server 49/50: fe80::85a3:8d13:5eb8:2dde%enp0s8
+2025-11-15 07:57:11,713 - DEBUG - Fast server discovery for fe80::85a3:8d13:5eb8:2dde%enp0s8 with username admin
+2025-11-15 07:57:11,713 - DEBUG - Attempting fast Redfish connection to https://[fe80::85a3:8d13:5eb8:2dde%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:11,715 - DEBUG - Starting new HTTPS connection (1): fe80::85a3:8d13:5eb8:2dde%enp0s8:443
+2025-11-15 07:57:11,999 - DEBUG - https://fe80::85a3:8d13:5eb8:2dde%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 4031
+2025-11-15 07:57:12,006 - DEBUG - Redfish response status: 200
+2025-11-15 07:57:12,009 - DEBUG - Server info - SKU: To be filled by O.E.M., Model: DS120 G6, Serial: S913237X5618632
+2025-11-15 07:57:12,010 - DEBUG - Identified server type: DS120_G6
+2025-11-15 07:57:12,010 - DEBUG - Attempting to resolve IPv4 for fe80::85a3:8d13:5eb8:2dde%enp0s8
+2025-11-15 07:57:12,010 - DEBUG - Cleaned IPv6: fe80::85a3:8d13:5eb8:2dde
+2025-11-15 07:57:12,016 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb DELAY
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c REA...
+2025-11-15 07:57:12,016 - DEBUG - Found line: fe80::85a3:8d13:5eb8:2dde dev enp0s8 lladdr 7c:c2:55:90:37:16 DELAY
+2025-11-15 07:57:12,016 - DEBUG - Found MAC 7c:c2:55:90:37:16 for fe80::85a3:8d13:5eb8:2dde%enp0s8
+2025-11-15 07:57:12,021 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:57:12,021 - DEBUG - Found IPv4 172.23.55.94 via MAC mapping
+2025-11-15 07:57:12,022 - DEBUG - Resolved IPv4 address 172.23.55.94 for server fe80::85a3:8d13:5eb8:2dde%enp0s8
+2025-11-15 07:57:12,022 - DEBUG - Successfully discovered server: DS120_G6
+2025-11-15 07:57:12,022 - DEBUG - Processing server 50/50: fe80::cfae:8a5a:8faa:d383%enp0s8
+2025-11-15 07:57:12,022 - DEBUG - Fast server discovery for fe80::cfae:8a5a:8faa:d383%enp0s8 with username admin
+2025-11-15 07:57:12,023 - DEBUG - Attempting fast Redfish connection to https://[fe80::cfae:8a5a:8faa:d383%25enp0s8]/redfish/v1/Systems/1
+2025-11-15 07:57:12,024 - DEBUG - Starting new HTTPS connection (1): fe80::cfae:8a5a:8faa:d383%enp0s8:443
+2025-11-15 07:57:12,303 - DEBUG - https://fe80::cfae:8a5a:8faa:d383%enp0s8:443 "GET /redfish/v1/Systems/1 HTTP/1.1" 200 4075
+2025-11-15 07:57:12,307 - DEBUG - Redfish response status: 200
+2025-11-15 07:57:12,308 - DEBUG - Server info - SKU: To be filled by O.E.M., Model: DS120 G6, Serial: S913237X5509937
+2025-11-15 07:57:12,309 - DEBUG - Identified server type: DS120_G6
+2025-11-15 07:57:12,309 - DEBUG - Attempting to resolve IPv4 for fe80::cfae:8a5a:8faa:d383%enp0s8
+2025-11-15 07:57:12,309 - DEBUG - Cleaned IPv6: fe80::cfae:8a5a:8faa:d383
+2025-11-15 07:57:12,314 - DEBUG - IPv6 neighbor table result: fe80::e90e:deb3:d28:eafc dev enp0s8 lladdr 7c:c2:55:ea:a9:cb DELAY
+fe80::9640:c9ff:fe1c:3672 dev enp0s8 lladdr 94:40:c9:1c:36:72 STALE
+fe80::7ea6:2aff:fe6e:ab6c dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c REA...
+2025-11-15 07:57:12,314 - DEBUG - Found line: fe80::cfae:8a5a:8faa:d383 dev enp0s8 lladdr 7c:c2:55:8d:08:1b DELAY
+2025-11-15 07:57:12,315 - DEBUG - Found MAC 7c:c2:55:8d:08:1b for fe80::cfae:8a5a:8faa:d383%enp0s8
+2025-11-15 07:57:12,319 - DEBUG - IPv4 neighbor table result: 172.23.55.109 dev enp0s8 lladdr 94:40:c9:1c:3d:f0 STALE
+172.23.55.102 dev enp0s8 lladdr 7c:a6:2a:6e:ab:6c STALE
+172.23.55.41 dev enp0s8  FAILED
+172.23.54.18 dev enp0s8  FAILED
+172.23.54.3 dev enp0s8  ...
+2025-11-15 07:57:12,319 - DEBUG - Attempting direct REST query for fe80::cfae:8a5a:8faa:d383
+2025-11-15 07:57:12,320 - DEBUG - Trying URL: https://[fe80::cfae:8a5a:8faa:d383]/redfish/v1/Managers/BMC/EthernetInterfaces/1
+2025-11-15 07:57:12,321 - DEBUG - Starting new HTTPS connection (1): fe80::cfae:8a5a:8faa:d383:443
+2025-11-15 07:57:12,322 - DEBUG - Direct query failed: HTTPSConnectionPool(host='fe80::cfae:8a5a:8faa:d383', port=443): Max retries exceeded with url: /redfish/v1/Managers/BMC/EthernetInterfaces/1 (Caused by NewConnectionError('<urllib3.connection.HTTPSConnection object at 0x75da3e58aaa0>: Failed to establish a new connection: [Errno 22] Invalid argument'))
+2025-11-15 07:57:12,322 - DEBUG - Trying known working IP ranges with correlation...
+2025-11-15 07:57:12,323 - DEBUG - Scanning range 172.23.55.90-119
+2025-11-15 07:57:15,342 - DEBUG - Correlating 172.23.55.93 with fe80::cfae:8a5a:8faa:d383%enp0s8
+2025-11-15 07:57:15,349 - DEBUG - Starting new HTTPS connection (1): 172.23.55.93:443
+2025-11-15 07:57:17,470 - DEBUG - Correlating 172.23.55.94 with fe80::cfae:8a5a:8faa:d383%enp0s8
+2025-11-15 07:57:17,473 - DEBUG - Starting new HTTPS connection (1): 172.23.55.94:443
+2025-11-15 07:57:17,673 - DEBUG - https://172.23.55.94:443 "GET /redfish/v1 HTTP/1.1" 200 1611
+2025-11-15 07:57:17,677 - DEBUG - Found correlated IPv4 172.23.55.94 for fe80::cfae:8a5a:8faa:d383%enp0s8
+2025-11-15 07:57:17,678 - DEBUG - Resolved IPv4 address 172.23.55.94 for server fe80::cfae:8a5a:8faa:d383%enp0s8
+2025-11-15 07:57:17,679 - DEBUG - Successfully discovered server: DS120_G6
+2025-11-15 07:57:17,679 - DEBUG - Total servers discovered: 26
+2025-11-15 07:57:17,679 - DEBUG - Discovery complete, preparing results...

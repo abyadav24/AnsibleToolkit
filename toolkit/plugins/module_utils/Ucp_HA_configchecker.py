@@ -2,7 +2,14 @@ import sys
 from typing import Any
 import redfish
 import os
-from prettytable import PrettyTable
+
+# Import prettytable with offline support
+try:
+    from ansible.module_utils.offline_libs import import_prettytable
+    PrettyTable, _ = import_prettytable()
+except ImportError:
+    from prettytable import PrettyTable
+
 from pexpect.popen_spawn import PopenSpawn
 from datetime import datetime
 import requests

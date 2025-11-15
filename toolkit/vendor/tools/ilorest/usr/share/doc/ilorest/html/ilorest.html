@@ -1,0 +1,138 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+    <title>sphinx-build manual page &#8212; HPE RESTful Interface Tool 1.0.0-0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/classic.css" />
+    
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+  </head><body>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="#">HPE RESTful Interface Tool 1.0.0-0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sphinx-build manual page</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <section id="sphinx-build-manual-page">
+<h1>sphinx-build manual page<a class="headerlink" href="#sphinx-build-manual-page" title="Permalink to this headline">¶</a></h1>
+<section id="synopsis">
+<h2>Synopsis<a class="headerlink" href="#synopsis" title="Permalink to this headline">¶</a></h2>
+<p><strong>ilorest</strong> [<em>GLOBAL OPTIONS</em>] [<em>COMMAND</em>] [<em>COMMAND OPTIONS</em>] [<em>COMMAND ARGUMENTS</em>]</p>
+</section>
+<section id="warning">
+<h2>Warning<a class="headerlink" href="#warning" title="Permalink to this headline">¶</a></h2>
+<p>Improper use of this tool can result in the loss of critical data.
+Only experienced users should attempt to use this tool.  Because
+of the potential risk of data loss, take all necessary precautions
+to ensure that mission-critical systems remain online if a
+failure occurs.</p>
+</section>
+<section id="description">
+<h2>Description<a class="headerlink" href="#description" title="Permalink to this headline">¶</a></h2>
+<p><strong class="program">ilorest</strong> is a command line tool which simplifies the process of
+applying firmware for your HPE ProLiant server.   <strong class="program">ilorest</strong>
+is designed for administrators looking to script and automate firmware
+deployment.</p>
+<p><strong class="program">ilorest</strong> looks for firmware in the <code class="docutils literal notranslate"><span class="pre">/usr/lib/&lt;triplet&gt;</span></code> directory
+where &lt;triplet&gt; is the multiarch triplet (<a class="reference external" href="http://wiki.debian.org/Multiarch">http://wiki.debian.org/Multiarch</a>)</p>
+<p>When firmware is found <strong class="program">ilorest</strong> will guide you through the process
+of applying it to your system.</p>
+<p>In order to populate the <code class="docutils literal notranslate"><span class="pre">/usr/lib/&lt;triplet&gt;</span></code> directory you must
+download and install HPE firmware packages from the
+ProLiant Software Delivery Repository <a class="reference external" href="http://downloads.linux.hpe.com/SDR/">http://downloads.linux.hpe.com/SDR/</a></p>
+<p><strong class="program">ilorest</strong> includes integrated online help.  To access it run the
+<strong class="program">ilorest</strong> command without any arguments.</p>
+</section>
+<section id="commands">
+<h2>Commands<a class="headerlink" href="#commands" title="Permalink to this headline">¶</a></h2>
+<p><strong class="program">ilorest</strong> utilizes a number of sub-commands to simplify usage.
+Each sub-command accepts the its own set of options and arguments.
+The sub-command specific options and arguments must must be specified
+after the sub-command name.</p>
+<section id="help">
+<h3>help<a class="headerlink" href="#help" title="Permalink to this headline">¶</a></h3>
+<p>Display online help.  The help command without any argument displays
+a list of commands.  help &lt;command&gt; displays help on the command provided.</p>
+</section>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">sphinx-build manual page</a><ul>
+<li><a class="reference internal" href="#synopsis">Synopsis</a></li>
+<li><a class="reference internal" href="#warning">Warning</a></li>
+<li><a class="reference internal" href="#description">Description</a></li>
+<li><a class="reference internal" href="#commands">Commands</a><ul>
+<li><a class="reference internal" href="#help">help</a></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/ilorest.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="#">HPE RESTful Interface Tool 1.0.0-0 documentation</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">sphinx-build manual page</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2016-2022, Hewlett Packard Enterprise Development LP.
+      Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.3.2.
+    </div>
+  </body>
+</html>

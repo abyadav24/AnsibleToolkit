@@ -39,7 +39,7 @@
 
     - name: Read server details from CSV file...
       read_csv:
-  path: /home/ubuntu/smci/ansible-toolkit/toolkit/config/smci-server.csv
+  path: /home/ubuntu/smci/ansible-toolkit/toolkit/config/server.csv
       register: server_list
 
     - name: Get BIOS info for each server...

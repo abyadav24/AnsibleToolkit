@@ -1,0 +1,24 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: python-ilorest-library
+Upstream-Contact: Jack Garcia <rexysmydog@gmail.com>
+ Matthew Kocurek <kocurek@hpe.com>
+ Rajeevalochana Kallur <rajeevalochana.kallur@hpe.com>
+ Prithvi Subrahmanya <pbsubrahmanya@uh.edu>
+Source: https://github.com/Hewlett-Packard/python-ilorest-library
+Files-Excluded: docs/themes
+
+Files: *
+Copyright: 2016 - 2021 Hewlett Packard
+License: Apache-2.0
+
+Files: debian/*
+Copyright: 2018 - 2021, Carsten Schoenert <c.schoenert@t-online.de>
+License: GPL-2+
+
+License: Apache-2.0
+ On Debian systems, the complete text of the Apache 2.0 License can be found in
+ the file `/usr/share/common-licenses/Apache-2.0'.
+
+License: GPL-2+
+ On Debian systems, the complete text of the GNU General Public License can be
+ found in the file `/usr/share/common-licenses/GPL-2'.

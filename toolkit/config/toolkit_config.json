@@ -8,11 +8,27 @@
     "This section is reserved for temporary notes or scratch space.",
     "You can use it to jot down ideas or reminders while configuring the toolkit."
   ],
-  "use_target_nodes": "false",
+  "use_target_nodes": false,
   "nodes": [
-    "fe80::5eba:2cff:fe38:a9fc%enp0s8",
-    "fe80::b67a:f1ff:fecf:bd7e%enp0s8",
-    "fe80::af1:eaff:fef7:68b0%enp0s8"
+    "fe80::7ea6:2aff:fe6e:cd2a%enp0s8"
+  ],
+  "network_interface": "auto",
+  "_network_interface_comment": [
+    "Network interface configuration for discovery:",
+    "- Set to 'auto' for automatic detection of best available interface",
+    "- Set to specific interface name (e.g., 'enp0s8', 'enp0s9', 'eth0')",
+    "- Leave empty or null to use auto-detection"
+  ],
+  "interface_priority": [
+    "enp0s9",
+    "enp0s8", 
+    "eth0",
+    "eth1",
+    "enp0s3"
+  ],
+  "_interface_priority_comment": [
+    "Priority order for interface auto-detection.",
+    "First available interface from this list will be used when network_interface is set to 'auto'"
   ],
   "firmware_skip_bmc": "true",
   "firmware_skip_bios": "true",
