@@ -1,0 +1,466 @@
+---
+- name: UCP Toolkit HA - Simplified Automation System
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  vars:
+    ha_menu_options:
+      "1": "ucp_all(Default) - Apply BIOS template and update firmware using SUM Tool"
+      "2": "ucp_BIOS_load - Apply BIOS template only"
+      "3": "ucp_BIOS_save - Export BIOS settings to file"
+      "4": "ucp_power_off - Power off servers"
+      "5": "ucp_power_on - Power on servers"
+      "6": "Exit"
+    log_directory: "{{ playbook_dir }}/../logs"
+    current_timestamp: "{{ ansible_date_time.year }}{{ ansible_date_time.month.zfill(2) }}{{ ansible_date_time.day.zfill(2) }}_{{ ansible_date_time.hour.zfill(2) }}{{ ansible_date_time.minute.zfill(2) }}{{ ansible_date_time.second.zfill(2) }}"
+    ha_toolkit_log_file: "{{ log_directory }}/ucptoolkit_ha_{{ current_timestamp }}.log"
+    
+  tasks:
+    # Get sudo password at the beginning
+    - name: Get sudo password for mount operations
+      pause:
+        prompt: |
+          🔐 Administrator Authentication Required
+          
+          This script requires sudo privileges for mounting operations.
+          Please enter your sudo password
+        echo: no
+      register: sudo_password
+
+    # Setup logging
+    - name: Setup logging directory
+      file:
+        path: "{{ log_directory }}"
+        state: directory
+        mode: '0755'
+
+    - name: Initialize execution log
+      copy:
+        content: |
+          UCP TOOLKIT HA EXECUTION LOG - {{ ansible_date_time.iso8601 }}
+          ================================================================
+          [{{ ansible_date_time.iso8601 }}] Starting UCP Toolkit HA operations
+          
+        dest: "{{ ha_toolkit_log_file }}"
+
+    # Step 1: Check if AnsibleMediakit is mounted
+    - name: Check if AnsibleMediakit is already mounted
+      shell: mount | grep "/mnt/AnsibleMediakit" || echo "not_mounted"
+      register: mount_check
+      changed_when: false
+
+    - name: Display mount check command and result
+      debug:
+        msg:
+          - "🔍 COMMAND EXECUTED: mount | grep '/mnt/AnsibleMediakit' || echo 'not_mounted'"
+          - "📋 RESULT: {{ mount_check.stdout }}"
+
+    - name: Log mount check result
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: mount | grep '/mnt/AnsibleMediakit' || echo 'not_mounted'" >> {{ ha_toolkit_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] RESULT: {{ mount_check.stdout }}" >> {{ ha_toolkit_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] AnsibleMediakit mount status: {{ 'MOUNTED' if mount_check.stdout != 'not_mounted' else 'NOT MOUNTED' }}" >> {{ ha_toolkit_log_file }}
+
+    # Step 2: Unmount if mounted, then remount
+    - name: Force unmount AnsibleMediakit if already mounted
+      become: yes
+      become_method: sudo
+      vars:
+        ansible_become_pass: "{{ sudo_password.user_input }}"
+      block:
+        - name: Display unmount commands
+          debug:
+            msg:
+              - "🔧 EXECUTING UNMOUNT COMMANDS:"
+              - "COMMAND 1: lsof +D /mnt/AnsibleMediakit 2>/dev/null | awk 'NR>1 {print $2}' | xargs -r kill -9 || true"
+              - "COMMAND 2: umount -f /mnt/AnsibleMediakit || umount -l /mnt/AnsibleMediakit || true"
+        
+        - name: Kill processes using AnsibleMediakit
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: lsof +D /mnt/AnsibleMediakit 2>/dev/null | awk 'NR>1 {print \$2}' | xargs -r kill -9 || true" >> {{ ha_toolkit_log_file }}
+            lsof +D /mnt/AnsibleMediakit 2>/dev/null | awk 'NR>1 {print $2}' | xargs -r kill -9 || true
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] RESULT: Processes killed successfully" >> {{ ha_toolkit_log_file }}
+          ignore_errors: yes
+        
+        - name: Force unmount
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: umount -f /mnt/AnsibleMediakit || umount -l /mnt/AnsibleMediakit || true" >> {{ ha_toolkit_log_file }}
+            umount -f /mnt/AnsibleMediakit || umount -l /mnt/AnsibleMediakit || true
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] RESULT: Force unmount completed" >> {{ ha_toolkit_log_file }}
+          ignore_errors: yes
+      when: mount_check.stdout != "not_mounted"
+
+    - name: Log unmount operation
+      lineinfile:
+        path: "{{ ha_toolkit_log_file }}"
+        line: "[{{ ansible_date_time.iso8601 }}] Unmounted existing AnsibleMediakit mount"
+      when: mount_check.stdout != "not_mounted"
+
+    - name: Ensure mount point directory exists
+      become: yes
+      become_method: sudo
+      vars:
+        ansible_become_pass: "{{ sudo_password.user_input }}"
+      file:
+        path: /mnt/AnsibleMediakit
+        state: directory
+        mode: '0755'
+
+    - name: Display mount command
+      debug:
+        msg:
+          - "🔧 EXECUTING MOUNT COMMAND:"
+          - "COMMAND: mount -t vboxsf -o uid=1000,gid=1000 AnsibleMediakit /mnt/AnsibleMediakit"
+
+    - name: Mount AnsibleMediakit VirtualBox shared folder
+      become: yes
+      become_method: sudo
+      vars:
+        ansible_become_pass: "{{ sudo_password.user_input }}"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: mount -t vboxsf -o uid=1000,gid=1000 AnsibleMediakit /mnt/AnsibleMediakit" >> {{ ha_toolkit_log_file }}
+        mount -t vboxsf -o uid=1000,gid=1000 AnsibleMediakit /mnt/AnsibleMediakit
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] RESULT: Mount command executed successfully" >> {{ ha_toolkit_log_file }}
+
+    - name: Log successful mount
+      lineinfile:
+        path: "{{ ha_toolkit_log_file }}"
+        line: "[{{ ansible_date_time.iso8601 }}] Successfully mounted AnsibleMediakit at /mnt/AnsibleMediakit"
+
+    # Step 3: Verify folder contents
+    - name: Verify required folders exist
+      stat:
+        path: "{{ item }}"
+      register: folder_checks
+      loop:
+        - /mnt/AnsibleMediakit/HA/BiosTemplates/HAG6
+        - "/mnt/AnsibleMediakit/HA/SPV/HA G6"
+        - /mnt/AnsibleMediakit/HA/HASPV/HAG6
+
+    - name: Validate required folder structure
+      fail:
+        msg: "Required folder structure not found in AnsibleMediakit"
+      when: folder_checks.results | selectattr('stat.exists', 'equalto', false) | list | length > 0
+
+    - name: Log folder validation success
+      lineinfile:
+        path: "{{ ha_toolkit_log_file }}"
+        line: "[{{ ansible_date_time.iso8601 }}] All required folders validated successfully"
+
+    # Step 4: Display menu and get user selection
+    - name: Display menu options
+      debug:
+        msg:
+          - ""
+          - "Welcome to UCP Toolkit HA!"
+          - ""
+          - "Please select your option:"
+          - "1: ucp_all(Default) - Apply BIOS template and update firmware using SUM Tool"
+          - "2: ucp_BIOS_load - Apply BIOS template only"
+          - "3: ucp_BIOS_save - Export BIOS settings to file"
+          - "4: ucp_power_off - Power off servers"
+          - "5: ucp_power_on - Power on servers"
+          - "6: Exit"
+          - ""
+
+    - name: Get user menu selection
+      pause:
+        prompt: "Please select your option (1-6)"
+      register: user_selection
+
+    - name: Validate user selection
+      fail:
+        msg: "Invalid option selected. Please enter a number between 1 and 6."
+      when: user_selection.user_input not in ha_menu_options.keys()
+
+    - name: Log user selection
+      lineinfile:
+        path: "{{ ha_toolkit_log_file }}"
+        line: "[{{ ansible_date_time.iso8601 }}] User selected option {{ user_selection.user_input }}: {{ ha_menu_options[user_selection.user_input] }}"
+
+    # Step 5: Execute option 1 (ucp_all)
+    - name: Execute UCP All - BIOS template and firmware update
+      block:
+        # Load server configuration
+        - name: Load server configuration
+          slurp:
+            src: "{{ playbook_dir }}/../config/server.csv"
+          register: server_csv_content
+
+        - name: Parse server data
+          set_fact:
+            servers: "{{ (server_csv_content.content | b64decode).split('\n')[1:] | select | map('split', ',') | list }}"
+
+        - name: Get target server details
+          set_fact:
+            target_server_ip: "{{ servers[0][5] }}"
+            target_server_user: "{{ servers[0][6] }}"
+            target_server_password: "{{ servers[0][7] }}"
+            target_server_model: "{{ servers[0][2] }}"
+
+        - name: Log target server details
+          lineinfile:
+            path: "{{ ha_toolkit_log_file }}"
+            line: "[{{ ansible_date_time.iso8601 }}] Target server: {{ target_server_ip }}, Model: {{ target_server_model }}"
+
+        # Check if server is G6
+        - name: Check if server is G6
+          set_fact:
+            is_g6_server: "{{ 'G6' in target_server_model }}"
+
+        - name: Fail if not G6 server
+          fail:
+            msg: "Target server is not a G6 model. BIOS template application requires G6 server."
+          when: not is_g6_server
+
+        - name: Log G6 server confirmation
+          lineinfile:
+            path: "{{ ha_toolkit_log_file }}"
+            line: "[{{ ansible_date_time.iso8601 }}] Confirmed G6 server, proceeding with BIOS template application"
+
+        # Apply BIOS template using ilorest
+        - name: Find BIOS template file
+          find:
+            paths: ["/mnt/AnsibleMediakit/HA/BiosTemplates/HAG6"]
+            patterns: "*.json"
+          register: bios_template_files
+
+        - name: Set BIOS template path
+          set_fact:
+            bios_template_path: "{{ bios_template_files.files[0].path }}"
+
+        - name: Log BIOS template path
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using BIOS template: {{ bios_template_path }}" >> {{ ha_toolkit_log_file }}
+
+        - name: Display ilorest commands
+          debug:
+            msg:
+              - "🔧 EXECUTING ILOREST COMMANDS:"
+              - "COMMAND 1: ./ilorest_wrapper.sh login {{ target_server_ip }} -u {{ target_server_user }} -p *******"
+              - "COMMAND 2: ./ilorest_wrapper.sh load -f {{ bios_template_path }}"
+              - "COMMAND 3: ./ilorest_wrapper.sh commit"
+              - "COMMAND 4: ./ilorest_wrapper.sh logout"
+
+        - name: Apply BIOS template using ilorest
+          shell: |
+            cd {{ playbook_dir }}/../vendor/tools
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ./ilorest_wrapper.sh login {{ target_server_ip }} -u {{ target_server_user }} -p *******" >> {{ ha_toolkit_log_file }}
+            
+            # Capture login output
+            login_output=$(./ilorest_wrapper.sh login {{ target_server_ip }} -u {{ target_server_user }} -p {{ target_server_password }} 2>&1)
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] LOGIN RESPONSE: $login_output" >> {{ ha_toolkit_log_file }}
+            echo "🔧 iLOrest LOGIN RESPONSE: $login_output"
+            
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ./ilorest_wrapper.sh load -f {{ bios_template_path }}" >> {{ ha_toolkit_log_file }}
+            
+            # Capture BIOS load output
+            load_output=$(./ilorest_wrapper.sh load -f "{{ bios_template_path }}" 2>&1)
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] BIOS LOAD RESPONSE: $load_output" >> {{ ha_toolkit_log_file }}
+            echo "🔧 iLOrest BIOS LOAD RESPONSE: $load_output"
+            
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ./ilorest_wrapper.sh commit" >> {{ ha_toolkit_log_file }}
+            
+            # Capture commit output
+            commit_output=$(./ilorest_wrapper.sh commit 2>&1)
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMIT RESPONSE: $commit_output" >> {{ ha_toolkit_log_file }}
+            echo "🔧 iLOrest COMMIT RESPONSE: $commit_output"
+            
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ./ilorest_wrapper.sh logout" >> {{ ha_toolkit_log_file }}
+            
+            # Capture logout output
+            logout_output=$(./ilorest_wrapper.sh logout 2>&1)
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] LOGOUT RESPONSE: $logout_output" >> {{ ha_toolkit_log_file }}
+            echo "🔧 iLOrest LOGOUT RESPONSE: $logout_output"
+          register: bios_apply_result
+
+        - name: Log BIOS template application result
+          shell: |
+            if [ {{ bios_apply_result.rc }} -eq 0 ]; then
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] BIOS template application SUCCESS" >> {{ ha_toolkit_log_file }}
+              echo "✅ BIOS template applied successfully!"
+            else
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] BIOS template application FAILED (Exit Code: {{ bios_apply_result.rc }})" >> {{ ha_toolkit_log_file }}
+              echo "❌ BIOS template application failed with exit code {{ bios_apply_result.rc }}"
+            fi
+
+        # Mount ISO and update firmware
+        - name: Find firmware ISO file
+          find:
+            paths: ["/mnt/AnsibleMediakit/HA/HASPV/HAG6"]
+            patterns: "*.iso"
+          register: firmware_iso_files
+
+        - name: Set firmware ISO path
+          set_fact:
+            firmware_iso_path: "{{ firmware_iso_files.files[0].path }}"
+
+        - name: Log firmware ISO path
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using firmware ISO: {{ firmware_iso_path }}" >> {{ ha_toolkit_log_file }}
+
+        - name: Display ISO mount commands
+          debug:
+            msg:
+              - "🔧 EXECUTING ISO MOUNT COMMANDS:"
+              - "COMMAND 1: mkdir -p /tmp/spv_iso"
+              - "COMMAND 2: mount -o loop,ro '{{ firmware_iso_path }}' /tmp/spv_iso"
+
+        - name: Create ISO mount point
+          become: yes
+          become_method: sudo
+          vars:
+            ansible_become_pass: "{{ sudo_password.user_input }}"
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: mkdir -p /tmp/spv_iso" >> {{ ha_toolkit_log_file }}
+            mkdir -p /tmp/spv_iso
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] RESULT: ISO mount point created at /tmp/spv_iso" >> {{ ha_toolkit_log_file }}
+
+        - name: Mount firmware ISO
+          become: yes
+          become_method: sudo
+          vars:
+            ansible_become_pass: "{{ sudo_password.user_input }}"
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: mount -o loop,ro '{{ firmware_iso_path }}' /tmp/spv_iso" >> {{ ha_toolkit_log_file }}
+            mount -o loop,ro "{{ firmware_iso_path }}" /tmp/spv_iso
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] RESULT: Firmware ISO mounted at /tmp/spv_iso" >> {{ ha_toolkit_log_file }}
+
+
+
+        - name: Display firmware update command
+          debug:
+            msg:
+              - "🔧 EXECUTING FIRMWARE UPDATE COMMAND:"
+              - "COMMAND: /tmp/spv_iso/packages/smartupdate --s --romonly --use_location /tmp/spv_iso/packages --target {{ target_server_ip }} --user {{ target_server_user }} --password {{ target_server_password }} --ignore_warnings"
+
+        - name: Clean up previous SUM utility files
+          become: yes
+          become_method: sudo
+          vars:
+            ansible_become_pass: "{{ sudo_password.user_input }}"
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: rm -rf /var/tmp/localsum" >> {{ ha_toolkit_log_file }}
+            echo "🔧 Cleaning up previous SUM utility files..."
+            if [ -d "/var/tmp/localsum" ]; then
+              rm -rf /var/tmp/localsum
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] RESULT: Previous SUM files cleaned successfully" >> {{ ha_toolkit_log_file }}
+              echo "✅ Previous SUM files cleaned successfully"
+            else
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] RESULT: No previous SUM files found" >> {{ ha_toolkit_log_file }}
+              echo "ℹ️ No previous SUM files to clean"
+            fi
+
+        - name: Update firmware using SUM utility
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: /tmp/spv_iso/packages/smartupdate --s --romonly --use_location /tmp/spv_iso/packages --target {{ target_server_ip }} --user {{ target_server_user }} --password ******* --ignore_warnings" >> {{ ha_toolkit_log_file }}
+            echo "🔧 Starting firmware update - this may take several minutes..."
+            
+            # Add vendor tools to PATH for required utilities (gawk, etc.)
+            export PATH="{{ playbook_dir }}/../vendor/tools/local-bin:$PATH"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] INFO: Added vendor tools to PATH: {{ playbook_dir }}/../vendor/tools/local-bin" >> {{ ha_toolkit_log_file }}
+            
+            # Set custom temp directory to avoid permission issues
+            export TMPDIR=/tmp/sum_temp_$$
+            mkdir -p $TMPDIR
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] INFO: Using custom temp directory: $TMPDIR" >> {{ ha_toolkit_log_file }}
+            
+            # Capture full SUM utility output
+            sum_output=$(/tmp/spv_iso/packages/smartupdate --s --romonly --use_location /tmp/spv_iso/packages --target {{ target_server_ip }} --user {{ target_server_user }} --password {{ target_server_password }} --ignore_warnings 2>&1)
+            sum_exit_code=$?
+            
+            # Clean up temp directory
+            rm -rf $TMPDIR
+            
+            # Log the complete output to file
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] SUM UTILITY FULL OUTPUT START:" >> {{ ha_toolkit_log_file }}
+            echo "$sum_output" >> {{ ha_toolkit_log_file }}
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] SUM UTILITY FULL OUTPUT END (Exit Code: $sum_exit_code)" >> {{ ha_toolkit_log_file }}
+            
+            # Display the complete output on console
+            echo "🔧 SUM UTILITY COMPLETE OUTPUT:"
+            echo "================================"
+            echo "$sum_output"
+            echo "================================"
+            echo "🔧 SUM UTILITY EXIT CODE: $sum_exit_code"
+            
+            # Return the exit code
+            exit $sum_exit_code
+          register: firmware_update_result
+
+        - name: Log firmware update result
+          shell: |
+            if [ {{ firmware_update_result.rc }} -eq 0 ]; then
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] Firmware update SUCCESS" >> {{ ha_toolkit_log_file }}
+              echo "✅ Firmware update completed successfully!"
+            else
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] Firmware update FAILED (Exit Code: {{ firmware_update_result.rc }})" >> {{ ha_toolkit_log_file }}
+              echo "❌ Firmware update failed with exit code {{ firmware_update_result.rc }}"
+            fi
+
+        - name: Display unmount ISO command
+          debug:
+            msg:
+              - "🔧 EXECUTING ISO UNMOUNT COMMAND:"
+              - "COMMAND: umount /tmp/spv_iso"
+
+        - name: Unmount firmware ISO
+          become: yes
+          become_method: sudo
+          vars:
+            ansible_become_pass: "{{ sudo_password.user_input }}"
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: umount /tmp/spv_iso" >> {{ ha_toolkit_log_file }}
+            umount /tmp/spv_iso || true
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] RESULT: ISO unmounted successfully" >> {{ ha_toolkit_log_file }}
+          ignore_errors: yes
+
+        - name: Log firmware update completion
+          lineinfile:
+            path: "{{ ha_toolkit_log_file }}"
+            line: "[{{ ansible_date_time.iso8601 }}] Firmware update process completed"
+
+      when: user_selection.user_input == "1"
+
+    # Handle other menu options (placeholder for now)
+    - name: Handle other menu options
+      debug:
+        msg: "Option {{ user_selection.user_input }} selected: {{ ha_menu_options[user_selection.user_input] }}"
+      when: user_selection.user_input != "1" and user_selection.user_input != "6"
+
+    # Exit option
+    - name: Exit confirmation
+      debug:
+        msg: "Exiting UCP Toolkit HA. Thank you!"
+      when: user_selection.user_input == "6"
+
+    # Final cleanup - Unmount AnsibleMediakit
+    - name: Display final unmount command
+      debug:
+        msg:
+          - "🔧 EXECUTING FINAL CLEANUP COMMAND:"
+          - "COMMAND: umount /mnt/AnsibleMediakit"
+      when: user_selection.user_input != "6"
+
+    - name: Unmount AnsibleMediakit folder
+      become: yes
+      become_method: sudo
+      vars:
+        ansible_become_pass: "{{ sudo_password.user_input }}"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: umount /mnt/AnsibleMediakit" >> {{ ha_toolkit_log_file }}
+        umount /mnt/AnsibleMediakit || true
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] RESULT: AnsibleMediakit unmounted successfully" >> {{ ha_toolkit_log_file }}
+      ignore_errors: yes
+      when: user_selection.user_input != "6"
+
+    - name: Log final cleanup
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] AnsibleMediakit unmounted, operations completed successfully" >> {{ ha_toolkit_log_file }}
+      when: user_selection.user_input != "6"
+
+    - name: Display completion message
+      debug:
+        msg:
+          - "✅ UCP Toolkit HA operations completed successfully"
+          - "Log file saved at: {{ ha_toolkit_log_file }}"

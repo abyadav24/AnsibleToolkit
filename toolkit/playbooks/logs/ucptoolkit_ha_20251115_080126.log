@@ -1,4 +1,0 @@
-[2025-11-15 08:01:47] [INFO] [UcpToolkitHA] Starting UCP Toolkit HA interactive menu system
-[2025-11-15 08:01:47] [INFO] [UcpToolkitHA] Logging initialized - Main log: /home/ubuntu/smci/AnsibleToolkit/toolkit/playbooks/logs/ucptoolkit_ha_20251115_080126.log
-[2025-11-15 08:01:47] [INFO] [UcpToolkitHA] Module log: /home/ubuntu/smci/AnsibleToolkit/toolkit/playbooks/logs/UcpToolkitHA_AnsibleModule_20251115_080126.log
-[2025-11-15 08:01:50] [INFO] [UcpToolkitHA] Starting operation: ucp_all(Default) - This applies BIOS template, boot SPV, and boot ESXi installer

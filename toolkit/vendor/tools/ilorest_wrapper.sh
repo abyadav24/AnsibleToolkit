@@ -7,8 +7,9 @@ SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 TOOLKIT_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
 ILOREST_DIR="$SCRIPT_DIR/ilorest"
 
-# Set up Python path for the ilorest libraries
-export PYTHONPATH="$ILOREST_DIR/usr/lib/python3/dist-packages:$PYTHONPATH"
+# Set up Python path for the ilorest libraries and vendor dependencies
+VENDOR_PYTHON_LIBS="$(dirname "$SCRIPT_DIR")/python-libs"
+export PYTHONPATH="$ILOREST_DIR/usr/lib/python3/dist-packages:$VENDOR_PYTHON_LIBS:$PYTHONPATH"
 
 # Execute ilorest with the bundled version
 "$ILOREST_DIR/usr/bin/ilorest" "$@"

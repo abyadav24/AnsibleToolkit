@@ -61,63 +61,36 @@ def read_servers_csv(csv_file):
     servers = []
     try:
         with open(csv_file, 'r') as file:
-            # Use the actual field names from the CSV file
-            reader = csv.DictReader(file, delimiter=',')
+            reader = csv.DictReader(file, delimiter=',', 
+                                  fieldnames=['ipaddress', 'username', 'password'])
+            next(reader)  # Skip header
             for row in reader:
-                # Store both IPv6 and IPv4 for fallback support
-                server_info = {
-                    'ipaddress': row['Host'].strip(),  # IPv6 Host field (primary)
-                    'ipv4_fallback': row['IPv4 Address'].strip(),  # IPv4 fallback
-                    'username': row['Username'].strip(),
-                    'password': row['Password'].strip()
-                }
-                servers.append(server_info)
+                servers.append(row)
         return servers, None
     except Exception as e:
         return None, str(e)
 
 
 def power_on_server(server, ilorest_path):
-    """Power on a single server using iLO REST with IPv6/IPv4 fallback"""
+    """Power on a single server using iLO REST"""
     try:
         ipaddress = server['ipaddress']
-        ipv4_fallback = server.get('ipv4_fallback', '')
         username = server['username']
         password = server['password']
         
-        # Try IPv6 first
+        # Login command
         login_cmd = [ilorest_path, 'login', ipaddress, '-u', username, '-p', password]
         result = subprocess.run(login_cmd, capture_output=True, text=True, shell=False)
-        
-        # If IPv6 fails and we have IPv4 fallback, try IPv4
-        if result.returncode != 0 and ipv4_fallback:
-            login_cmd = [ilorest_path, 'login', ipv4_fallback, '-u', username, '-p', password]
-            result = subprocess.run(login_cmd, capture_output=True, text=True, shell=False)
-            if result.returncode == 0:
-                ipaddress = ipv4_fallback  # Use IPv4 for power commands
-        
         if result.returncode != 0:
-            return False, f"Login failed (tried IPv6 and IPv4): {result.stderr}"
+            return False, f"Login failed: {result.stderr}"
         
-        # Power on command  
-        power_cmd = [ilorest_path, 'reboot', 'On']
+        # Power on command
+        power_cmd = [ilorest_path, 'reboot', 'on']
         result = subprocess.run(power_cmd, capture_output=True, text=True, shell=False)
-        
-        # Always attempt logout (even if power command fails)
-        logout_cmd = [ilorest_path, 'logout']
-        logout_result = subprocess.run(logout_cmd, capture_output=True, text=True, shell=False)
-        
         if result.returncode != 0:
             return False, f"Power on failed: {result.stderr}"
-        
-        # Verify the power operation was initiated successfully
-        stdout_lower = result.stdout.lower()
-        if "powering on" in stdout_lower or "operation completed successfully" in stdout_lower:
-            return True, f"Successfully initiated power on for {ipaddress} - Server is powering on"
-        elif result.returncode == 0:
-            return True, f"Power on command completed for {ipaddress}"
-        else:
-            return False, f"Power on command failed with output: {result.stdout}"
+            
+        return True, "Successfully powered on"
         
     except Exception as e:
         return False, str(e)
@@ -126,57 +99,19 @@ def power_on_server(server, ilorest_path):
 def main():
     module = AnsibleModule(
         argument_spec=dict(
-            servers_csv=dict(required=False, type='str'),
+            servers_csv=dict(required=True, type='str'),
             ilorest_path=dict(required=False, default='ilorest', type='str'),
-            target_nodes=dict(required=False, default=[], type='list'),
-            use_target_nodes=dict(required=False, default=False, type='bool'),
         ),
         supports_check_mode=True,
     )
 
     servers_csv = module.params['servers_csv']
     ilorest_path = module.params['ilorest_path']
-    target_nodes = module.params['target_nodes']
-    use_target_nodes = module.params['use_target_nodes']
 
-    servers = []
-    
-    if use_target_nodes and target_nodes:
-        # Use target nodes from configuration
-        if servers_csv:
-            # Try to get credentials from CSV if available
-            csv_servers, csv_error = read_servers_csv(servers_csv)
-            if not csv_error and csv_servers:
-                default_creds = csv_servers[0]
-                username = default_creds['username']
-                password = default_creds['password']
-                ipv4_fallback = default_creds.get('ipv4_fallback', '')
-            else:
-                # Use default credentials
-                username = 'admin'
-                password = 'cmb9.admin'
-                ipv4_fallback = ''
-        else:
-            # Use default credentials when no CSV provided
-            username = 'admin'
-            password = 'cmb9.admin'
-            ipv4_fallback = ''
-            
-        for node in target_nodes:
-            server_info = {
-                'ipaddress': node.strip(),  # Target node (likely IPv6)
-                'ipv4_fallback': ipv4_fallback,
-                'username': username,
-                'password': password
-            }
-            servers.append(server_info)
-    else:
-        # Read servers from CSV normally
-        if not servers_csv:
-            module.fail_json(msg="servers_csv is required when use_target_nodes is False")
-        servers, error = read_servers_csv(servers_csv)
-        if error:
-            module.fail_json(msg=f"Failed to read servers CSV: {error}")
+    # Read servers from CSV
+    servers, error = read_servers_csv(servers_csv)
+    if error:
+        module.fail_json(msg=f"Failed to read servers CSV: {error}")
 
     if module.check_mode:
         module.exit_json(changed=True, 
