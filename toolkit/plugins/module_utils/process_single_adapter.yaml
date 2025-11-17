@@ -51,27 +51,43 @@
 - name: "Add detailed entry for Adapter {{ adapter_number }}"
   shell: |
     {% if current_adapter_details.status == 200 and current_adapter_details.json is defined %}
+    # Safely extract adapter details with proper null checks
     {% set manufacturer = current_adapter_details.json.Manufacturer | default('Unknown') %}
     {% set model = current_adapter_details.json.Model | default('Unknown') %}
     {% set part_number = current_adapter_details.json.PartNumber | default('Unknown') %}
     {% set serial_number = current_adapter_details.json.SerialNumber | default('Unknown') %}
-    {% set firmware = current_adapter_details.json.Controllers[0].FirmwarePackageVersion | default('Unknown') if current_adapter_details.json.Controllers is defined and current_adapter_details.json.Controllers | length > 0 else 'Unknown' %}
-    {% set port_count = current_adapter_details.json.Controllers[0].ControllerCapabilities.NetworkPortCount | default('Unknown') if current_adapter_details.json.Controllers is defined and current_adapter_details.json.Controllers | length > 0 and current_adapter_details.json.Controllers[0].ControllerCapabilities is defined else 'Unknown' %}
     
-    # Handle different port endpoint responses
-    {% if current_adapter_port_networkports.status == 200 and current_adapter_port_networkports.json is defined %}
-      {% set mac_address = current_adapter_port_networkports.json.AssociatedNetworkAddresses[0] | default('Unknown') if current_adapter_port_networkports.json.AssociatedNetworkAddresses is defined and current_adapter_port_networkports.json.AssociatedNetworkAddresses | length > 0 else 'Unknown' %}
-      {% set link_status = current_adapter_port_networkports.json.LinkStatus | default('Unknown') %}
-    {% elif current_adapter_port_ports.status == 200 and current_adapter_port_ports.json is defined %}
-      {% set mac_address = current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses[0] | default('Unknown') if current_adapter_port_ports.json.Ethernet is defined and current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses is defined and current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses | length > 0 else 'Unknown' %}
-      {% set link_status = current_adapter_port_ports.json.LinkStatus | default('Unknown') %}
+    # Safely get firmware version with nested null checks
+    {% if current_adapter_details.json.Controllers is defined and current_adapter_details.json.Controllers | length > 0 and current_adapter_details.json.Controllers[0] is defined %}
+      {% set firmware = current_adapter_details.json.Controllers[0].FirmwarePackageVersion | default('Unknown') %}
+      {% if current_adapter_details.json.Controllers[0].ControllerCapabilities is defined %}
+        {% set port_count = current_adapter_details.json.Controllers[0].ControllerCapabilities.NetworkPortCount | default('Unknown') %}
+      {% else %}
+        {% set port_count = 'Unknown' %}
+      {% endif %}
     {% else %}
-      {% set mac_address = 'Unknown' %}
-      {% set link_status = 'Unknown' %}
+      {% set firmware = 'Unknown' %}
+      {% set port_count = 'Unknown' %}
     {% endif %}
     
-    printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
-      "{{ server_data.hostname[:12] }}" \
+    # Safely handle different port endpoint responses
+    {% set mac_address = 'Unknown' %}
+    {% set link_status = 'Unknown' %}
+    
+    {% if current_adapter_port_networkports.status == 200 and current_adapter_port_networkports.json is defined %}
+      {% if current_adapter_port_networkports.json.AssociatedNetworkAddresses is defined and current_adapter_port_networkports.json.AssociatedNetworkAddresses | length > 0 %}
+        {% set mac_address = current_adapter_port_networkports.json.AssociatedNetworkAddresses[0] | default('Unknown') %}
+      {% endif %}
+      {% set link_status = current_adapter_port_networkports.json.LinkStatus | default('Unknown') %}
+    {% elif current_adapter_port_ports.status == 200 and current_adapter_port_ports.json is defined %}
+      {% if current_adapter_port_ports.json.Ethernet is defined and current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses is defined and current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses | length > 0 %}
+        {% set mac_address = current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses[0] | default('Unknown') %}
+      {% endif %}
+      {% set link_status = current_adapter_port_ports.json.LinkStatus | default('Unknown') %}
+    {% endif %}
+    
+    printf "║ %-43s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+      "{{ server_data.hostname[:43] }}" \
       "{{ server_data.ipv4[:15] }}" \
       "{{ server_data.vendor[:12] }}" \
       "{{ (current_adapter_details.json.Name | default('Adapter ' + adapter_number | string))[:20] }}" \
@@ -87,8 +103,8 @@
     
     echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},{{ current_adapter_details.json.Name | default('Adapter ' + adapter_number | string) }},{{ manufacturer }},{{ model }},{{ part_number }},{{ serial_number }},{{ firmware }},{{ port_count }},{{ mac_address }},{{ link_status }},DETAILED_SUCCESS" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
     {% else %}
-    printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
-      "{{ server_data.hostname[:12] }}" \
+    printf "║ %-43s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+      "{{ server_data.hostname[:43] }}" \
       "{{ server_data.ipv4[:15] }}" \
       "{{ server_data.vendor[:12] }}" \
       "Adapter {{ adapter_number }}" \
@@ -104,6 +120,7 @@
 
     echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},Adapter {{ adapter_number }},DETAIL FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,DETAIL_FAILED" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
     {% endif %}
+  ignore_errors: true
 
 - name: "Log adapter {{ adapter_number }} processing result"
   shell: |
