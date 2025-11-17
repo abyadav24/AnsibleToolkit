@@ -1,0 +1,110 @@
+---
+# Dynamic processing for a single network adapter
+
+- name: "Get details for Adapter {{ adapter_number }} ({{ adapter_id }})"
+  uri:
+    url: "https://{{ server_data.ipv4 }}{{ adapter_info['@odata.id'] }}"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 30
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: current_adapter_details
+  ignore_errors: true
+
+# Try different port endpoint patterns based on adapter type
+- name: "Get port details for Adapter {{ adapter_number }} - NetworkPorts method"
+  uri:
+    url: "https://{{ server_data.ipv4 }}{{ adapter_info['@odata.id'] }}/NetworkPorts/1"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 30
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: current_adapter_port_networkports
+  ignore_errors: true
+
+- name: "Get port details for Adapter {{ adapter_number }} - Ports method"
+  uri:
+    url: "https://{{ server_data.ipv4 }}{{ adapter_info['@odata.id'] }}/Ports/0"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 30
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: current_adapter_port_ports
+  ignore_errors: true
+  when: current_adapter_port_networkports.status != 200
+
+- name: "Add detailed entry for Adapter {{ adapter_number }}"
+  shell: |
+    {% if current_adapter_details.status == 200 and current_adapter_details.json is defined %}
+    {% set manufacturer = current_adapter_details.json.Manufacturer | default('Unknown') %}
+    {% set model = current_adapter_details.json.Model | default('Unknown') %}
+    {% set part_number = current_adapter_details.json.PartNumber | default('Unknown') %}
+    {% set serial_number = current_adapter_details.json.SerialNumber | default('Unknown') %}
+    {% set firmware = current_adapter_details.json.Controllers[0].FirmwarePackageVersion | default('Unknown') if current_adapter_details.json.Controllers is defined and current_adapter_details.json.Controllers | length > 0 else 'Unknown' %}
+    {% set port_count = current_adapter_details.json.Controllers[0].ControllerCapabilities.NetworkPortCount | default('Unknown') if current_adapter_details.json.Controllers is defined and current_adapter_details.json.Controllers | length > 0 and current_adapter_details.json.Controllers[0].ControllerCapabilities is defined else 'Unknown' %}
+    
+    # Handle different port endpoint responses
+    {% if current_adapter_port_networkports.status == 200 and current_adapter_port_networkports.json is defined %}
+      {% set mac_address = current_adapter_port_networkports.json.AssociatedNetworkAddresses[0] | default('Unknown') if current_adapter_port_networkports.json.AssociatedNetworkAddresses is defined and current_adapter_port_networkports.json.AssociatedNetworkAddresses | length > 0 else 'Unknown' %}
+      {% set link_status = current_adapter_port_networkports.json.LinkStatus | default('Unknown') %}
+    {% elif current_adapter_port_ports.status == 200 and current_adapter_port_ports.json is defined %}
+      {% set mac_address = current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses[0] | default('Unknown') if current_adapter_port_ports.json.Ethernet is defined and current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses is defined and current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses | length > 0 else 'Unknown' %}
+      {% set link_status = current_adapter_port_ports.json.LinkStatus | default('Unknown') %}
+    {% else %}
+      {% set mac_address = 'Unknown' %}
+      {% set link_status = 'Unknown' %}
+    {% endif %}
+    
+    printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+      "{{ server_data.hostname[:12] }}" \
+      "{{ server_data.ipv4[:15] }}" \
+      "{{ server_data.vendor[:12] }}" \
+      "{{ (current_adapter_details.json.Name | default('Adapter ' + adapter_number | string))[:20] }}" \
+      "{{ manufacturer[:12] }}" \
+      "{{ model[:18] }}" \
+      "{{ part_number[:12] }}" \
+      "{{ serial_number[:18] }}" \
+      "{{ firmware[:12] }}" \
+      "{{ port_count | string }}" \
+      "{{ mac_address[:17] }}" \
+      "{{ link_status[:13] }}" \
+      >> {{ current_discovery_table_file | default(discovery_table_file) }}
+    
+    echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},{{ current_adapter_details.json.Name | default('Adapter ' + adapter_number | string) }},{{ manufacturer }},{{ model }},{{ part_number }},{{ serial_number }},{{ firmware }},{{ port_count }},{{ mac_address }},{{ link_status }},DETAILED_SUCCESS" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+    {% else %}
+    printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+      "{{ server_data.hostname[:12] }}" \
+      "{{ server_data.ipv4[:15] }}" \
+      "{{ server_data.vendor[:12] }}" \
+      "Adapter {{ adapter_number }}" \
+      "DETAIL FAILED" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      >> {{ current_discovery_table_file | default(discovery_table_file) }}
+
+    echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},Adapter {{ adapter_number }},DETAIL FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,DETAIL_FAILED" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+    {% endif %}
+
+- name: "Log adapter {{ adapter_number }} processing result"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Adapter {{ adapter_number }} ({{ adapter_id }}) processing: {{ 'SUCCESS' if current_adapter_details.status == 200 else 'FAILED' }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
