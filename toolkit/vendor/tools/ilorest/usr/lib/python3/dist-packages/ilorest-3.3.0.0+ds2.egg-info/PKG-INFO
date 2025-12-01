@@ -1,0 +1,20 @@
+Metadata-Version: 2.1
+Name: ilorest
+Version: 3.3.0.0+ds2
+Summary: ilorest utility
+Home-page: UNKNOWN
+Author: HPE
+Author-email: hpe@hpe.com
+License: UNKNOWN
+Platform: UNKNOWN
+Classifier: Intended Audience :: Information Technology
+Classifier: Intended Audience :: System Administrators
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Operating System :: POSIX :: Linux
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 3
+License-File: LICENSE.md
+License-File: AUTHORS.md
+
+UNKNOWN
+

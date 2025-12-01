@@ -1,0 +1,125 @@
+---
+# Process single server for network discovery - FIXED VERSION
+
+- name: "Log start of enhanced server discovery for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting discovery for server {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IPv6: {{ server_data.ipv6 }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting discovery for server {{ server_data.hostname }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IPv6: {{ server_data.ipv6 }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+
+- name: "Test basic connectivity to {{ server_data.hostname }}"
+  uri:
+    url: "https://[{{ server_data.ipv6 }}]/redfish/v1"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 10
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: connectivity_test
+  ignore_errors: true
+
+- name: "Log connectivity test result for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Connectivity test for {{ server_data.hostname }}: {{ 'SUCCESS' if connectivity_test.status == 200 else 'FAILED' }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Connectivity status code: {{ connectivity_test.status | default('N/A') }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+
+- name: "Get network adapters collection for {{ server_data.hostname }}"
+  uri:
+    url: "https://[{{ server_data.ipv6 }}]/redfish/v1/Chassis/1/NetworkAdapters"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 30
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: adapters_result
+  ignore_errors: true
+
+- name: "Log network adapter discovery result for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Network adapter discovery for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] API call result: {{ 'SUCCESS' if adapters_result.status == 200 else 'FAILED' }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Network adapter discovery for {{ server_data.hostname }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] API URL: https://[{{ server_data.ipv6 }}]/redfish/v1/Chassis/1/NetworkAdapters" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Status Code: {{ adapters_result.status | default('N/A') }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    {% if adapters_result.status == 200 %}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Adapters found: {{ adapters_result.json.Members | default([]) | length }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    {% else %}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Error: {{ adapters_result.msg | default(adapters_result.content | default('Unknown error')) }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    {% endif %}
+
+# SUCCESS CASE - Process discovered adapters
+- name: "Process network adapters when successful"
+  when: adapters_result.status == 200 and adapters_result.json.Members is defined
+  block:
+    - name: "Log successful discovery for {{ server_data.hostname }}"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Successfully discovered {{ adapters_result.json.Members | length }} network adapters" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Adding basic adapter info to table and CSV" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+
+    - name: "Add basic network adapter entries to table and CSV"
+      shell: |
+        {% for adapter in adapters_result.json.Members %}
+        # Add basic entry to table
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv6[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "Network Adapter {{ loop.index }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "{{ server_data.model[:18] | default('Unknown') }}" \
+          "Unknown" \
+          "{{ server_data.serial[:18] | default('Unknown') }}" \
+          "Unknown" \
+          "Unknown" \
+          "Unknown" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+        
+        # Add basic entry to CSV
+        echo "{{ server_data.hostname }},{{ server_data.ipv6 }},{{ server_data.vendor }},Network Adapter {{ loop.index }},{{ server_data.vendor }},{{ server_data.model | default('Unknown') }},Unknown,{{ server_data.serial | default('Unknown') }},Unknown,Unknown,Unknown,BASIC_SUCCESS" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+        {% endfor %}
+
+    - name: "Log successful discovery completion for {{ server_data.hostname }}"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Discovery completed successfully for {{ server_data.hostname }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Added {{ adapters_result.json.Members | length }} adapter entries to output files" >> {{ configchecker_log_file }}
+
+# FAILURE CASE - Handle failed discovery
+- name: "Handle failed discovery for {{ server_data.hostname }}"
+  when: adapters_result.status != 200 or adapters_result.json.Members is not defined
+  block:
+    - name: "Add failed discovery entry to table"
+      shell: |
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv6[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "DISCOVERY FAILED" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+
+    - name: "Add failed discovery entry to CSV"
+      shell: |
+        echo "{{ server_data.hostname }},{{ server_data.ipv6 }},{{ server_data.vendor }},DISCOVERY FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,FAILED" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+
+    - name: "Log failed discovery for {{ server_data.hostname }}"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Discovery FAILED for {{ server_data.hostname }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Error details: {{ adapters_result.msg | default(adapters_result.content | default('Unknown error')) }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Discovery FAILED for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Reason: {{ adapters_result.msg | default(adapters_result.content | default('Unknown error')) }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARN] [NetworkDiscovery] Failed entry added to table and CSV files" >> {{ configchecker_log_file }}

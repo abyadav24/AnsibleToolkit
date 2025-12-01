@@ -1,0 +1,4 @@
+Type,Host,Model,SKU,Serial Number,IPv4 Address,Username,Password
+{% for server in updated_servers -%}
+{{ server.Type }},{{ server.Host }},{{ server.Model }},{{ server.SKU }},{{ server['Serial Number'] }},{{ server['IPv4 Address'] }},{{ server.Username }},{{ server.Password }}
+{% endfor %}

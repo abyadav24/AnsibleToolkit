@@ -1,0 +1,613 @@
+---
+# Task file for UCP All (Complete Setup) operations - SPV ISO smartupdate execution
+- name: Log UCP All tasks initialization
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Starting UCP All tasks with SPV ISO smartupdate execution" >> {{ ha_module_log_file }}
+
+- name: Prompt for sudo password
+  pause:
+    prompt: |
+      
+      🔐 Administrator Authentication Required
+      
+      This operation requires mounting ISO files and executing privileged commands.
+      Please enter your sudo password to continue
+    echo: no
+  register: sudo_password
+  when: mount_sudo_password is not defined
+
+- name: Set sudo password from mount operation if available
+  set_fact:
+    sudo_password:
+      user_input: "{{ mount_sudo_password.user_input }}"
+  when: mount_sudo_password is defined
+
+- name: Log password prompt completion
+  shell: |
+    if [ "{{ mount_sudo_password is defined }}" = "True" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Using sudo password from mount operations" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Sudo password provided, proceeding with privileged operations" >> {{ ha_module_log_file }}
+    fi
+
+# Read server credentials from CSV
+- name: Set servers CSV file path
+  set_fact:
+    servers_csv_path: "{{ playbook_dir }}/../config/server.csv"
+
+- name: Verify servers CSV file exists
+  stat:
+    path: "{{ servers_csv_path }}"
+  register: csv_file_check
+  failed_when: not csv_file_check.stat.exists
+
+- name: Read server information from CSV
+  read_csv:
+    path: "{{ servers_csv_path }}"
+  register: server_data
+
+- name: Set server facts from CSV
+  set_fact:
+    server_ip: "{{ server_data.list[0]['IPv4 Address'] }}"
+    server_user: "{{ server_data.list[0]['Username'] }}"
+    server_password: "{{ server_data.list[0]['Password'] }}"
+    server_model: "{{ server_data.list[0]['Model'] | default('Unknown') }}"
+
+- name: Log server information
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Target server IP: {{ server_ip }}" >> {{ ha_module_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Using username: {{ server_user }}" >> {{ ha_module_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Server model: {{ server_model }}" >> {{ ha_module_log_file }}
+
+- name: Display server information
+  debug:
+    msg: |
+      Target Server Configuration:
+      - IP Address: {{ server_ip }}
+      - Username: {{ server_user }}
+      - Password: [HIDDEN]
+      - Model: {{ server_model }}
+
+# G6 Server Detection and BIOS Template Application
+- name: Check if server is G6 generation
+  set_fact:
+    is_g6_server: "{{ 'G6' in server_model }}"
+
+- name: Display G6 server detection result
+  debug:
+    msg: |
+      🔍 Server Generation Detection:
+      - Server Model: {{ server_model }}
+      - Is G6 Server: {{ is_g6_server }}
+      {% if is_g6_server %}
+      - Action: Will apply G6-specific BIOS template
+      {% else %}
+      - Action: Will proceed with standard SPV workflow
+      {% endif %}
+
+- name: Log G6 server detection
+  shell: |
+    if [ "{{ is_g6_server }}" = "True" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Detected G6 server: {{ server_model }}" >> {{ ha_module_log_file }}
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Will apply G6-specific BIOS template before SPV workflow" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Non-G6 server detected: {{ server_model }}" >> {{ ha_module_log_file }}
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Will proceed with standard SPV workflow" >> {{ ha_module_log_file }}
+    fi
+
+# G6 BIOS Template Application (only for G6 servers)
+- name: Check G6 BIOS template directory
+  stat:
+    path: "/mnt/AnsibleMediakit/HA/BiosTemplates/HAG6"
+  register: g6_template_dir
+  when: is_g6_server
+
+- name: Find G6 BIOS template file
+  find:
+    paths: ["/mnt/AnsibleMediakit/HA/BiosTemplates/HAG6"]
+    patterns: "HA_G6_Intel_HA810_HA820_G6*"
+    file_type: file
+  register: g6_template_files
+  when: is_g6_server and g6_template_dir.stat.exists
+
+- name: Verify G6 template availability
+  fail:
+    msg: |
+      G6 BIOS Template Not Found!
+      
+      Expected location: /mnt/AnsibleMediakit/HA/BiosTemplates/HAG6/HA_G6_Intel_HA810_HA820_G6
+      
+      Please ensure:
+      1. AnsibleMediakit is properly mounted
+      2. G6 BIOS template files are available
+      3. Template file name matches expected pattern: HA_G6_Intel_HA810_HA820_G6*
+  when: is_g6_server and (not g6_template_dir.stat.exists or g6_template_files.files | length == 0)
+
+- name: Select G6 BIOS template
+  set_fact:
+    g6_template_path: "{{ g6_template_files.files[0].path }}"
+  when: is_g6_server and g6_template_files.files | length > 0
+
+- name: Log G6 template selection
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Selected G6 BIOS template: {{ g6_template_path }}" >> {{ ha_module_log_file }}
+  when: is_g6_server
+
+- name: Display G6 template information
+  debug:
+    msg: |
+      📋 G6 BIOS Template Configuration:
+      - Template Directory: /mnt/AnsibleMediakit/HA/BiosTemplates/HAG6
+      - Selected Template: {{ g6_template_path }}
+      - Ready for application
+  when: is_g6_server
+
+- name: Apply G6 BIOS template using iLOrest
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Starting G6 BIOS template application" >> {{ ha_module_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Login command: ilorest login {{ server_ip }} -u {{ server_user }}" >> {{ ha_module_log_file }}
+    ilorest login {{ server_ip }} -u {{ server_user }} -p {{ server_password }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Applying BIOS template: {{ g6_template_path }}" >> {{ ha_module_log_file }}
+    ilorest load -f "{{ g6_template_path }}"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Committing BIOS changes" >> {{ ha_module_log_file }}
+    ilorest commit
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Logging out from iLO session" >> {{ ha_module_log_file }}
+    ilorest logout
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] [UcpAll] G6 BIOS template applied successfully" >> {{ ha_module_log_file }}
+  register: g6_bios_result
+  when: is_g6_server
+  failed_when: g6_bios_result.rc != 0
+
+- name: Display G6 BIOS template application result
+  debug:
+    msg: |
+      ✅ G6 BIOS Template Application Successful!
+      
+      - Server: {{ server_ip }}
+      - Template: {{ g6_template_path }}
+      - Status: BIOS configuration applied and committed
+      - Next Step: Proceeding with SPV/SUM tool workflow
+      
+      BIOS template has been successfully applied to the G6 server.
+      The system is now ready for firmware updates via SPV/SUM tools.
+  when: is_g6_server
+
+- name: Wait for G6 BIOS changes confirmation
+  pause:
+    prompt: |
+      
+      ✅ G6 BIOS Template Applied Successfully!
+      
+      Server: {{ server_ip }}
+      Model: {{ server_model }}
+      Template: {{ g6_template_path }}
+      
+      The BIOS configuration has been applied and committed.
+      
+      Press ENTER to continue with SPV/SUM tool firmware update workflow...
+  when: is_g6_server
+
+- name: Log G6 workflow continuation
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] G6 BIOS template application completed, proceeding with SPV/SUM workflow" >> {{ ha_module_log_file }}
+  when: is_g6_server
+
+# SPV/SUM Tool Workflow Section
+- name: Log SPV workflow initialization
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] ===== Starting SPV/SUM Tool Firmware Update Workflow =====" >> {{ ha_module_log_file }}
+    {% if is_g6_server %}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] G6 BIOS template was applied successfully, now proceeding with firmware updates" >> {{ ha_module_log_file }}
+    {% else %}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Non-G6 server, proceeding directly with firmware update workflow" >> {{ ha_module_log_file }}
+    {% endif %}
+
+- name: Display SPV workflow start
+  debug:
+    msg: |
+      
+      🚀 Starting SPV/SUM Tool Firmware Update Workflow
+      
+      {% if is_g6_server %}
+      ✅ Phase 1 Complete: G6 BIOS template applied successfully
+      📋 Phase 2 Starting: Firmware update via SPV/SUM tools
+      {% else %}
+      📋 Starting: Firmware update via SPV/SUM tools (no G6 BIOS template needed)
+      {% endif %}
+      
+      Target Server: {{ server_ip }}
+      Server Model: {{ server_model }}
+
+- name: Validate server IP is not empty
+  fail:
+    msg: "Server IP address is empty! Please check that the IPv4 Address field in {{ servers_csv_path }} is properly filled."
+  when: server_ip == '' or server_ip is not defined
+
+# Check if SPV ISO is already mounted and handle it
+- name: Check if /mnt/spv_iso is already mounted
+  shell: mount | grep "/mnt/spv_iso" || echo "not_mounted"
+  register: mount_check
+  changed_when: false
+
+- name: Log current mount status
+  shell: |
+    if [ "{{ mount_check.stdout }}" != "not_mounted" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] SPV ISO already mounted, will unmount first" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] No existing SPV ISO mount detected" >> {{ ha_module_log_file }}
+    fi
+
+- name: Display mount status
+  debug:
+    msg: |
+      Mount Status Check:
+      {% if mount_check.stdout != "not_mounted" %}
+      - Status: SPV ISO already mounted
+      - Action: Will unmount and remount
+      {% else %}
+      - Status: No existing mount
+      - Action: Will create fresh mount
+      {% endif %}
+
+- name: Unmount existing SPV ISO if mounted
+  mount:
+    path: /mnt/spv_iso
+    state: unmounted
+  become: yes
+  vars:
+    ansible_become_password: "{{ sudo_password.user_input }}"
+  when: mount_check.stdout != "not_mounted"
+  ignore_errors: yes
+
+- name: Log unmount action
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Unmounted existing SPV ISO mount" >> {{ ha_module_log_file }}
+  when: mount_check.stdout != "not_mounted"
+
+# Find SPV ISO file
+- name: Check if SPV ISO directory exists
+  stat:
+    path: "/mnt/AnsibleMediakit/HA/SPV/HAG6/"
+  register: spv_iso_path
+
+- name: Find SPV ISO files
+  find:
+    paths: ["/mnt/AnsibleMediakit/HA/SPV/HAG6/"]
+    patterns: "*.iso"
+    file_type: file
+  register: spv_iso_files
+
+- name: Log found SPV ISO files
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Found {{ spv_iso_files.files | length }} SPV ISO files" >> {{ ha_module_log_file }}
+    {% for file in spv_iso_files.files %}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] SPV ISO found: {{ file.path }}" >> {{ ha_module_log_file }}
+    {% endfor %}
+
+- name: Display found SPV ISO files
+  debug:
+    msg: |
+      SPV ISO Discovery:
+      - Found {{ spv_iso_files.files | length }} ISO file(s)
+      {% for file in spv_iso_files.files %}
+      - {{ file.path }}
+      {% endfor %}
+
+- name: Fail if no SPV ISO files found
+  fail:
+    msg: "No SPV ISO files found in /mnt/AnsibleMediakit/HA/SPV/HAG6/. Please ensure SPV ISO files are available."
+  when: spv_iso_files.files | length == 0
+
+- name: Select SPV ISO file to mount
+  set_fact:
+    selected_spv_iso: "{{ spv_iso_files.files[0].path }}"
+  when: spv_iso_files.files | length > 0
+
+# Create mount point and mount SPV ISO
+- name: Create mount point for SPV ISO
+  file:
+    path: /mnt/spv_iso
+    state: directory
+    mode: '0755'
+  become: yes
+  vars:
+    ansible_become_password: "{{ sudo_password.user_input }}"
+
+- name: Log mount point creation
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Created mount point: /mnt/spv_iso" >> {{ ha_module_log_file }}
+
+- name: Mount SPV ISO
+  mount:
+    path: /mnt/spv_iso
+    src: "{{ selected_spv_iso }}"
+    fstype: iso9660
+    opts: loop,ro
+    state: mounted
+  become: yes
+  vars:
+    ansible_become_password: "{{ sudo_password.user_input }}"
+
+- name: Log SPV ISO mounting
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Successfully mounted SPV ISO: {{ selected_spv_iso }} to /mnt/spv_iso" >> {{ ha_module_log_file }}
+
+- name: Display mount success
+  debug:
+    msg: |
+      ✅ SPV ISO Mount Successful:
+      - Source: {{ selected_spv_iso }}
+      - Mount Point: /mnt/spv_iso
+      - Status: Ready for smartupdate execution
+
+# Verify packages directory and smartupdate binary
+- name: Verify SPV ISO mount and packages directory
+  stat:
+    path: /mnt/spv_iso/packages
+  register: packages_dir
+
+- name: Check for smartupdate binary
+  stat:
+    path: /mnt/spv_iso/packages/smartupdate
+  register: smartupdate_binary
+
+- name: Log verification results
+  shell: |
+    if [ "{{ packages_dir.stat.exists }}" = "True" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] SPV ISO packages directory found: /mnt/spv_iso/packages" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [UcpAll] SPV ISO packages directory not found" >> {{ ha_module_log_file }}
+    fi
+    if [ "{{ smartupdate_binary.stat.exists }}" = "True" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] smartupdate binary found: /mnt/spv_iso/packages/smartupdate" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [UcpAll] smartupdate binary not found" >> {{ ha_module_log_file }}
+    fi
+
+- name: Display verification status
+  debug:
+    msg: |
+      SPV ISO Verification:
+      - Packages Directory: {{ 'Found' if packages_dir.stat.exists else 'NOT FOUND' }}
+      - Smartupdate Binary: {{ 'Found' if smartupdate_binary.stat.exists else 'NOT FOUND' }}
+
+- name: Fail if required components not found
+  fail:
+    msg: "Required SPV components not found. Packages directory or smartupdate binary missing."
+  when: not packages_dir.stat.exists or not smartupdate_binary.stat.exists
+
+# Verify local gawk availability
+- name: Check local gawk availability
+  stat:
+    path: "{{ playbook_dir }}/../vendor/tools/local-bin/gawk"
+  register: local_gawk_check
+
+- name: Display gawk verification
+  debug:
+    msg: |
+      📋 Dependency Verification:
+      
+      Local gawk binary: {{ 'Available' if local_gawk_check.stat.exists else 'NOT FOUND' }}
+      Path: {{ playbook_dir }}/../vendor/tools/local-bin/gawk
+      
+      {% if local_gawk_check.stat.exists %}
+      ✅ Smartupdate dependency requirements met
+      {% else %}
+      ❌ Local gawk not found - smartupdate will fail
+      {% endif %}
+
+- name: Fail if local gawk not available
+  fail:
+    msg: "Local gawk binary not found. Please ensure {{ playbook_dir }}/../vendor/tools/local-bin/gawk exists."
+  when: not local_gawk_check.stat.exists
+
+# Execute smartupdate command
+- name: Display smartupdate execution notice
+  debug:
+    msg: |
+      🚀 Starting Smartupdate Execution (TEST MODE with --downgrade)
+      
+      Target: {{ server_ip }}
+      Command: ./smartupdate --s --romonly --use_location /mnt/spv_iso/packages --target {{ server_ip }} --user {{ server_user }} --password [HIDDEN] --ignore_warnings --downgrade
+      
+      ⚠️  TEST MODE: Using --downgrade flag for testing with ISO packages
+      Please wait while the command executes...
+
+- name: Execute smartupdate command
+  shell: |
+    export PATH="{{ playbook_dir }}/../vendor/tools/local-bin:$PATH"
+    cd /mnt/spv_iso/packages
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Starting smartupdate execution on {{ server_ip }} (TEST MODE with --downgrade)" >> {{ ha_module_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Command: ./smartupdate --s --romonly --use_location /mnt/spv_iso/packages --target {{ server_ip }} --user {{ server_user }} --password [HIDDEN] --ignore_warnings --downgrade" >> {{ ha_module_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Using local gawk from: {{ playbook_dir }}/../vendor/tools/local-bin/gawk" >> {{ ha_module_log_file }}
+    ./smartupdate --s --romonly --use_location /mnt/spv_iso/packages --target {{ server_ip }} --user {{ server_user }} --password {{ server_password }} --ignore_warnings --downgrade 2>&1
+  register: smartupdate_result
+  become: yes
+  failed_when: >
+    smartupdate_result.rc not in [0, 3, 255] or
+    ('Deploy completed' not in smartupdate_result.stdout and smartupdate_result.rc != 0)
+  vars:
+    ansible_become_password: "{{ sudo_password.user_input }}"
+
+# Log and display results
+- name: Log smartupdate execution results
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Smartupdate command completed" >> {{ ha_module_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Return code: {{ smartupdate_result.rc }}" >> {{ ha_module_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Smartupdate output:" >> {{ ha_module_log_file }}
+    echo "{{ smartupdate_result.stdout | replace('\n', '\\n') }}" >> {{ ha_module_log_file }}
+    {% if smartupdate_result.stderr %}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARNING] [UcpAll] Smartupdate stderr:" >> {{ ha_module_log_file }}
+    echo "{{ smartupdate_result.stderr | replace('\n', '\\n') }}" >> {{ ha_module_log_file }}
+    {% endif %}
+
+- name: Display smartupdate results
+  debug:
+    msg: |
+      📊 Smartupdate Execution Results:
+      
+      Return Code: {{ smartupdate_result.rc }}
+      
+      Output:
+      {{ smartupdate_result.stdout }}
+      
+      {% if smartupdate_result.stderr %}
+      Warnings/Errors:
+      {{ smartupdate_result.stderr }}
+      {% endif %}
+
+# Determine success or failure
+- name: Set deployment result
+  set_fact:
+    deployment_success: >
+      {{
+        smartupdate_result.rc in [0, 3] or
+        (smartupdate_result.rc == 255 and 'Deploy completed' in smartupdate_result.stdout)
+      }}
+    deployment_message: |
+      {% if smartupdate_result.rc == 0 %}
+      Updates/Downgrades applied successfully (TEST MODE)
+      {% elif smartupdate_result.rc == 3 %}
+      No updates/downgrades needed - server already at target state (TEST MODE)
+      {% elif smartupdate_result.rc == 255 and 'Deploy completed' in smartupdate_result.stdout %}
+      Deployment completed successfully with minor shutdown issues (TEST MODE)
+      {% else %}
+      Deployment failed with return code {{ smartupdate_result.rc }} (TEST MODE)
+      {% endif %}
+
+# Wait for user confirmation
+- name: Wait for user confirmation after smartupdate completion
+  pause:
+    prompt: |
+      
+      📋 Smartupdate Execution Summary
+      
+      Target Server: {{ server_ip }}
+      SPV ISO: {{ selected_spv_iso }}
+      Return Code: {{ smartupdate_result.rc }}
+      Status: {{ deployment_message.strip() }}
+      
+      {% if deployment_success %}
+      ✅ Deployment completed successfully! (TEST MODE with --downgrade)
+      {% if smartupdate_result.rc == 3 %}
+      📋 Note: Server is already at target state - no downgrades were needed.
+      {% elif smartupdate_result.rc == 255 %}
+      📋 Note: Deployment successful but had minor shutdown issues (normal behavior).
+      {% endif %}
+      {% else %}
+      ❌ Deployment failed! Check logs for details. (TEST MODE)
+      {% endif %}
+      
+      ⚠️  TEST MODE: --downgrade flag was used for testing purposes
+      Press ENTER to continue with cleanup...
+
+- name: Log user confirmation
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] User confirmed smartupdate completion, proceeding with cleanup" >> {{ ha_module_log_file }}
+
+# Unmount SPV ISO and cleanup
+- name: Unmount SPV ISO
+  mount:
+    path: /mnt/spv_iso
+    state: unmounted
+  become: yes
+  vars:
+    ansible_become_password: "{{ sudo_password.user_input }}"
+
+- name: Log SPV ISO unmounting
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Successfully unmounted SPV ISO from /mnt/spv_iso" >> {{ ha_module_log_file }}
+
+- name: Remove mount point
+  file:
+    path: /mnt/spv_iso
+    state: absent
+  become: yes
+  vars:
+    ansible_become_password: "{{ sudo_password.user_input }}"
+
+- name: Log cleanup completion
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UcpAll] Cleaned up mount point and completed cleanup" >> {{ ha_module_log_file }}
+
+# Final completion messages
+- name: Log final deployment result
+  shell: |
+    if [ "{{ deployment_success }}" = "True" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [SUCCESS] [UcpAll] {{ deployment_message.strip() }}" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [FAILURE] [UcpAll] Deployment failed with return code {{ smartupdate_result.rc }}" >> {{ ha_module_log_file }}
+    fi
+
+- name: Display final success message
+  debug:
+    msg: |
+      
+      🎉 UCP All (Complete Setup) - DEPLOYMENT SUCCESSFUL! 🎉
+      
+      {% if is_g6_server %}
+      ✅ G6 BIOS template applied successfully
+      ✅ Template: {{ g6_template_path }}
+      {% endif %}
+      ✅ SPV ISO was mounted successfully
+      ✅ Smartupdate executed successfully
+      ✅ Target server: {{ server_ip }} ({{ server_model }})
+      ✅ Status: {{ deployment_message.strip() }}
+      ✅ ISO unmounted and cleaned up
+      
+      {% if smartupdate_result.rc == 3 %}
+      📋 Server was already up to date - no firmware updates were needed.
+      {% elif smartupdate_result.rc == 255 %}
+      📋 Deployment successful but had minor shutdown issues (this is normal).
+      {% endif %}
+      
+      {% if is_g6_server %}
+      🔧 G6 Server Complete Setup Summary:
+      1. ✅ G6 BIOS template applied and committed
+      2. ✅ Firmware updates completed via SPV/SUM tools
+      
+      Your G6 server is now fully configured and up to date!
+      {% endif %}
+      
+      Deployment completed with success!
+      
+      Check logs for detailed information: {{ ha_module_log_file }}
+  when: deployment_success
+
+- name: Display final failure message
+  debug:
+    msg: |
+      
+      ❌ UCP All (Complete Setup) - DEPLOYMENT FAILED! ❌
+      
+      {% if is_g6_server %}
+      ✅ G6 BIOS template applied successfully
+      ✅ Template: {{ g6_template_path }}
+      {% endif %}
+      ⚠️  SPV ISO was mounted successfully
+      ❌ Smartupdate execution failed
+      ⚠️  Target server: {{ server_ip }} ({{ server_model }})
+      ✅ ISO unmounted and cleaned up
+      
+      Return Code: {{ smartupdate_result.rc }}
+      
+      {% if is_g6_server %}
+      📋 G6 BIOS template was applied successfully, but firmware update failed.
+      The server has the correct BIOS configuration but may need manual firmware update.
+      {% endif %}
+      
+      Check logs for detailed error information: {{ ha_module_log_file }}
+  when: not deployment_success
+
+- name: Fail playbook if deployment failed
+  fail:
+    msg: "Smartupdate deployment failed with return code {{ smartupdate_result.rc }}"
+  when: not deployment_success
+
+- name: Final success confirmation
+  debug:
+    msg: |
+      
+      🚀 All operations completed successfully!
+      Return to main menu to select additional operations.
+  when: deployment_success

@@ -1,0 +1,21 @@
+Metadata-Version: 2.1
+Name: python-ilorest-library
+Version: 3.3.0.0
+Summary: iLO Rest Python Library
+Home-page: https://github.com/HewlettPackard/python-ilorest-library
+Author: Hewlett Packard Enterprise
+Author-email: rajeevalochana.kallur@hpe.com
+License: UNKNOWN
+Keywords: Hewlett Packard Enterprise
+Platform: UNKNOWN
+Classifier: Development Status :: 3 - Alpha
+Classifier: License :: OSI Approved :: Apache Software License
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: Topic :: Communications
+License-File: LICENSE
+License-File: LICENSE.md
+License-File: AUTHORS.md
+
+UNKNOWN
+

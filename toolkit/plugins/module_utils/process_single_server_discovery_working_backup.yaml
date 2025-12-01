@@ -1,0 +1,473 @@
+---
+# Enhanced process single server for detailed network discovery - WORKING VERSION
+
+- name: "Log start of enhanced server discovery for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting ENHANCED discovery for server {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IP: {{ server_data.ipv4 }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting ENHANCED discovery for server {{ server_data.hostname }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IP: {{ server_data.ipv4 }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+
+- name: "Test basic connectivity to {{ server_data.hostname }}"
+  uri:
+    url: "https://{{ server_data.ipv4 }}/redfish/v1"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 10
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: connectivity_test
+  ignore_errors: true
+
+- name: "Log connectivity test result for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Connectivity test for {{ server_data.hostname }}: {{ 'SUCCESS' if connectivity_test.status == 200 else 'FAILED' }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Connectivity status code: {{ connectivity_test.status | default('N/A') }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+
+- name: "Get network adapters collection for {{ server_data.hostname }}"
+  uri:
+    url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 30
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: adapters_result
+  ignore_errors: true
+
+- name: "Process each network adapter with detailed information"
+  when: adapters_result.status == 200 and adapters_result.json.Members is defined
+  block:
+    - name: "Log start of detailed processing for {{ server_data.hostname }}"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Processing {{ adapters_result.json.Members | length }} adapters with detailed information" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting detailed adapter information gathering" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+
+    # Process Adapter 1 - DE041000
+    - name: "Get details for Adapter 1 (DE041000)"
+      uri:
+        url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters/DE041000"
+        method: GET
+        user: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        timeout: 30
+        headers:
+          Accept: "application/json"
+        status_code: [200, 401, 404, 500, 503]
+      register: adapter1_details
+      ignore_errors: true
+
+    - name: "Get Port 1 details for Adapter 1"
+      uri:
+        url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters/DE041000/Ports/1"
+        method: GET
+        user: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        timeout: 30
+        headers:
+          Accept: "application/json"
+        status_code: [200, 401, 404, 500, 503]
+      register: adapter1_port1
+      ignore_errors: true
+
+    - name: "Add Adapter 1 detailed entry"
+      shell: |
+        {% if adapter1_details.status == 200 and adapter1_details.json is defined %}
+        {% set manufacturer = adapter1_details.json.Manufacturer | default('Unknown') %}
+        {% set model = adapter1_details.json.Model | default('Unknown') %}
+        {% set part_number = adapter1_details.json.PartNumber | default('Unknown') %}
+        {% set serial_number = adapter1_details.json.SerialNumber | default('Unknown') %}
+        {% set firmware = adapter1_details.json.Controllers[0].FirmwarePackageVersion | default('Unknown') if adapter1_details.json.Controllers is defined and adapter1_details.json.Controllers | length > 0 else 'Unknown' %}
+        {% set port_count = adapter1_details.json.Controllers[0].ControllerCapabilities.NetworkPortCount | default('Unknown') if adapter1_details.json.Controllers is defined and adapter1_details.json.Controllers | length > 0 and adapter1_details.json.Controllers[0].ControllerCapabilities is defined else 'Unknown' %}
+        {% set mac_address = adapter1_port1.json.Ethernet.AssociatedMACAddresses[0] | default('Unknown') if adapter1_port1.status == 200 and adapter1_port1.json is defined and adapter1_port1.json.Ethernet is defined and adapter1_port1.json.Ethernet.AssociatedMACAddresses is defined and adapter1_port1.json.Ethernet.AssociatedMACAddresses | length > 0 else 'Unknown' %}
+        {% set link_status = adapter1_port1.json.LinkStatus | default('Unknown') if adapter1_port1.status == 200 and adapter1_port1.json is defined else 'Unknown' %}
+        
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "{{ (adapter1_details.json.Name | default('Adapter 1'))[:20] }}" \
+          "{{ manufacturer[:12] }}" \
+          "{{ model[:18] }}" \
+          "{{ part_number[:12] }}" \
+          "{{ serial_number[:18] }}" \
+          "{{ firmware[:12] }}" \
+          "{{ port_count | string }}" \
+          "{{ mac_address[:17] }}" \
+          "{{ link_status[:13] }}" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+        
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},{{ adapter1_details.json.Name | default('Adapter 1') }},{{ manufacturer }},{{ model }},{{ part_number }},{{ serial_number }},{{ firmware }},{{ port_count }},{{ mac_address }},{{ link_status }},DETAILED_SUCCESS" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+        {% else %}
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "Adapter 1" \
+          "DETAIL FAILED" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+        {% endif %}
+
+    # Process Adapter 2 - DE044000
+    - name: "Get details for Adapter 2 (DE044000)"
+      uri:
+        url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters/DE044000"
+        method: GET
+        user: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        timeout: 30
+        headers:
+          Accept: "application/json"
+        status_code: [200, 401, 404, 500, 503]
+      register: adapter2_details
+      ignore_errors: true
+
+    - name: "Get port details for Adapter 2 (DE044000)"
+      uri:
+        url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters/DE044000/NetworkPorts/1"
+        method: GET
+        user: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        timeout: 30
+        headers:
+          Accept: "application/json"
+        status_code: [200, 401, 404, 500, 503]
+      register: adapter2_port_details
+      ignore_errors: true
+
+    - name: "Add Adapter 2 detailed entry"
+      shell: |
+        {% if adapter2_details.status == 200 and adapter2_details.json is defined %}
+        {% set manufacturer = adapter2_details.json.Manufacturer | default('Unknown') %}
+        {% set model = adapter2_details.json.Model | default('Unknown') %}
+        {% set part_number = adapter2_details.json.PartNumber | default('Unknown') %}
+        {% set serial_number = adapter2_details.json.SerialNumber | default('Unknown') %}
+        {% set firmware = adapter2_details.json.Controllers[0].FirmwarePackageVersion | default('Unknown') if adapter2_details.json.Controllers is defined and adapter2_details.json.Controllers | length > 0 else 'Unknown' %}
+        {% set port_count = adapter2_details.json.Controllers[0].ControllerCapabilities.NetworkPortCount | default('Unknown') if adapter2_details.json.Controllers is defined and adapter2_details.json.Controllers | length > 0 and adapter2_details.json.Controllers[0].ControllerCapabilities is defined else 'Unknown' %}
+        {% set mac_address = adapter2_port_details.json.AssociatedNetworkAddresses[0] | default('Unknown') if adapter2_port_details.status == 200 and adapter2_port_details.json is defined and adapter2_port_details.json.AssociatedNetworkAddresses is defined and adapter2_port_details.json.AssociatedNetworkAddresses | length > 0 else 'Unknown' %}
+        {% set link_status = adapter2_port_details.json.LinkStatus | default('Unknown') if adapter2_port_details.status == 200 and adapter2_port_details.json is defined else 'Unknown' %}
+        
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "{{ (adapter2_details.json.Name | default('Adapter 2'))[:20] }}" \
+          "{{ manufacturer[:12] }}" \
+          "{{ model[:18] }}" \
+          "{{ part_number[:12] }}" \
+          "{{ serial_number[:18] }}" \
+          "{{ firmware[:12] }}" \
+          "{{ port_count | string }}" \
+          "{{ mac_address[:17] }}" \
+          "{{ link_status[:13] }}" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+        
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},{{ adapter2_details.json.Name | default('Adapter 2') }},{{ manufacturer }},{{ model }},{{ part_number }},{{ serial_number }},{{ firmware }},{{ port_count }},{{ mac_address }},{{ link_status }},DETAILED_SUCCESS" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+        {% else %}
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "Adapter 2" \
+          "DETAIL FAILED" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},Adapter 2,DETAIL FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,DETAIL_FAILED" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+        {% endif %}
+
+    # Process Adapter 3 - DE042000
+    - name: "Get details for Adapter 3 (DE042000)"
+      uri:
+        url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters/DE042000"
+        method: GET
+        user: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        timeout: 30
+        headers:
+          Accept: "application/json"
+        status_code: [200, 401, 404, 500, 503]
+      register: adapter3_details
+      ignore_errors: true
+
+    - name: "Get port details for Adapter 3 (DE042000)"
+      uri:
+        url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters/DE042000/NetworkPorts/1"
+        method: GET
+        user: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        timeout: 30
+        headers:
+          Accept: "application/json"
+        status_code: [200, 401, 404, 500, 503]
+      register: adapter3_port_details
+      ignore_errors: true
+
+    - name: "Add Adapter 3 detailed entry"
+      shell: |
+        {% if adapter3_details.status == 200 and adapter3_details.json is defined %}
+        {% set manufacturer = adapter3_details.json.Manufacturer | default('Unknown') %}
+        {% set model = adapter3_details.json.Model | default('Unknown') %}
+        {% set part_number = adapter3_details.json.PartNumber | default('Unknown') %}
+        {% set serial_number = adapter3_details.json.SerialNumber | default('Unknown') %}
+        {% set firmware = adapter3_details.json.Controllers[0].FirmwarePackageVersion | default('Unknown') if adapter3_details.json.Controllers is defined and adapter3_details.json.Controllers | length > 0 else 'Unknown' %}
+        {% set port_count = adapter3_details.json.Controllers[0].ControllerCapabilities.NetworkPortCount | default('Unknown') if adapter3_details.json.Controllers is defined and adapter3_details.json.Controllers | length > 0 and adapter3_details.json.Controllers[0].ControllerCapabilities is defined else 'Unknown' %}
+        {% set mac_address = adapter3_port_details.json.AssociatedNetworkAddresses[0] | default('Unknown') if adapter3_port_details.status == 200 and adapter3_port_details.json is defined and adapter3_port_details.json.AssociatedNetworkAddresses is defined and adapter3_port_details.json.AssociatedNetworkAddresses | length > 0 else 'Unknown' %}
+        {% set link_status = adapter3_port_details.json.LinkStatus | default('Unknown') if adapter3_port_details.status == 200 and adapter3_port_details.json is defined else 'Unknown' %}
+        
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "{{ (adapter3_details.json.Name | default('Adapter 3'))[:20] }}" \
+          "{{ manufacturer[:12] }}" \
+          "{{ model[:18] }}" \
+          "{{ part_number[:12] }}" \
+          "{{ serial_number[:18] }}" \
+          "{{ firmware[:12] }}" \
+          "{{ port_count | string }}" \
+          "{{ mac_address[:17] }}" \
+          "{{ link_status[:13] }}" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+        
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},{{ adapter3_details.json.Name | default('Adapter 3') }},{{ manufacturer }},{{ model }},{{ part_number }},{{ serial_number }},{{ firmware }},{{ port_count }},{{ mac_address }},{{ link_status }},DETAILED_SUCCESS" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+        {% else %}
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "Adapter 3" \
+          "DETAIL FAILED" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},Adapter 3,DETAIL FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,DETAIL_FAILED" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+        {% endif %}
+
+    # Process Adapter 4 - DE043000
+    - name: "Get details for Adapter 4 (DE043000)"
+      uri:
+        url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters/DE043000"
+        method: GET
+        user: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        timeout: 30
+        headers:
+          Accept: "application/json"
+        status_code: [200, 401, 404, 500, 503]
+      register: adapter4_details
+      ignore_errors: true
+
+    - name: "Get port details for Adapter 4 (DE043000)"
+      uri:
+        url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters/DE043000/NetworkPorts/1"
+        method: GET
+        user: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        timeout: 30
+        headers:
+          Accept: "application/json"
+        status_code: [200, 401, 404, 500, 503]
+      register: adapter4_port_details
+      ignore_errors: true
+
+    - name: "Add Adapter 4 detailed entry"
+      shell: |
+        {% if adapter4_details.status == 200 and adapter4_details.json is defined %}
+        {% set manufacturer = adapter4_details.json.Manufacturer | default('Unknown') %}
+        {% set model = adapter4_details.json.Model | default('Unknown') %}
+        {% set part_number = adapter4_details.json.PartNumber | default('Unknown') %}
+        {% set serial_number = adapter4_details.json.SerialNumber | default('Unknown') %}
+        {% set firmware = adapter4_details.json.Controllers[0].FirmwarePackageVersion | default('Unknown') if adapter4_details.json.Controllers is defined and adapter4_details.json.Controllers | length > 0 else 'Unknown' %}
+        {% set port_count = adapter4_details.json.Controllers[0].ControllerCapabilities.NetworkPortCount | default('Unknown') if adapter4_details.json.Controllers is defined and adapter4_details.json.Controllers | length > 0 and adapter4_details.json.Controllers[0].ControllerCapabilities is defined else 'Unknown' %}
+        {% set mac_address = adapter4_port_details.json.AssociatedNetworkAddresses[0] | default('Unknown') if adapter4_port_details.status == 200 and adapter4_port_details.json is defined and adapter4_port_details.json.AssociatedNetworkAddresses is defined and adapter4_port_details.json.AssociatedNetworkAddresses | length > 0 else 'Unknown' %}
+        {% set link_status = adapter4_port_details.json.LinkStatus | default('Unknown') if adapter4_port_details.status == 200 and adapter4_port_details.json is defined else 'Unknown' %}
+        
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "{{ (adapter4_details.json.Name | default('Adapter 4'))[:20] }}" \
+          "{{ manufacturer[:12] }}" \
+          "{{ model[:18] }}" \
+          "{{ part_number[:12] }}" \
+          "{{ serial_number[:18] }}" \
+          "{{ firmware[:12] }}" \
+          "{{ port_count | string }}" \
+          "{{ mac_address[:17] }}" \
+          "{{ link_status[:13] }}" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+        
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},{{ adapter4_details.json.Name | default('Adapter 4') }},{{ manufacturer }},{{ model }},{{ part_number }},{{ serial_number }},{{ firmware }},{{ port_count }},{{ mac_address }},{{ link_status }},DETAILED_SUCCESS" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+        {% else %}
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "Adapter 4" \
+          "DETAIL FAILED" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},Adapter 4,DETAIL FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,DETAIL_FAILED" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+        {% endif %}
+
+    # Process Adapter 5 - DE07A000 (Intel Ethernet)
+    - name: "Get details for Adapter 5 (DE07A000) - Intel Ethernet"
+      uri:
+        url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters/DE07A000"
+        method: GET
+        user: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        timeout: 30
+        headers:
+          Accept: "application/json"
+        status_code: [200, 401, 404, 500, 503]
+      register: adapter5_details
+      ignore_errors: true
+
+    - name: "Get Port 0 details for Adapter 5 (Ethernet MAC)"
+      uri:
+        url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters/DE07A000/Ports/0"
+        method: GET
+        user: "{{ server_data.username }}"
+        password: "{{ server_data.password }}"
+        force_basic_auth: yes
+        validate_certs: no
+        timeout: 30
+        headers:
+          Accept: "application/json"
+        status_code: [200, 401, 404, 500, 503]
+      register: adapter5_port0
+      ignore_errors: true
+
+    - name: "Add Adapter 5 (Intel Ethernet) detailed entry"
+      shell: |
+        {% if adapter5_details.status == 200 and adapter5_details.json is defined %}
+        {% set manufacturer = adapter5_details.json.Manufacturer | default('Unknown') %}
+        {% set model = adapter5_details.json.Model | default('Unknown') %}
+        {% set part_number = adapter5_details.json.PartNumber | default('Unknown') %}
+        {% set serial_number = adapter5_details.json.SerialNumber | default('Unknown') %}
+        {% set firmware = adapter5_details.json.Controllers[0].FirmwarePackageVersion | default('Unknown') if adapter5_details.json.Controllers is defined and adapter5_details.json.Controllers | length > 0 else 'Unknown' %}
+        {% set port_count = adapter5_details.json.Controllers[0].ControllerCapabilities.NetworkPortCount | default('Unknown') if adapter5_details.json.Controllers is defined and adapter5_details.json.Controllers | length > 0 and adapter5_details.json.Controllers[0].ControllerCapabilities is defined else 'Unknown' %}
+        {% set mac_address = adapter5_port0.json.Ethernet.AssociatedMACAddresses[0] | default('Unknown') if adapter5_port0.status == 200 and adapter5_port0.json is defined and adapter5_port0.json.Ethernet is defined and adapter5_port0.json.Ethernet.AssociatedMACAddresses is defined and adapter5_port0.json.Ethernet.AssociatedMACAddresses | length > 0 else 'Unknown' %}
+        {% set link_status = adapter5_port0.json.LinkStatus | default('Unknown') if adapter5_port0.status == 200 and adapter5_port0.json is defined else 'Unknown' %}
+        
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "{{ (adapter5_details.json.Name | default('Intel Ethernet'))[:20] }}" \
+          "{{ manufacturer[:12] }}" \
+          "{{ model[:18] }}" \
+          "{{ part_number[:12] }}" \
+          "{{ serial_number[:18] }}" \
+          "{{ firmware[:12] }}" \
+          "{{ port_count | string }}" \
+          "{{ mac_address[:17] }}" \
+          "{{ link_status[:13] }}" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+        
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},{{ adapter5_details.json.Name | default('Intel Ethernet') }},{{ manufacturer }},{{ model }},{{ part_number }},{{ serial_number }},{{ firmware }},{{ port_count }},{{ mac_address }},{{ link_status }},DETAILED_SUCCESS" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+        {% else %}
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "Intel Ethernet" \
+          "DETAIL FAILED" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},Intel Ethernet,DETAIL FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,DETAIL_FAILED" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+        {% endif %}
+
+    - name: "Log successful enhanced discovery completion for {{ server_data.hostname }}"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Enhanced discovery completed successfully for {{ server_data.hostname }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Added {{ adapters_result.json.Members | length }} detailed adapter entries to output files" >> {{ configchecker_log_file }}
+
+# FAILURE CASE - Handle failed discovery
+- name: "Handle failed discovery for {{ server_data.hostname }}"
+  when: adapters_result.status != 200 or adapters_result.json.Members is not defined
+  block:
+    - name: "Add failed discovery entry to table"
+      shell: |
+        printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+          "{{ server_data.hostname[:12] }}" \
+          "{{ server_data.ipv4[:15] }}" \
+          "{{ server_data.vendor[:12] }}" \
+          "DISCOVERY FAILED" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          "N/A" \
+          >> {{ current_discovery_table_file | default(discovery_table_file) }}
+
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},DISCOVERY FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,DISCOVERY_FAILED" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+
+    - name: "Log failed discovery for {{ server_data.hostname }}"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Discovery FAILED for {{ server_data.hostname }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Error details: {{ adapters_result.msg | default(adapters_result.content | default('Unknown error')) }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}

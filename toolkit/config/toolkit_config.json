@@ -1,0 +1,37 @@
+{
+  "_comment" : [
+    "This is the configuration file for the Supermicro Ansible Toolkit.",
+    "Please modify the parameters below to suit your environment and requirements.",
+    "Refer to the documentation for detailed explanations of each parameter."
+  ],
+  "_scratch_space" : [
+    "This section is reserved for temporary notes or scratch space.",
+    "You can use it to jot down ideas or reminders while configuring the toolkit."
+  ],
+  "use_target_nodes": true,
+  "nodes": [
+    "fe80::7ea6:2aff:fe6e:c730%enp0s8"
+  ],
+  "network_interface": "auto",
+  "_network_interface_comment": [
+    "Network interface configuration for discovery:",
+    "- Set to 'auto' for automatic detection of best available interface",
+    "- Set to specific interface name (e.g., 'enp0s8', 'enp0s9', 'eth0')",
+    "- Leave empty or null to use auto-detection"
+  ],
+  "interface_priority": [
+    "enp0s9",
+    "enp0s8", 
+    "eth0",
+    "eth1",
+    "enp0s3"
+  ],
+  "_interface_priority_comment": [
+    "Priority order for interface auto-detection.",
+    "First available interface from this list will be used when network_interface is set to 'auto'"
+  ],
+  "firmware_skip_bmc": "true",
+  "firmware_skip_bios": "true",
+  "firmware_skip_pcie_devices": "false",
+  "minios_file_name": "minios20.04_Sep02_2024.iso"
+}

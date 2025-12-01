@@ -1,0 +1,3 @@
+[console_scripts]
+ilorest = ilorest.rdmc:ilorestcommand
+

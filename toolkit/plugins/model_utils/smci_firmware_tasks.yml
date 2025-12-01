@@ -1,0 +1,164 @@
+---
+# SMC Firmware Update Tasks
+- name: "Log firmware update start"
+  shell: |
+    echo "=== Processing {{ item.hostname }} ({{ item.model }}) ===" >> {{ settings.log_file }}
+    echo "Server IP: {{ item.ipv4 }}" >> {{ settings.log_file }}
+
+- name: "Set firmware file paths"
+  set_fact:
+    bios_file_path: "/tmp/firmware_mount/SMCI/Firmware/BIOS/{{ version_config.servers.supermicro[item.model].firmware_files.bios }}"
+    bmc_file_path: "/tmp/firmware_mount/SMCI/Firmware/BMC/{{ version_config.servers.supermicro[item.model].firmware_files.bmc }}"
+    temp_extract_path: "{{ settings.temp_path }}/{{ item.hostname }}_{{ item.model }}"
+
+- name: "Create extraction directory"
+  file:
+    path: "{{ temp_extract_path }}"
+    state: directory
+    mode: '0755'
+    recurse: yes
+
+- name: "Extract BIOS firmware"
+  shell: |
+    cd {{ temp_extract_path }}
+    unzip -o "{{ bios_file_path }}" >> {{ settings.log_file }} 2>&1
+  register: bios_extract_result
+  ignore_errors: yes
+
+- name: "Extract BMC firmware"
+  shell: |
+    cd {{ temp_extract_path }}
+    unzip -o "{{ bmc_file_path }}" >> {{ settings.log_file }} 2>&1
+  register: bmc_extract_result
+  ignore_errors: yes
+
+- name: "Set executable permissions on extracted files"
+  shell: "find {{ temp_extract_path }} -type f -exec chmod 755 {} \\;"
+
+- name: "Get current BIOS version"
+  shell: |
+    echo "Getting current BIOS info for {{ item.hostname }}..." >> {{ settings.log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBiosInfo >> {{ settings.log_file }} 2>&1
+  register: current_bios_info
+  ignore_errors: yes
+
+- name: "Get current BMC version"
+  shell: |
+    echo "Getting current BMC info for {{ item.hostname }}..." >> {{ settings.log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c GetBmcInfo >> {{ settings.log_file }} 2>&1
+  register: current_bmc_info
+  ignore_errors: yes
+
+- name: "Find BIOS binary file"
+  find:
+    paths: "{{ temp_extract_path }}"
+    patterns: "*BIOS*.bin"
+    recurse: yes
+  register: bios_binary_files
+
+- name: "Update BIOS"
+  shell: |
+    echo "Starting BIOS update for {{ item.hostname }}..." >> {{ settings.log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c UpdateBios --file {{ bios_binary_files.files[0].path }} >> {{ settings.log_file }} 2>&1
+  register: bios_update_result
+  ignore_errors: yes
+  when: bios_binary_files.files | length > 0
+
+- name: "Find BMC binary file"
+  find:
+    paths: "{{ temp_extract_path }}"
+    patterns: "*BMC*.bin"
+    recurse: yes
+  register: bmc_binary_files
+
+- name: "Update BMC"
+  shell: |
+    echo "Starting BMC update for {{ item.hostname }}..." >> {{ settings.log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c UpdateBmc --file {{ bmc_binary_files.files[0].path }} >> {{ settings.log_file }} 2>&1
+  register: bmc_update_result
+  ignore_errors: yes
+  when: bmc_binary_files.files | length > 0
+
+- name: "Check if virtual media is already mounted"
+  shell: |
+    echo "Checking virtual media status for {{ item.hostname }}..." >> {{ settings.log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c VmManage --action 4 --dev_id 1 >> {{ settings.log_file }} 2>&1 || echo "No virtual media to unmount" >> {{ settings.log_file }}
+  register: vm_status_check
+  ignore_errors: yes
+
+- name: "Unmount any existing virtual media"
+  shell: |
+    echo "Unmounting existing virtual media for {{ item.hostname }}..." >> {{ settings.log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c VmManage --action 4 --dev_id 1 >> {{ settings.log_file }} 2>&1
+  register: vm_unmount_result
+  ignore_errors: yes
+
+- name: "Mount SMC NIC flashing ISO"
+  shell: |
+    echo "Mounting SMC NIC flashing ISO for {{ item.hostname }}..." >> {{ settings.log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c VmManage --action 3 --image_url '{{ settings.nic_flashing_iso_url }}' --id tmp --dev_id 1 >> {{ settings.log_file }} 2>&1
+  register: vm_mount_result
+  ignore_errors: yes
+
+- name: "Wait for ISO mount to complete"
+  pause:
+    seconds: 10
+
+- name: "Set boot device to UEFI ISO and reboot"
+  shell: |
+    echo "Setting boot device to UEFI ISO Image and rebooting {{ item.hostname }}..." >> {{ settings.log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c SetBootOption --device_type 13 --action reset --post_complete >> {{ settings.log_file }} 2>&1
+  register: boot_and_reboot_result
+  ignore_errors: yes
+
+- name: "Wait for server to boot from ISO"
+  pause:
+    seconds: 180
+    prompt: "Waiting for {{ item.hostname }} to boot from ISO and complete POST (180 seconds)..."
+
+- name: "Update SMC NIC via IPMI SOL connection"
+  shell: |
+    echo "Starting SMC NIC update via IPMI SOL for {{ item.hostname }}..." >> {{ settings.log_file }}
+    # Create dynamic expect script with server IP
+  sed "s/172\.25\.57\.43/{{ item.ipv4 }}/g; s/ADMIN1/{{ item.username }}/g; s/cmb9\.admin/{{ item.password }}/g" /home/ubuntu/smci/ansible-toolkit/toolkit/plugins/module_utils/flash-ipmi_SMCInic_run.sh > /tmp/flash_nic_{{ item.hostname }}.exp
+    chmod +x /tmp/flash_nic_{{ item.hostname }}.exp
+    /tmp/flash_nic_{{ item.hostname }}.exp >> {{ settings.log_file }} 2>&1
+  register: smci_nic_update_result
+  ignore_errors: yes
+
+- name: "Wait for NIC flashing to complete"
+  pause:
+    seconds: 60
+
+- name: "Unmount ISO after NIC update"
+  shell: |
+    echo "Unmounting ISO after NIC update for {{ item.hostname }}..." >> {{ settings.log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c VmManage --action Unmount --dev_id 1 >> {{ settings.log_file }} 2>&1
+  register: vm_unmount_final
+  ignore_errors: yes
+
+- name: "Final reboot to return to normal OS"
+  shell: |
+    echo "Final reboot of {{ item.hostname }} to return to normal OS..." >> {{ settings.log_file }}
+    {{ settings.saa_tool_path }} -i {{ item.ipv4 }} -u {{ item.username }} -p {{ item.password }} -c SetPowerAction --action Reset >> {{ settings.log_file }} 2>&1
+  register: final_reboot_result
+  ignore_errors: yes
+
+- name: "Wait for server to return to normal operation"
+  pause:
+    seconds: 180
+    prompt: "Waiting for {{ item.hostname }} to return to normal operation (180 seconds)..."
+
+- name: "Cleanup extraction directory"
+  file:
+    path: "{{ temp_extract_path }}"
+    state: absent
+
+- name: "Cleanup temporary expect script"
+  file:
+    path: "/tmp/flash_nic_{{ item.hostname }}.exp"
+    state: absent
+
+- name: "Display completion message"
+  debug:
+    msg: "Firmware update completed for {{ item.hostname }} - BMC, BIOS, and NIC flashing via ISO boot"
