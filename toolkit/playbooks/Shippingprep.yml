@@ -95,8 +95,8 @@
 
     - name: Get MAC addresses for DS/Supermicro servers using saa tool
       shell: >
-        {{ playbook_dir }}/../../saa_1.3.0_Linux_x86_64/saa
-        -i {{ item['Host'] }}
+        /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        -i {{ item['IPv4 Address'] }}
         -u {{ item['Username'] }}
         -p {{ item['Password'] }}
         -c GetSystemInfo
@@ -105,7 +105,6 @@
       ignore_errors: yes
       when: 
         - ds_servers | length > 0
-        - password_choice == 'unique'
 
     - name: Extract MAC addresses from HA servers
       set_fact:
@@ -125,8 +124,16 @@
 
     - name: Extract MAC addresses from DS/Supermicro servers
       set_fact:
-        ds_mac_list: "{{ ds_mac_list | default([]) + [ { 'server': item.item['Host'], 'mac': (item.stdout | regex_search('BMC MAC address\\.*\\s*([0-9A-Fa-f:]+)', '\\1')) | default('') } ] }}"
-      loop: "{{ ds_mac_info.results | default([]) }}"
+        ds_mac_list: "{{ ds_mac_list | default([]) + [ { 'server': item.item['IPv4 Address'], 'mac': (item.stdout | regex_search('BMC MAC address\\.*\\s*([0-9A-Fa-f:]+)', '\\1')) | default('') } ] }}"
+      loop: "{{ ds_mac_info.results }}"
+      loop_control:
+        loop_var: item
+
+    - name: Debug MAC extraction
+      debug:
+        msg: 
+          - "Password choice: {{ password_choice }}"
+          - "DS MAC List: {{ ds_mac_list | default('NOT SET') }}"
       loop_control:
         loop_var: item
       when: 
@@ -150,9 +157,9 @@
         updated_servers: "{{ updated_servers | default([]) + [ new_server ] }}"
       vars:
         mac_entry: >-
-          {{ (mac_list | default([]) | selectattr('server', 'equalto', item['Host']) | map(attribute='mac') | list | first) if password_choice == 'unique' else '' }}
+          {{ (mac_list | default([]) | selectattr('server', 'equalto', item['IPv4 Address']) | map(attribute='mac') | list | first) if password_choice == 'unique' else '' }}
         mac_value: >-
-          {% if mac_entry is string %}
+          {% if mac_entry is string and mac_entry != '' %}
             {{ mac_entry }}
           {% elif mac_entry is sequence and mac_entry|length > 0 %}
             {{ mac_entry[0] }}
@@ -165,7 +172,7 @@
           {% if password_choice == 'default' %}
             cmb9.admin
           {% else %}
-            HISMSP.{{ mac_last6 }}
+            UCPMSP.{{ mac_last6 }}
           {% endif %}
         new_server: "{{ item | combine({ 'Password': new_password | trim }) }}"
       loop: "{{ all_servers }}"
@@ -220,24 +227,43 @@
         - ilorest_results is defined
         - updated_servers | selectattr('Type', 'match', 'HA_Server') | list | length > 0
 
-    - name: Update passwords on DS/Supermicro servers using saa tool (IPv6)
+    - name: Get admin user ID for DS/Supermicro servers (for SAA tool)
       shell: >
-        {{ playbook_dir }}/../../saa_1.3.0_Linux_x86_64/saa
-        -i {{ item['Host'] }}
-        -u {{ item['Username'] }}
-        -p {{ current_password }}
-        -c SetUserPassword
-        --userid 4
-        --newpassword {{ item['Password'] }}
+        ipmitool -I lanplus -H {{ item['IPv4 Address'] }}
+        -U {{ item['Username'] }} -P '{{ current_password }}'
+        user list | grep -E "\s+admin\s+" | head -1 | awk '{print $1}'
       loop: "{{ updated_servers | rejectattr('Type', 'match', 'HA_Server') | list }}"
       loop_control:
         loop_var: item
       vars:
         current_password: "{{ all_servers | selectattr('Host', 'equalto', item['Host']) | map(attribute='Password') | first }}"
+      register: saa_admin_user_ids
+      ignore_errors: yes
+      when: updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length > 0
+
+    - name: Update passwords on DS/Supermicro servers using saa tool (IPv6)
+      shell: >
+        /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        -i {{ item['Host'] }}
+        -u {{ item['Username'] }}
+        -p {{ current_password }}
+        -c SetBmcPassword
+        --user_id {{ admin_user_id }}
+        --new_password {{ item['Password'] }}
+        --confirm_password {{ item['Password'] }}
+      loop: "{{ updated_servers | rejectattr('Type', 'match', 'HA_Server') | list }}"
+      loop_control:
+        loop_var: item
+        index_var: server_index
+      vars:
+        current_password: "{{ all_servers | selectattr('Host', 'equalto', item['Host']) | map(attribute='Password') | first }}"
+        admin_user_id: "{{ saa_admin_user_ids.results[server_index].stdout | trim }}"
       register: saa_results
       no_log: true
       ignore_errors: yes
-      when: updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length > 0
+      when: 
+        - updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length > 0
+        - saa_admin_user_ids is defined
 
     - name: Log DS/Supermicro server password update task (IPv6)
       lineinfile:
@@ -248,22 +274,41 @@
         - saa_results is defined
         - updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length > 0
 
-    - name: Fallback - Update passwords on DS/Supermicro servers using ipmitool (IPv6)
-      command: >
+    - name: Get admin user ID for DS/Supermicro servers (for ipmitool fallback)
+      shell: >
         ipmitool -I lanplus -H {{ item.item['Host'] | regex_replace('%.*$', '') }}
         -U {{ item.item['Username'] }} -P '{{ current_password }}'
-        user set password 4 '{{ item.item['Password'] }}'
+        user list | grep -E "\s+admin\s+" | head -1 | awk '{print $1}'
       loop: "{{ saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list }}"
       loop_control:
         loop_var: item
       vars:
         current_password: "{{ all_servers | selectattr('Host', 'equalto', item.item['Host']) | map(attribute='Password') | first }}"
+      register: admin_user_ids
+      ignore_errors: yes
+      when: 
+        - saa_results is defined
+        - saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list | length > 0
+
+    - name: Fallback - Update passwords on DS/Supermicro servers using ipmitool (IPv6)
+      command: >
+        ipmitool -I lanplus -H {{ item.item['Host'] | regex_replace('%.*$', '') }}
+        -U {{ item.item['Username'] }} -P '{{ current_password }}'
+        user set password {{ admin_user_id }} '{{ item.item['Password'] }}'
+      loop: "{{ saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list }}"
+      loop_control:
+        loop_var: item
+        index_var: server_index
+      vars:
+        current_password: "{{ all_servers | selectattr('Host', 'equalto', item.item['Host']) | map(attribute='Password') | first }}"
+        admin_user_id: "{{ admin_user_ids.results[server_index].stdout | trim }}"
       register: ipmi_fallback_results
       no_log: true
       ignore_errors: yes
       when: 
         - saa_results is defined
         - saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list | length > 0
+        - admin_user_ids is defined
 
     - name: Print password update results summary
       debug:
