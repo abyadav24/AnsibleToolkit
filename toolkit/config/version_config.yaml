@@ -4,6 +4,28 @@ version_config:
   # Server configurations organized by vendor and model
   servers:
     supermicro:
+      DS120_G6:  # X13 Model
+        current_version:
+          bios: "1.4.1U"
+          bmc: "11.03.00.06"
+        firmware_files:
+          bios: "BIOS_X14DBMS-1D37-HI0005DU00_20251009_1.4.1U_OEMsp.bin"
+          bmc: "BMC_X14AST2600-ROT20-4501MS_20251014_11.03.00.06_STDsp_E84B525B.bin"
+        supported_io_cards:
+          - "ConnectX-6"
+          - "Mellanox-25G"
+      
+      DS220_G6:  # X14 Model  
+        current_version:
+          bios: "1.4.2U"
+          bmc: "11.03.00.06"
+        firmware_files:
+          bios: "BIOS_X14DBMS-1D37-HI0005DU00_20251010_1.4.2U_OEMsp.bin"
+          bmc: "BMC_X14AST2600-ROT20-4501MS_20251014_11.03.00.06_STDsp_E84B525B.bin"
+        supported_io_cards:
+          - "ConnectX-6"
+          - "Mellanox-25G"
+          
       X13DET-B:
         current_version:
           bios: "2.5"
@@ -37,19 +59,6 @@ version_config:
           bmc: "HA_BMC_example.zip"
         supported_io_cards:
           - "Intel-X710"
-    
-    quanta:
-      # Quanta server models will go here
-      QUANTA-MODEL1:
-        current_version:
-          bios: "1.0"
-          bmc: "01.00.00.01"
-        firmware_files:
-          bios: "QUANTA_BIOS_example.zip"
-          bmc: "QUANTA_BMC_example.zip"
-        supported_io_cards:
-          - "Broadcom-BCM"
-
   # IO Card firmware configurations at same level as servers
   io_cards:
     mellanox:
@@ -87,9 +96,9 @@ version_config:
 
 # General settings
 settings:
-  mounted_path: "/SMCI/Mounted/MediaKit"
+  mounted_path: "/mnt/AnsibleMediakit"
   temp_path: "/tmp/firmware_update"
   log_file: "/tmp/firmware_update.log"
-  saa_tool_path: "/home/ubuntu/smci/saa_1.3.0_Linux_x86_64/saa"
-  servers_csv_path: "/home/ubuntu/smci/ansible-toolkit/toolkit/playbooks/servers.csv"
+  saa_tool_path: "/home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa"
+  servers_csv_path: "../config/server.csv"
   nic_flashing_iso_url: "http://10.76.32.27/minios-smci_March10_2025.iso"

@@ -248,7 +248,7 @@
     - name: Write discovered servers to CSV with all details
       lineinfile:
         path: "{{ playbook_dir }}/../config/server.csv"
-        line: "{{ item.type }},{{ item.host }},{{ item.model }},{{ item.sku | default('N/A') }},{{ item.serial_number }},{{ item.ipv4_address | default('N/A') }},{{ item.username }},{{ item.password }}"
+        line: "{% if 'DS' in item.type or 'Supermicro' in item.type or 'supermicro' in item.type %}DS_Server{% else %}{{ item.type }}{% endif %},{{ item.host }},{{ item.model }},{{ item.sku | default('N/A') }},{{ item.serial_number }},{{ item.ipv4_address | default('N/A') }},{{ item.username }},{{ item.password }}"
         insertafter: EOF
       loop: "{{ discovery_result.servers }}"
       when: discovery_result.servers | length > 0 and discover_servers
