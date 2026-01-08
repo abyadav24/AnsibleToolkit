@@ -160,6 +160,7 @@
           vendor: "{{ item.Type }}"
           model: "{{ item.Model }}"
           serial: "{{ item['Serial Number'] }}"
+          ipv4: "{{ item['IPv4 Address'] }}"
         current_discovery_table_file: "{{ ha_discovery_table_file }}"
         current_discovery_csv_file: "{{ ha_discovery_csv_file }}"
         current_discovery_module_log_file: "{{ ha_discovery_module_log_file }}"

@@ -243,7 +243,10 @@
       copy:
         content: "Type,Host,Model,SKU,Serial Number,IPv4 Address,Username,Password\n"
         dest: "{{ playbook_dir }}/../config/server.csv"
-      when: discovery_result.servers | length > 0 and discover_servers
+      when: 
+        - discovery_result.servers is defined
+        - discovery_result.servers | length > 0 
+        - discover_servers | bool
         
     - name: Write discovered servers to CSV with all details
       lineinfile:
@@ -251,7 +254,10 @@
         line: "{% if 'DS' in item.type or 'Supermicro' in item.type or 'supermicro' in item.type %}DS_Server{% else %}{{ item.type }}{% endif %},{{ item.host }},{{ item.model }},{{ item.sku | default('N/A') }},{{ item.serial_number }},{{ item.ipv4_address | default('N/A') }},{{ item.username }},{{ item.password }}"
         insertafter: EOF
       loop: "{{ discovery_result.servers }}"
-      when: discovery_result.servers | length > 0 and discover_servers
+      when: 
+        - discovery_result.servers is defined
+        - discovery_result.servers | length > 0 
+        - discover_servers | bool
       
     - name: Append discovered switches to existing CSV (if needed)
       lineinfile:
@@ -260,14 +266,18 @@
         create: yes
         insertafter: EOF
       loop: "{{ discovery_result.switches }}"
-      when: discovery_result.switches | length > 0 and discover_switches
+      when: 
+        - discovery_result.switches is defined
+        - discovery_result.switches | length > 0 
+        - discover_switches | bool
         
     - name: Create logs directory if it doesn't exist
       file:
         path: "{{ playbook_dir }}/../logs"
         state: directory
         mode: '0755'
-      when: (discovery_result.servers | length > 0 and discover_servers) or (discovery_result.switches | length > 0 and discover_switches)
+      when: 
+        - (discovery_result.servers is defined and discovery_result.servers | length > 0 and discover_servers | bool) or (discovery_result.switches is defined and discovery_result.switches | length > 0 and discover_switches | bool)
 
     - name: Generate discovery report
       template:
@@ -275,22 +285,23 @@
         dest: "{{ playbook_dir }}/../logs/discovery_report_{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}.md"
       vars:
         discovery_type: "{{ discovery_description }}"
-        user_selection: "{{ user_choice.user_input }}"
-      when: (discovery_result.servers | length > 0 and discover_servers) or (discovery_result.switches | length > 0 and discover_switches)
+        user_selection: "{{ user_choice.user_input | default('target') }}"
+      when: 
+        - (discovery_result.servers is defined and discovery_result.servers | length > 0 and discover_servers | bool) or (discovery_result.switches is defined and discovery_result.switches | length > 0 and discover_switches | bool)
       
     - name: Show output files updated
       debug:
         msg: |
           Discovery Complete! Discovery Type: {{ discovery_description }}
           Files updated:
-          {% if discovery_result.servers | length > 0 and discover_servers %}
+          {% if discovery_result.servers is defined and discovery_result.servers | length > 0 and discover_servers | bool %}
           - ../config/server.csv ({{ discovery_result.servers | length }} servers appended)
           {% endif %}
-          {% if discovery_result.switches | length > 0 and discover_switches %}
+          {% if discovery_result.switches is defined and discovery_result.switches | length > 0 and discover_switches | bool %}
           - ../config/smci-switches.csv ({{ discovery_result.switches | length }} switches appended)
           {% endif %}
-          {% if (discovery_result.servers | length > 0 and discover_servers) or (discovery_result.switches | length > 0 and discover_switches) %}
+          {% if (discovery_result.servers is defined and discovery_result.servers | length > 0 and discover_servers | bool) or (discovery_result.switches is defined and discovery_result.switches | length > 0 and discover_switches | bool) %}
           - ../logs/discovery_report_{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}.md (Full report)
           {% endif %}
           
-          Total devices discovered: {{ (discovery_result.servers | length if discover_servers else 0) + (discovery_result.switches | length if discover_switches else 0) }}
+          Total devices discovered: {{ ((discovery_result.servers | length) if (discovery_result.servers is defined and discover_servers | bool) else 0) + ((discovery_result.switches | length) if (discovery_result.switches is defined and discover_switches | bool) else 0) }}

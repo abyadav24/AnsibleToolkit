@@ -243,11 +243,16 @@
         - ilorest_results is defined
         - updated_servers | selectattr('Type', 'match', 'HA_Server') | list | length > 0
 
-    - name: Get admin user ID for DS/Supermicro servers (for SAA tool)
+    - name: Get admin user ID for DS/Supermicro servers (using SAA tool)
       shell: >
-        ipmitool -I lanplus -H {{ item['IPv4 Address'] }}
-        -U {{ item['Username'] }} -P '{{ current_password }}'
-        user list | grep -E "\s+admin\s+" | head -1 | awk '{print $1}'
+        /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        -i {{ item['IPv4 Address'] }}
+        -u {{ item['Username'] }}
+        -p '{{ current_password }}'
+        -c GetBmcUserList | 
+        grep -E "^\s*[0-9]+\s+\|\s+{{ item['Username'] }}\s+\|" | 
+        awk -F '|' '{gsub(/[^0-9]/,"",$1); print $1}' | 
+        head -1
       loop: "{{ updated_servers | rejectattr('Type', 'match', 'HA_Server') | list }}"
       loop_control:
         loop_var: item
@@ -260,7 +265,7 @@
     - name: Update passwords on DS/Supermicro servers using saa tool (IPv6)
       shell: >
         /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
-        -i {{ item['Host'] }}
+        -i {{ item['IPv4 Address'] }}
         -u {{ item['Username'] }}
         -p {{ current_password }}
         -c SetBmcPassword
@@ -290,41 +295,31 @@
         - saa_results is defined
         - updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length > 0
 
-    - name: Get admin user ID for DS/Supermicro servers (for ipmitool fallback)
+    - name: Retry SAA password update for failed DS/Supermicro servers
       shell: >
-        ipmitool -I lanplus -H {{ item.item['Host'] | regex_replace('%.*$', '') }}
-        -U {{ item.item['Username'] }} -P '{{ current_password }}'
-        user list | grep -E "\s+admin\s+" | head -1 | awk '{print $1}'
-      loop: "{{ saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list }}"
-      loop_control:
-        loop_var: item
-      vars:
-        current_password: "{{ all_servers | selectattr('Host', 'equalto', item.item['Host']) | map(attribute='Password') | first }}"
-      register: admin_user_ids
-      ignore_errors: yes
-      when: 
-        - saa_results is defined
-        - saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list | length > 0
-
-    - name: Fallback - Update passwords on DS/Supermicro servers using ipmitool (IPv6)
-      command: >
-        ipmitool -I lanplus -H {{ item.item['Host'] | regex_replace('%.*$', '') }}
-        -U {{ item.item['Username'] }} -P '{{ current_password }}'
-        user set password {{ admin_user_id }} '{{ item.item['Password'] }}'
+        /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        -i {{ item.item['IPv4 Address'] }}
+        -u {{ item.item['Username'] }}
+        -p '{{ current_password }}'
+        -c SetBmcPassword
+        --user_id {{ user_id }}
+        --new_password '{{ item.item['Password'] }}'
+        --confirm_password '{{ item.item['Password'] }}'
       loop: "{{ saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list }}"
       loop_control:
         loop_var: item
         index_var: server_index
       vars:
         current_password: "{{ all_servers | selectattr('Host', 'equalto', item.item['Host']) | map(attribute='Password') | first }}"
-        admin_user_id: "{{ admin_user_ids.results[server_index].stdout | trim }}"
-      register: ipmi_fallback_results
+        # Get user ID dynamically using SAA tool
+        user_id: "{{ saa_admin_user_ids.results[server_index].stdout | trim }}"
+      register: saa_retry_results
       no_log: true
       ignore_errors: yes
       when: 
         - saa_results is defined
         - saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list | length > 0
-        - admin_user_ids is defined
+        - saa_admin_user_ids is defined
 
     - name: Print password update results summary
       debug:
@@ -332,7 +327,7 @@
           - "Password update summary (IPv6):"
           - "- HA Servers (ilorest IPv6): {{ (ilorest_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ilorest_results.results | default([]) | length) }} successful"
           - "- DS/Supermicro Servers (saa IPv6): {{ (saa_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_results.results | default([]) | length) }} successful"
-          - "- DS/Supermicro Servers (ipmitool IPv6 fallback): {{ (ipmi_fallback_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ipmi_fallback_results.results | default([]) | length) }} successful"
+          - "- DS/Supermicro Servers (saa retry): {{ (saa_retry_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_retry_results.results | default([]) | length) }} successful"
       when: 
         - ilorest_results is defined or saa_results is defined or ipmi_fallback_results is defined
 
