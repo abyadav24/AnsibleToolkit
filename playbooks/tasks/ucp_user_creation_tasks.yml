@@ -1,0 +1,91 @@
+---
+# Task file for UCP User Creation operations
+- name: Set target configuration based on use_target_nodes setting
+  set_fact:
+    servers_csv_path: "{{ playbook_dir }}/../config/server.csv"
+    use_target_nodes_enabled: "{{ hostvars['localhost']['use_target_nodes_enabled'] | default(false) }}"
+    target_nodes_list: "{{ hostvars['localhost']['target_nodes'] | default([]) }}"
+
+- name: Log target configuration
+  shell: |
+    if [ "{{ use_target_nodes_enabled }}" = "True" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UserCreation] Using target nodes from config: {{ target_nodes_list | join(', ') }}" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UserCreation] Using servers from CSV file: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
+    fi
+
+- name: Verify servers CSV file exists (when using CSV mode)
+  stat:
+    path: "{{ servers_csv_path }}"
+  register: csv_file_check
+  failed_when: not csv_file_check.stat.exists
+  when: not use_target_nodes_enabled
+
+- name: Log CSV file validation (when using CSV mode)
+  shell: |
+    if [ "{{ csv_file_check.stat.exists }}" = "True" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [UserCreation] CSV file validation successful" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [UserCreation] CSV file not found: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
+    fi
+  when: not use_target_nodes_enabled
+
+- name: Get new username (optional, default: admin)
+  pause:
+    prompt: "Enter the new username (press Enter for default 'admin')"
+  register: new_username_input
+
+- name: Set username variable
+  set_fact:
+    new_username: "{{ new_username_input.user_input if new_username_input.user_input != '' else 'admin' }}"
+
+- name: Get new password (optional, default: cmb9.admin)
+  pause:
+    prompt: "Enter the new password (press Enter for default 'cmb9.admin')"
+    echo: no
+  register: new_password_input
+
+- name: Set password variable
+  set_fact:
+    new_password: "{{ new_password_input.user_input if new_password_input.user_input != '' else 'cmb9.admin' }}"
+
+- name: Get user role (optional, default: Administrator)
+  pause:
+    prompt: "Enter the user role (press Enter for default 'Administrator')"
+  register: user_role_input
+
+- name: Set role variable
+  set_fact:
+    user_role: "{{ user_role_input.user_input if user_role_input.user_input != '' else 'Administrator' }}"
+
+- name: Create admin users on all servers
+  ucp_user_creation:
+    servers_csv: "{{ servers_csv_path }}"
+    new_username: "{{ new_username }}"
+    new_password: "{{ new_password }}"
+    user_role: "{{ user_role }}"
+    ilorest_path: "{{ hostvars['localhost']['ilorest_path'] | default(playbook_dir + '/../vendor/tools/ilorest_wrapper.sh') }}"
+  register: user_creation_result
+
+- name: Display user creation results
+  debug:
+    msg: |
+      User Creation Results:
+      - Successfully created users on: {{ user_creation_result.created_users | length }} servers
+      - Failed: {{ user_creation_result.failed_servers | length }} servers
+      
+      Username: {{ new_username }}
+      Role: {{ user_role }}
+      
+      Successful servers: {{ user_creation_result.created_users | join(', ') }}
+      {% if user_creation_result.failed_servers %}
+      Failed servers:
+      {% for failed in user_creation_result.failed_servers %}
+      - {{ failed.ipaddress }}: {{ failed.error }}
+      {% endfor %}
+      {% endif %}
+
+- name: Log user creation operation
+  lineinfile:
+    path: "{{ log_file }}"
+    line: "{{ ansible_date_time.iso8601 }} - INFO - User Creation completed: {{ user_creation_result.created_users | length }} successful, {{ user_creation_result.failed_servers | length }} failed"

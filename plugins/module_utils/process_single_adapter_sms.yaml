@@ -1,0 +1,77 @@
+---
+# Dynamic processing for a single network adapter
+
+- name: "Get details for Adapter {{ adapter_number }} ({{ adapter_id }}) {{adapter_info['@odata.id']}}"
+  uri:
+    url: "https://{{ server_data.ipv4 }}{{ adapter_info['@odata.id'] }}"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 30
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: current_adapter_details
+  ignore_errors: true
+
+- name: "Get details from PCIeDevices for Adapter {{ adapter_number }} "
+  uri:
+    url: "https://{{ server_data.ipv4 }}{{ current_adapter_details.json.Controllers[0].Links.PCIeDevices[0]['@odata.id'] }}"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 30
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: current_adapter_details_fromPCIeDevice
+  ignore_errors: true
+  when: current_adapter_details.status == 200
+
+#Try different port endpoint patterns based on adapter type
+- name: "Get port details for Adapter {{ adapter_number }} {{ adapter_info['@odata.id'] }}- NetworkPorts method"
+  uri:
+    url: "https://{{ server_data.ipv4 }}{{ adapter_info['@odata.id'] }}/Ports"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 30
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: current_adapter_port_networkports
+  ignore_errors: true
+
+# - name: Debug the response of current_adapter_port_networkports status
+#   ansible.builtin.debug:
+#     var: "{{ current_adapter_port_networkports.status }}"
+
+# SUCCESS CASE - Process detailed Ports information dynamically
+- name: "Process detailed port information for {{ server_data.hostname }}"
+  when: current_adapter_port_networkports.status == 200 and current_adapter_port_networkports.json.Members is defined
+  block:
+    # Dynamic processing of all available Ports
+    - name: "Process each Port dynamically for Adapter {{ adapter_number }} "
+      include_tasks: process_single_port_sms.yaml
+      loop: "{{ current_adapter_port_networkports.json.Members }}"
+      loop_control:
+        index_var: port_index
+        loop_var: port_info
+      vars:
+        port_id: "{{ port_info['@odata.id'].split('/')[-1] }}"
+        port_name: "{{ port_info.Name | default('Port ' + (port_index + 1) | string) }}"
+        port_number: "{{ port_index + 1 }}"
+      when: current_adapter_port_networkports.json.Members | length > 0
+    
+# FAILURE CASE - Handle severs with no ports
+- name: "Handle discovery for Adapter {{ adapter_number }} with no Ports"
+  when: current_adapter_port_networkports.status == 200 and current_adapter_port_networkports.json.Members | length == 0
+  block:
+    - name: "Add failed discovery entry to table"
+      include_tasks: process_single_port_sms.yaml

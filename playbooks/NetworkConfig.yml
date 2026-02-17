@@ -1,0 +1,268 @@
+---
+- name: HIS Network Configuration
+  hosts: localhost
+  gather_facts: yes
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    timestamp: "{{ ansible_date_time.epoch }}"
+    log_directory: "{{ playbook_dir }}/../logs"
+    config_directory: "{{ playbook_dir }}/../config"
+    
+  environment:
+    ANSIBLE_LIBRARY: "{{ playbook_dir }}/../plugins/modules"
+    
+  tasks:
+    - name: Display welcome message
+      debug:
+        msg:
+          - "========================================================================="
+          - "Welcome to the HIS Network Configuration Tool!"
+          - "========================================================================="
+          - ""
+          - "This playbook will configure your network switches based on the"
+          - "discovered  and networkconfig.json settings."
+          - ""
+          - "WARNING: This operation will modify switch configurations and may"
+          - "cause network disruption!"
+          - ""
+          - "Please ensure:"
+          - "1. You have verified the switch discovery results"
+          - "2. The networkconfig.json file is properly configured"
+          - "3. You understand the risks of network configuration changes"
+          - "========================================================================="
+
+    - name: Check if networkconfig.json exists
+      stat:
+        path: "{{ playbook_dir }}/../plugins/module_utils/networkconfig.json"
+      register: networkconfig_file
+
+    - name: Fail if networkconfig.json not found
+      fail:
+        msg: |
+          networkconfig.json file not found at {{ playbook_dir }}/../plugins/module_utils/networkconfig.json
+          Please ensure the network configuration file exists before running this playbook.
+      when: not networkconfig_file.stat.exists
+
+    - name: Check if switches CSV file exists
+      stat:
+        path: "{{ config_directory }}/smci-switches.csv"
+      register: switches_csv_file
+
+    - name: Fail if switches CSV not found
+      fail:
+        msg: |
+          smci-switches.csv file not found at {{ config_directory }}/smci-switches.csv
+          Please run the Autodiscover.yml playbook first to discover switches.
+      when: not switches_csv_file.stat.exists
+
+    - name: Load and display network configuration
+      include_vars:
+        file: "{{ playbook_dir }}/../plugins/module_utils/networkconfig.json"
+        name: network_config
+      
+    - name: Display network configuration summary
+      debug:
+        msg:
+          - "Network Configuration Summary:"
+          - "=============================="
+          - "Link ID: {{ network_config.linkid }}"
+          - "Customer ID: {{ network_config.customerid }}"
+          - "Management VLAN: {{ network_config.mgmtvlan }}"
+          - "Additional VLANs: {{ network_config.vlans | join(', ') }}"
+          - "MTU: {{ network_config.mtu }}"
+          - "Gateway: {{ network_config.gateway }}"
+          - "NTP Server: {{ network_config.ntpserver }}"
+          - ""
+          - "Supported Designs:"
+          - "- Simple-Rack_Cisco (2x Nexus93180YCFX + 1x Nexus92348)"
+          - "- Simple-FC-Rack_Cisco (2x Nexus93180YCFX + 1x Nexus92348 + 2x G620)"
+          - "- Expand-Rack_Cisco (2x Nexus9332C + 2x Nexus93180YCFX + 1x Nexus92348)"
+          - "- Cisco_Multi_R1_G620 (2x Nexus93180YCFX3 + 2x G620 + 1x Nexus92348 + 2x Nexus93600CDGX)"
+          - "- 100G-To-The-Host_Single (1x Nexus92348 + 2x Nexus93600CDGX)"
+          - "- And various other Cisco/Arista designs..."
+
+    - name: Load discovered switches
+      shell: |
+        if [ -f "{{ config_directory }}/smci-switches.csv" ]; then
+          grep -v '^[[:space:]]*$' "{{ config_directory }}/smci-switches.csv" | wc -l | tr -d ' '
+        else
+          echo "0"
+        fi
+      register: switches_count
+      changed_when: false
+      check_mode: false
+
+    - name: Display discovered switches count
+      debug:
+        msg: "Found {{ switches_count.stdout }} switches in CSV file"
+
+    - name: Validate switch count
+      fail:
+        msg: "No switches found in CSV file. Please run switch discovery first."
+      when: switches_count.stdout|int == 0
+
+    - name: Prompt for rack number
+      pause:
+        prompt: |
+          
+          Please enter the rack number you want to configure (1-4):
+          
+          Note: Each rack may have different switch requirements:
+          - Rack 1: May contain spine switches
+          - Racks 2-4: Typically leaf and management switches only
+          
+          Rack number
+      register: rack_input
+
+    - name: Validate rack number
+      fail:
+        msg: "Invalid rack number. Please enter a number between 1 and 4."
+      when: rack_input.user_input|int < 1 or rack_input.user_input|int > 4
+
+    - name: Set rack number variable
+      set_fact:
+        rack_number: "{{ rack_input.user_input }}"
+
+    - name: Check if rack exists in network configuration
+      fail:
+        msg: |
+          Rack #{{ rack_number }} is not defined in networkconfig.json.
+          Please update the network configuration file to include this rack.
+      when: network_config.rack[rack_number] is not defined
+
+    - name: Display rack configuration header
+      debug:
+        msg:
+          - "Rack {{ rack_number }} Configuration:"
+          - "============================"
+
+    - name: Display spine switch configuration
+      debug:
+        msg:
+          - "Spine Switch Config:"
+          - "  - ID: {{ network_config.rack[rack_number].spine.id }}"
+          - "  - Primary IP: {{ network_config.rack[rack_number].spine.ipaddr1 }}"
+          - "  - Secondary IP: {{ network_config.rack[rack_number].spine.ipaddr2 }}"
+      when: network_config.rack[rack_number].spine is defined
+
+    - name: Display leaf switch configuration
+      debug:
+        msg:
+          - "Leaf Switch Config:"
+          - "  - ID: {{ network_config.rack[rack_number].leaf.id }}"
+          - "  - Primary IP: {{ network_config.rack[rack_number].leaf.ipaddr1 }}"
+          - "  - Secondary IP: {{ network_config.rack[rack_number].leaf.ipaddr2 }}"
+      when: network_config.rack[rack_number].leaf is defined
+
+    - name: Display management switch configuration
+      debug:
+        msg:
+          - "Management Switch Config:"
+          - "  - ID: {{ network_config.rack[rack_number].mgmt.id }}"
+          - "  - IP Address: {{ network_config.rack[rack_number].mgmt.ipaddr1 }}"
+      when: network_config.rack[rack_number].mgmt is defined
+
+    - name: Display production mode warning
+      debug:
+        msg:
+          - "PRODUCTION MODE"
+          - "This playbook will make PERMANENT changes to switch configurations!"
+          - "Network disruption is expected during this process!"
+
+    - name: Final safety confirmation
+      pause:
+        prompt: |
+          
+          FINAL SAFETY CONFIRMATION
+          
+          You are about to configure network switches for:
+          - Rack Number: {{ rack_number }}
+          - Mode: PRODUCTION (permanent changes)
+          - Number of Switches: {{ switches_count.stdout }}
+          
+          WARNING: This will make PERMANENT changes to switch configurations!
+          Network disruption is expected during this process!
+          
+          Type 'coolbeans' to proceed or anything else to abort
+      register: safety_confirmation
+
+    - name: Validate safety confirmation
+      fail:
+        msg: "Configuration aborted. Safety phrase not entered correctly."
+      when: safety_confirmation.user_input != 'coolbeans'
+
+    - name: Create logs directory
+      file:
+        path: "{{ log_directory }}"
+        state: directory
+        mode: '0755'
+
+    - name: Execute network configuration
+      networkconfig_simple:
+        rack_number: "{{ rack_number }}"
+        switches_csv: "{{ config_directory }}/smci-switches.csv"
+        config_file: "{{ playbook_dir }}/../plugins/module_utils/networkconfig.json"
+      register: network_config_result
+
+    - name: Display configuration results
+      debug:
+        msg:
+          - "========================================================================="
+          - "NETWORK CONFIGURATION COMPLETED"
+          - "========================================================================="
+          - ""
+          - "Status: {{ 'SUCCESS' if not network_config_result.failed else 'FAILED' }}"
+          - "Rack Number: {{ rack_number }}"
+          - "Design Detected: {{ network_config_result.design_detected }}"
+          - "Mode: PRODUCTION (configurations saved)"
+          - ""
+          - "Number of Switches Configured: {{ network_config_result.switches_configured }}"
+          - ""
+          - "Configuration Workflow Completed:"
+          - "Password configuration (CA Law Compliance)"
+          - "Management interface configuration"
+          - "HTTP API enablement (Advisor Team requirement)"
+          - "Interface reset and cleanup"
+          - "Vendor peering technology (VPC/MLAG)"
+          - "Internal port-channel configuration"
+          - "Customer uplink port-channel configuration"
+          - "VLAN configuration on all interfaces"
+          - "MTU configuration (Field requirement)"
+          - "Configuration save to startup-config (PRODUCTION MODE)"
+          - ""
+          - "Configuration Summary: {{ network_config_result.message }}"
+          - ""
+          - "Detailed Log File: {{ network_config_result.log_file }}"
+          - ""
+          - "========================================================================="
+
+    - name: Display production mode success
+      debug:
+        msg:
+          - "✅ PRODUCTION MODE COMPLETED SUCCESSFULLY ✅"
+          - ""
+          - "All switch configurations have been applied and saved to startup-config."
+          - "Your network switches are now configured according to the UCP design."
+          - ""
+          - "Important next steps:"
+          - "1. Verify network connectivity"
+          - "2. Test failover scenarios if applicable"
+          - "3. Document any custom configurations"
+          - "4. Archive the log file: {{ network_config_result.log_file }}"
+          - ""
+          - "Network configuration is complete!"
+      when: not network_config_result.failed
+
+    - name: Handle configuration failure
+      debug:
+        msg: |
+          CONFIGURATION FAILED
+          
+          The network configuration process encountered errors.
+          
+          Error Details: {{ network_config_result.message }}
+          Log File: {{ network_config_result.log_file }}
+          
+          Please review the log file for detailed error information and
+          contact support if needed.
+      when: network_config_result.failed

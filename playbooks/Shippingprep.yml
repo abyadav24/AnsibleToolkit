@@ -1,0 +1,514 @@
+---
+- name: Update Server Admin user passwords based on choice
+  hosts: localhost
+  connection: local
+  gather_facts: no
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+    log_timestamp: "{{ ansible_date_time.epoch }}"
+    log_file: "{{ playbook_dir }}/shippingprep_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
+  environment:
+    ANSIBLE_LIBRARY: "{{ playbook_dir }}/../plugins/modules"
+
+  collections:
+    - community.general
+
+  vars_prompt:
+    - name: "password_choice"
+      prompt: "Choose password type (default/unique)"
+      private: no
+      default: "default"
+
+  tasks:
+    - name: Setup facts for logging
+      setup:
+        filter: ansible_date_time
+      
+    - name: Initialize logging variables
+      set_fact:
+        log_timestamp: "{{ ansible_date_time.epoch }}"
+        log_file: "{{ playbook_dir }}/shippingprep_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
+        
+    - name: Initialize log file
+      copy:
+        content: |
+          ==========================================
+          SHIPPINGPREP PLAYBOOK EXECUTION LOG
+          ==========================================
+          Start Time: {{ ansible_date_time.iso8601 }}
+          Playbook: {{ ansible_play_name }}
+          Password Choice: {{ password_choice }}
+          ==========================================
+          
+        dest: "{{ log_file }}"
+
+    - name: Validate password_choice
+      assert:
+        that:
+          - password_choice in ['default', 'unique']
+        fail_msg: "Invalid choice. Please run playbook again and enter either 'default' or 'unique'."
+
+    - name: Read servers from CSV
+      community.general.read_csv:
+        path: "{{ playbook_dir }}/../config/server.csv"
+        delimiter: ','
+      register: server_list
+
+    - name: Log CSV read task
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "[{{ ansible_date_time.time }}] Task: Read servers from CSV - Completed successfully"
+        state: present
+        create: yes
+
+    - name: Filter out header row and categorize servers
+      set_fact:
+        ha_servers: "{{ server_list.list | selectattr('Type', 'match', 'HA_Server') | list }}"
+        ds_servers: "{{ server_list.list | rejectattr('Type', 'match', 'HA_Server') | rejectattr('Type', 'equalto', 'Type') | list }}"
+        all_servers: "{{ server_list.list | selectattr('Type', 'defined') | rejectattr('Type', 'equalto', 'Type') | list }}"
+
+    - name: Log server categorization
+      lineinfile:
+        path: "{{ log_file }}"
+        line: |
+          [{{ ansible_date_time.time }}] Server Categorization:
+          [{{ ansible_date_time.time }}] - Total servers: {{ all_servers | length }}
+          [{{ ansible_date_time.time }}] - HA Servers: {{ ha_servers | length }}
+          [{{ ansible_date_time.time }}] - DS/Supermicro Servers: {{ ds_servers | length }}
+        state: present
+        create: yes
+
+    - name: Debug server categories
+      debug:
+        msg: 
+          - "Total servers: {{ all_servers | length }}"
+          - "HA Servers: {{ ha_servers | length }}"
+          - "DS/Supermicro Servers: {{ ds_servers | length }}"
+
+    - name: Get MAC addresses for HA servers using ilorest
+      shell: |
+        /home/ubuntu/smci/AnsibleToolkit/toolkit/vendor/tools/ilorest_wrapper.sh rawget "/redfish/v1/Managers/1/EthernetInterfaces/1/" -u {{ item['Username'] }} -p {{ item['Password'] }} --url "[{{ item['Host'] }}]"
+      loop: "{{ ha_servers }}"
+      register: ha_mac_info
+      ignore_errors: yes
+      when: 
+        - ha_servers | length > 0
+        - password_choice == 'unique'
+
+    - name: Get MAC addresses for DS/Supermicro servers using saa tool
+      shell: >
+        /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        -i {{ item['IPv4 Address'] }}
+        -u {{ item['Username'] }}
+        -p {{ item['Password'] }}
+        -c GetSystemInfo
+      loop: "{{ ds_servers }}"
+      register: ds_mac_info
+      ignore_errors: yes
+      when: 
+        - ds_servers | length > 0
+        - item['IPv4 Address'] != ''
+        - item['IPv4 Address'] is defined
+
+    - name: Extract MAC addresses from HA servers
+      set_fact:
+        ha_mac_list: "{{ ha_mac_list | default([]) + [ { 'server': item.item['Host'], 'ipv4': item.item['IPv4 Address'], 'mac': extracted_mac } ] }}"
+      loop: "{{ ha_mac_info.results | default([]) }}"
+      loop_control:
+        loop_var: item
+      vars:
+        mac_regex_result: "{{ item.stdout | regex_search('\"MACAddress\":\\s*\"([0-9A-Fa-f:]+)\"', '\\1') }}"
+        extracted_mac: "{{ mac_regex_result[0] if mac_regex_result else '' }}"
+      when: 
+        - ha_servers | length > 0
+        - password_choice == 'unique'
+        - item.rc == 0
+        - item.stdout is defined
+        - extracted_mac != ''
+
+
+    - name: Extract MAC addresses from DS/Supermicro servers
+      set_fact:
+        ds_mac_list: "{{ ds_mac_list | default([]) + [ { 'server': item.item['IPv4 Address'], 'mac': (item.stdout | regex_search('BMC MAC address\\.*\\s*([0-9A-Fa-f:]+)', '\\1')) | default('') } ] }}"
+      loop: "{{ ds_mac_info.results }}"
+      loop_control:
+        loop_var: item
+
+    - name: Debug MAC extraction
+      debug:
+        msg: 
+          - "Password choice: {{ password_choice }}"
+          - "DS MAC List: {{ ds_mac_list | default('NOT SET') }}"
+      loop_control:
+        loop_var: item
+      when: 
+        - ds_servers | length > 0
+        - password_choice == 'unique'
+
+    - name: Combine MAC lists
+      set_fact:
+        mac_list: "{{ (ha_mac_list | default([])) + (ds_mac_list | default([])) }}"
+      when: password_choice == 'unique'
+
+    - name: Log MAC address collection task
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "[{{ ansible_date_time.time }}] Task: MAC address collection - Completed for {{ (ha_mac_list | default([])) | length + (ds_mac_list | default([])) | length }} servers"
+        state: present
+        create: yes
+      when: password_choice == 'unique'
+
+    - name: Prepare updated server list with new passwords
+      set_fact:
+        updated_servers: "{{ updated_servers | default([]) + [ new_server ] }}"
+      vars:
+        # For HA servers, match by IPv4 Address in ha_mac_list
+        # For DS servers, match by IPv4 Address in ds_mac_list
+        ha_mac_entry: >-
+          {{ (ha_mac_list | default([]) | selectattr('ipv4', 'equalto', item['IPv4 Address']) | map(attribute='mac') | list | first) if password_choice == 'unique' and item['Type'] == 'HA_Server' else '' }}
+        ds_mac_entry: >-
+          {{ (ds_mac_list | default([]) | selectattr('server', 'equalto', item['IPv4 Address']) | map(attribute='mac') | list | first) if password_choice == 'unique' and item['Type'] != 'HA_Server' else '' }}
+        mac_value: >-
+          {% if item['Type'] == 'HA_Server' %}
+            {% if ha_mac_entry is string and ha_mac_entry != '' %}
+              {{ ha_mac_entry }}
+            {% elif ha_mac_entry is sequence and ha_mac_entry|length > 0 %}
+              {{ ha_mac_entry[0] }}
+            {% else %}
+              ""
+            {% endif %}
+          {% else %}
+            {% if ds_mac_entry is string and ds_mac_entry != '' %}
+              {{ ds_mac_entry }}
+            {% elif ds_mac_entry is sequence and ds_mac_entry|length > 0 %}
+              {{ ds_mac_entry[0] }}
+            {% else %}
+              ""
+            {% endif %}
+          {% endif %}
+        mac_clean: "{{ mac_value | regex_replace(':', '') | trim }}"
+        mac_last6: "{{ mac_clean[-6:] if mac_clean | length >= 6 else '000000' }}"
+        new_password: >-
+          {% if password_choice == 'default' %}
+            cmb9.admin
+          {% else %}
+            HISMSP.{{ mac_last6 }}
+          {% endif %}
+        new_server: "{{ item | combine({ 'Password': new_password | trim }) }}"
+      loop: "{{ all_servers }}"
+      loop_control:
+        loop_var: item
+
+
+    - name: Log password generation task
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "[{{ ansible_date_time.time }}] Task: Generate passwords for {{ all_servers | length }} servers ({{ password_choice }} mode) - Completed successfully"
+        state: present
+        create: yes
+
+    - name: Log IPv6 usage for HA servers
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "[{{ ansible_date_time.time }}] INFO: Using IPv6 addresses for HA server management operations"
+        state: present
+        create: yes
+
+    - name: Update passwords on HA servers using ilorest (IPv6)
+      shell: |
+        /home/ubuntu/smci/AnsibleToolkit/toolkit/vendor/tools/ilorest_wrapper.sh iloaccounts changepass {{ item['Username'] }} {{ item['Password'] }} --url "[{{ item['Host'] }}]" -u {{ item['Username'] }} -p {{ current_password }}
+      loop: "{{ updated_servers | selectattr('Type', 'match', 'HA_Server') | list }}"
+      loop_control:
+        loop_var: item
+      vars:
+        current_password: "{{ all_servers | selectattr('Host', 'equalto', item['Host']) | map(attribute='Password') | first }}"
+      register: ilorest_results
+      no_log: true
+      ignore_errors: yes
+      when: updated_servers | selectattr('Type', 'match', 'HA_Server') | list | length > 0
+
+    - name: DEBUG - Show ilorest errors (without passwords)
+      debug:
+        msg: |
+          iLOrest failed for server {{ item.item['Host'] }}:
+          Return Code: {{ item.rc }}
+          Command: ilorest_wrapper.sh iloaccounts changepass {{ item.item['Username'] }} [HIDDEN] --url "[{{ item.item['Host'] }}]" -u {{ item.item['Username'] }} -p [HIDDEN]
+          Error: {{ item.stderr | regex_replace('HISMSP\\.[0-9A-Fa-f]+', '[PASSWORD]') | regex_replace('-p [^ ]+', '-p [HIDDEN]') | regex_replace('cmb9\\.admin', '[PASSWORD]') }}
+      loop: "{{ ilorest_results.results | default([]) }}"
+      when: 
+        - ilorest_results is defined
+        - item.rc != 0
+      loop_control:
+        loop_var: item
+
+    - name: Log HA server password update task
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "[{{ ansible_date_time.time }}] Task: HA server password update (ilorest IPv6) - {{ (ilorest_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ilorest_results.results | default([]) | length) }} successful"
+        state: present
+        create: yes
+      when: 
+        - ilorest_results is defined
+        - updated_servers | selectattr('Type', 'match', 'HA_Server') | list | length > 0
+
+    - name: Debug DS servers before SAA operations
+      debug:
+        msg:
+          - "Processing DS server: {{ item['IPv4 Address'] }}"
+          - "Username: {{ item['Username'] }}"
+          - "Current password available: {{ current_password != '' }}"
+          - "IPv4 Address valid: {{ item['IPv4 Address'] != '' and item['IPv4 Address'] is defined }}"
+      loop: "{{ updated_servers | rejectattr('Type', 'match', 'HA_Server') | list }}"
+      loop_control:
+        loop_var: item
+      vars:
+        current_password: "{{ all_servers | selectattr('Host', 'equalto', item['Host']) | map(attribute='Password') | first }}"
+      when: updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length > 0
+
+    - name: Filter DS servers with valid IPv4 addresses
+      set_fact:
+        valid_ds_servers: "{{ updated_servers | rejectattr('Type', 'match', 'HA_Server') | selectattr('IPv4 Address', 'defined') | rejectattr('IPv4 Address', 'equalto', '') | list }}"
+
+    - name: Show DS servers validation results
+      debug:
+        msg:
+          - "Total DS servers: {{ updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length }}"
+          - "DS servers with valid IPv4: {{ valid_ds_servers | length }}"
+          - "DS servers to skip (no IPv4): {{ (updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length) - (valid_ds_servers | length) }}"
+
+    - name: Get admin user ID for DS/Supermicro servers (using SAA tool)
+      shell: >
+        timeout 60 /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        --journal_level 4
+        -i {{ item['IPv4 Address'] }}
+        -u {{ item['Username'] }}
+        -p '{{ current_password }}'
+        -c GetBmcUserList
+      loop: "{{ valid_ds_servers | default([]) }}"
+      loop_control:
+        loop_var: item
+      vars:
+        current_password: "{{ all_servers | selectattr('Host', 'equalto', item['Host']) | map(attribute='Password') | first }}"
+      register: saa_user_list_raw
+      ignore_errors: yes
+      when: valid_ds_servers | default([]) | length > 0
+
+    - name: Extract admin user ID from SAA output
+      set_fact:
+        saa_admin_user_ids: "{{ saa_admin_user_ids | default([]) + [ { 'item': item.item, 'stdout': extracted_user_id, 'rc': item.rc } ] }}"
+      loop: "{{ saa_user_list_raw.results | default([]) }}"
+      loop_control:
+        loop_var: item
+      vars:
+        user_id_match: "{{ item.stdout | regex_search('([0-9]+)\\s*\\|\\s*' + item.item['Username'] + '\\s*\\|', '\\\\1') | default([]) }}"
+        extracted_user_id: "{{ user_id_match[0] if user_id_match | length > 0 else '' }}"
+      when: 
+        - saa_user_list_raw is defined
+        - item.rc == 0
+        - item.stdout is defined
+
+    - name: Debug SAA user ID extraction results
+      debug:
+        msg:
+          - "Server: {{ item.item['IPv4 Address'] }}"
+          - "User ID extracted: {{ item.stdout }}"
+          - "User ID valid: {{ item.stdout != '' and item.stdout | regex_search('[0-9]+') }}"
+          - "SAA command exit code: {{ item.rc }}"
+      loop: "{{ saa_admin_user_ids | default([]) }}"
+      loop_control:
+        loop_var: item
+      when: saa_admin_user_ids is defined
+
+    - name: Update passwords on DS/Supermicro servers using saa tool (IPv4)
+      shell: >
+        timeout 120 /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        --journal_level 4
+        -i {{ item['IPv4 Address'] }}
+        -u {{ item['Username'] }}
+        -p '{{ current_password }}'
+        -c SetBmcPassword
+        --user_id {{ admin_user_id }}
+        --new_password '{{ item['Password'] }}'
+        --confirm_password '{{ item['Password'] }}'
+      loop: "{{ valid_ds_servers | default([]) }}"
+      loop_control:
+        loop_var: item
+        index_var: server_index
+      vars:
+        current_password: "{{ all_servers | selectattr('Host', 'equalto', item['Host']) | map(attribute='Password') | first }}"
+        user_id_data: "{{ saa_admin_user_ids | selectattr('item.IPv4 Address', 'equalto', item['IPv4 Address']) | first | default({'stdout': ''}) }}"
+        admin_user_id: "{{ user_id_data.stdout | trim }}"
+      register: saa_results
+      no_log: true
+      ignore_errors: yes
+      when: 
+        - valid_ds_servers | default([]) | length > 0
+        - saa_admin_user_ids is defined
+        - admin_user_id != ''
+        - admin_user_id | regex_search('[0-9]+')    
+
+    - name: Debug SAA password update results
+      debug:
+        msg:
+          - "SAA password update for {{ item.item['IPv4 Address'] }}: {{ 'SUCCESS' if item.rc == 0 else 'FAILED' }}"
+          - "Exit code: {{ item.rc }}"
+          - "Error (if any): {{ (item.stderr | default('')) | regex_replace('HISMSP\\\\.[0-9A-Fa-f]+', '[PASSWORD]') }}"
+      loop: "{{ saa_results.results | default([]) }}"
+      loop_control:
+        loop_var: item
+      when: 
+        - saa_results is defined
+        - saa_results.results is defined
+
+    - name: Fallback password update for DS servers with missing user IDs (try default user ID 2)
+      shell: >
+        timeout 120 /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        --journal_level 4
+        -i {{ item['IPv4 Address'] }}
+        -u {{ item['Username'] }}
+        -p '{{ current_password }}'
+        -c SetBmcPassword
+        --user_id 2
+        --new_password '{{ item['Password'] }}'
+        --confirm_password '{{ item['Password'] }}'
+      loop: "{{ valid_ds_servers | default([]) }}"
+      loop_control:
+        loop_var: item
+      vars:
+        current_password: "{{ all_servers | selectattr('Host', 'equalto', item['Host']) | map(attribute='Password') | first }}"
+        user_id_data: "{{ saa_admin_user_ids | selectattr('item.IPv4 Address', 'equalto', item['IPv4 Address']) | first | default({'stdout': ''}) }}"
+        admin_user_id: "{{ user_id_data.stdout | trim }}"
+      register: saa_fallback_results
+      no_log: true
+      ignore_errors: yes
+      when: 
+        - valid_ds_servers | default([]) | length > 0
+        - saa_admin_user_ids is defined
+        - admin_user_id == '' or not (admin_user_id | regex_search('[0-9]+'))
+
+    - name: Log DS/Supermicro server password update task (IPv4)
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "[{{ ansible_date_time.time }}] Task: DS/Supermicro server password update via IPv4 (saa) - {{ (saa_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_results.results | default([]) | length) }} successful"
+        state: present
+        create: yes
+      when: 
+        - saa_results is defined
+        - valid_ds_servers | default([]) | length > 0
+
+    - name: Retry SAA password update for failed DS/Supermicro servers
+      shell: >
+        sleep 5 &&
+        timeout 120 /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        --journal_level 4
+        -i {{ item.item['IPv4 Address'] }}
+        -u {{ item.item['Username'] }}
+        -p '{{ current_password }}'
+        -c SetBmcPassword
+        --user_id {{ user_id }}
+        --new_password '{{ item.item['Password'] }}'
+        --confirm_password '{{ item.item['Password'] }}'
+      loop: "{{ saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list }}"
+      loop_control:
+        loop_var: item
+      vars:
+        current_password: "{{ all_servers | selectattr('Host', 'equalto', item.item['Host']) | map(attribute='Password') | first }}"
+        user_id_data: "{{ saa_admin_user_ids | selectattr('item.IPv4 Address', 'equalto', item.item['IPv4 Address']) | first | default({'stdout': ''}) }}"
+        user_id: "{{ user_id_data.stdout | trim }}"
+      register: saa_retry_results
+      no_log: true
+      ignore_errors: yes
+      when: 
+        - saa_results is defined
+        - saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list | length > 0
+        - saa_admin_user_ids is defined
+        - user_id != ''
+        - user_id | regex_search('[0-9]+')
+
+    - name: Debug retry results for failed DS servers
+      debug:
+        msg:
+          - "Retry attempt for {{ item.item.item['IPv4 Address'] }}: {{ 'SUCCESS' if item.rc == 0 else 'FAILED' }}"
+          - "Exit code: {{ item.rc }}"
+      loop: "{{ saa_retry_results.results | default([]) }}"
+      loop_control:
+        loop_var: item
+      when: saa_retry_results is defined
+
+    - name: Print password update results summary
+      debug:
+        msg: 
+          - "Password update summary (IPv4/IPv6):"
+          - "- HA Servers (ilorest IPv6): {{ (ilorest_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ilorest_results.results | default([]) | length) }} successful"
+          - "- DS/Supermicro Servers (saa IPv4): {{ (saa_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_results.results | default([]) | length) }} successful"
+          - "- DS/Supermicro Servers (saa retry): {{ (saa_retry_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_retry_results.results | default([]) | length) }} successful"
+          - "- DS/Supermicro Servers (saa fallback user ID 2): {{ (saa_fallback_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_fallback_results.results | default([]) | length) }} successful"
+      when: 
+        - ilorest_results is defined or saa_results is defined
+
+    - name: Log password update results
+      lineinfile:
+        path: "{{ log_file }}"
+        line: |
+          [{{ ansible_date_time.time }}] PASSWORD UPDATE SUMMARY:
+          [{{ ansible_date_time.time }}] - HA Servers (ilorest IPv6): {{ (ilorest_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ilorest_results.results | default([]) | length) }} successful
+          [{{ ansible_date_time.time }}] - DS/Supermicro Servers (saa IPv4): {{ (saa_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_results.results | default([]) | length) }} successful
+          [{{ ansible_date_time.time }}] - DS/Supermicro Servers (saa retry): {{ (saa_retry_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_retry_results.results | default([]) | length) }} successful
+          [{{ ansible_date_time.time }}] - DS/Supermicro Servers (saa fallback): {{ (saa_fallback_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_fallback_results.results | default([]) | length) }} successful
+        state: present
+        create: yes
+      when: 
+        - ilorest_results is defined or saa_results is defined
+
+
+    - name: Write updated servers to CSV file
+      template:
+        src: updated_servers.csv.j2
+        dest: "{{ playbook_dir }}/../config/server.csv"
+        backup: yes
+
+    - name: Log CSV write task
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "[{{ ansible_date_time.time }}] Task: Write updated servers to CSV file - Completed successfully"
+        state: present
+        create: yes
+
+    - name: Move server.csv backup to logs folder
+      shell: |
+        latest_backup=$(ls -t "{{ playbook_dir }}/../config/server.csv."*"~" 2>/dev/null | head -n1)
+        if [ -n "$latest_backup" ]; then
+          mv "$latest_backup" "{{ playbook_dir }}/../logs/"
+        fi
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Log backup move task
+      lineinfile:
+        path: "{{ log_file }}"
+        line: "[{{ ansible_date_time.time }}] Task: Move server.csv backup to logs folder - Completed successfully"
+        state: present
+        create: yes
+
+    - name: Complete log file
+      lineinfile:
+        path: "{{ log_file }}"
+        line: |
+          ==========================================
+          End Time: {{ ansible_date_time.iso8601 }}
+          Playbook execution completed successfully
+          ==========================================
+        state: present
+        create: yes
+
+    - name: Move shippingprep log to logs folder
+      shell: |
+        mv "{{ log_file }}" "{{ playbook_dir }}/../logs/"
+      args:
+        executable: /bin/bash
+      ignore_errors: yes
+
+    - name: Show log file location
+      debug:
+        msg: "Shippingprep execution log saved to: {{ playbook_dir }}/../logs/{{ log_file | basename }}"

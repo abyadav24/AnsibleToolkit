@@ -1,0 +1,30 @@
+# Python compiled files
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Log files
+*.log
+logs/*.log
+logs/*.csv
+logs/*.md
+
+# Cache files
+*.cache
+.cache/
+*/.cache/
+
+# Vendor directory - Python libraries and tools
+vendor/
+vendor/*
+vendor/tools/
+vendor/tools/venv/
+vendor/tools/venv/lib/
+vendor/tools/venv/lib/python*/
+vendor/tools/venv/lib/python*/site-packages/
+
+# Additional Python cache
+*.py[cod]
+*$py.class
+.Python

@@ -1,0 +1,264 @@
+---
+# SMC Firmware Update Tasks
+- name: "Log firmware update start"
+  shell: |
+    echo "=== Processing {{ item['IPv4 Address'] }} ({{ item.Model }}) ===" >> {{ firmware_log_file }}
+    echo "Server IP: {{ item['IPv4 Address'] }}" >> {{ firmware_log_file }}
+    echo "=== Processing {{ item['IPv4 Address'] }} ({{ item.Model }}) ===" >> {{ saa_module_log_file }}
+    echo "Server IP: {{ item['IPv4 Address'] }}" >> {{ saa_module_log_file }}
+
+- name: "Set firmware file paths"
+  set_fact:
+    model_key: "{{ item.Model | replace(' ', '_') }}"
+    bios_file_path: "/mnt/AnsibleMediakit/DS/BIOS/{{ item.Model | replace(' ', '') }}/{{ version_config.servers.supermicro[item.Model | replace(' ', '_')].firmware_files.bios }}"
+    bmc_file_path: "/mnt/AnsibleMediakit/DS/BMC/{{ version_config.servers.supermicro[item.Model | replace(' ', '_')].firmware_files.bmc }}"
+    temp_extract_path: "{{ settings.temp_path }}/{{ item['IPv4 Address'] | replace('.', '_') }}_{{ item.Model | replace(' ', '_') }}"
+
+- name: "Display firmware file paths being used"
+  debug:
+    msg: |
+      CHECKING FIRMWARE FILES FOR {{ item['IPv4 Address'] }}:
+      BIOS: {{ bios_file_path }}
+      BMC: {{ bmc_file_path }}
+
+- name: "Create extraction directory"
+  file:
+    path: "{{ temp_extract_path }}"
+    state: directory
+    mode: '0755'
+    recurse: yes
+
+- name: "Check if firmware files exist"
+  stat:
+    path: "{{ bios_file_path }}"
+  register: bios_file_exists
+
+- name: "Check if BMC firmware file exists"  
+  stat:
+    path: "{{ bmc_file_path }}"
+  register: bmc_file_exists
+
+- name: "Display firmware file availability"
+  debug:
+    msg: |
+      FIRMWARE FILE STATUS FOR {{ item['IPv4 Address'] }}:
+      BIOS File: {{ bios_file_exists.stat.exists | ternary('Found', 'Missing') }} - {{ bios_file_path | basename }}
+      BMC File: {{ bmc_file_exists.stat.exists | ternary('Found', 'Missing') }} - {{ bmc_file_path | basename }}
+
+- name: "Log firmware file paths"
+  shell: |
+    echo "BIOS file path: {{ bios_file_path }} (exists: {{ bios_file_exists.stat.exists | default(false) }})" >> {{ firmware_log_file }}
+    echo "BMC file path: {{ bmc_file_path }} (exists: {{ bmc_file_exists.stat.exists | default(false) }})" >> {{ firmware_log_file }}
+
+- name: "Set executable permissions on extracted files"
+  shell: "find {{ temp_extract_path }} -type f -exec chmod 755 {} \\;"
+
+- name: "Get current BIOS version"
+  shell: |
+    echo "Getting current BIOS info for {{ item['IPv4 Address'] }}..." >> {{ firmware_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c GetBiosInfo >> {{ saa_module_log_file }} 2>&1
+  register: current_bios_info
+  ignore_errors: yes
+
+- name: "Get current BMC version"
+  shell: |
+    echo "Getting current BMC info for {{ item['IPv4 Address'] }}..." >> {{ firmware_log_file }}
+    {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c GetBmcInfo >> {{ saa_module_log_file }} 2>&1
+  register: current_bmc_info
+  ignore_errors: yes
+
+# Phase 1: Update SMBIOS/FRU Info fields for rebranding
+- name: "Display Phase 1 FRU update start"
+  debug:
+    msg: |
+      PHASE 1: STARTING FRU UPDATES FOR {{ item['IPv4 Address'] }}
+      Product Name (PN): Hitachi Advanced Server {{ item.Model }}
+      Product Manufacturer (PM): Hitachi
+      Product Part Model (PPM): Hitachi Advanced Server {{ item.Model }}
+
+- name: "Phase 1: Get current FRU info"
+  shell: |
+    echo "Phase 1: Getting current FRU info for {{ item['IPv4 Address'] }}..." >> {{ firmware_log_file }}
+    echo "Getting current FRU info for {{ item['IPv4 Address'] }}..."
+    {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c getfruinfo 2>&1 | tee -a {{ saa_module_log_file }}
+  register: current_fru_info
+  ignore_errors: yes
+
+- name: "Phase 1: Update Product Name (PN) in FRU"
+  shell: |
+    {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c ChangeFruInfo --item PN --value "Hitachi Advanced Server {{ item.Model }}" >> {{ saa_module_log_file }} 2>&1
+  register: fru_pn_result
+  ignore_errors: yes
+
+- name: "Phase 1: Update Product Manufacturer (PM) in FRU"
+  shell: |
+    {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c ChangeFruInfo --item PM --value "Hitachi" >> {{ saa_module_log_file }} 2>&1
+  register: fru_pm_result
+  ignore_errors: yes
+
+- name: "Phase 1: Update Product Part Model (PPM) in FRU"
+  shell: |
+    {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c ChangeFruInfo --item PPM --value "Hitachi Advanced Server {{ item.Model }}" >> {{ saa_module_log_file }} 2>&1
+  register: fru_ppm_result
+  ignore_errors: yes
+
+- name: "Phase 1: Verify FRU info updates"
+  shell: |
+    {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c getfruinfo >> {{ saa_module_log_file }} 2>&1
+  register: verify_fru_info
+  ignore_errors: yes
+
+- name: "Display BIOS update status"
+  debug:
+    msg: "{{ bios_file_exists.stat.exists | ternary('STARTING BIOS UPDATE for ' + item['IPv4 Address'] + ' using ' + (bios_file_path | basename), '⚠️ SKIPPING BIOS UPDATE for ' + item['IPv4 Address'] + ' - file not found') }}"
+
+- name: "Update BIOS"
+  shell: |
+    echo "Starting BIOS update for {{ item['IPv4 Address'] }}..." >> {{ firmware_log_file }}
+    echo "LIVE BIOS UPDATE OUTPUT for {{ item['IPv4 Address'] }}:"
+    {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c UpdateBios --file {{ bios_file_path }} 2>&1 | tee -a {{ saa_module_log_file }}
+  register: bios_update_result
+  ignore_errors: yes
+  when: 
+    - bios_file_exists.stat.exists
+    - not (firmware_skip_bios | default(false) | bool)
+
+- name: "Skip BIOS update (file missing or disabled)"
+  debug:
+    msg: "SKIPPING BIOS update for {{ item['IPv4 Address'] }} - {{ 'file not found' if not bios_file_exists.stat.exists else 'disabled in config' }}"
+  when: not bios_file_exists.stat.exists or (firmware_skip_bios | default(false) | bool)
+
+- name: "Display BMC update status"
+  debug:
+    msg: "{{ bmc_file_exists.stat.exists | ternary(' STARTING BMC UPDATE for ' + item['IPv4 Address'] + ' using ' + (bmc_file_path | basename), '⚠️ SKIPPING BMC UPDATE for ' + item['IPv4 Address'] + ' - file not found') }}"
+  when: bmc_file_exists.stat.exists and not (firmware_skip_bmc | default(false) | bool)
+
+- name: "Update BMC"
+  shell: |
+    echo "Starting BMC update for {{ item['IPv4 Address'] }}..." >> {{ firmware_log_file }}
+    echo "LIVE BMC UPDATE OUTPUT for {{ item['IPv4 Address'] }}:"
+    {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c UpdateBmc --file {{ bmc_file_path }} 2>&1 | tee -a {{ saa_module_log_file }}
+  register: bmc_update_result
+  ignore_errors: yes
+  when: 
+    - bmc_file_exists.stat.exists
+    - not (firmware_skip_bmc | default(false) | bool)
+
+- name: "Skip BMC update (disabled in toolkit_config)"
+  debug:
+    msg: "SKIPPING BMC update for {{ item['IPv4 Address'] }} - disabled in config"
+  when: firmware_skip_bmc | default(false) | bool
+
+- name: "Unmount AnsibleMediakit after firmware updates"
+  debug:
+    msg: "Firmware updates completed for {{ item['IPv4 Address'] }}. Moving to next server if any."
+
+# COMMENTED OUT: All remaining tasks after firmware updates
+# These tasks are skipped to end the process after BMC/BIOS updates
+
+# - name: "Check if virtual media is already mounted"
+#   shell: |
+#     echo "Checking virtual media status for {{ item['IPv4 Address'] }}..." >> {{ firmware_log_file }}
+#     echo "Checking virtual media status for {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
+#     {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c VmManage --action 4 --dev_id 1 >> {{ saa_module_log_file }} 2>&1 || echo "No virtual media to unmount" >> {{ saa_module_log_file }}
+#   register: vm_status_check
+#   ignore_errors: yes
+#   when: not skip_pcie
+
+# - name: "Unmount any existing virtual media"
+#   shell: |
+#     echo "Unmounting existing virtual media for {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
+#     {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c VmManage --action 4 --dev_id 1 >> {{ saa_module_log_file }} 2>&1
+#   register: vm_unmount_result
+#   ignore_errors: yes
+#   when: not skip_pcie
+
+# - name: "Mount MiniOS NIC flashing ISO"
+#   shell: |
+#     echo "Mounting MiniOS NIC flashing ISO for {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
+#     {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c VmManage --action 3 --image_url '{{ settings.nic_flashing_iso_url }}' --id tmp --dev_id 1 >> {{ saa_module_log_file }} 2>&1
+#   register: vm_mount_result
+#   ignore_errors: yes
+#   when: not skip_pcie
+
+# - name: "Wait for ISO mount to complete"
+#   pause:
+#     seconds: 10
+#   when: not skip_pcie
+
+# - name: "Set boot device to UEFI ISO and reboot"
+#   shell: |
+#     echo "Setting boot device to UEFI ISO Image and rebooting {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
+#     {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c SetBootOption --device_type 13 --action reset --post_complete >> {{ saa_module_log_file }} 2>&1
+#   register: boot_and_reboot_result
+#   ignore_errors: yes
+#   when: not skip_pcie
+
+# - name: "Wait for server to boot from ISO"
+#   pause:
+#     seconds: 180
+#     prompt: "Waiting for {{ item['IPv4 Address'] }} to boot from ISO and complete POST (180 seconds)..."
+#   when: not skip_pcie
+
+# - name: "Update SMC NIC via IPMI SOL connection"
+#   shell: |
+#     echo "Starting SMC NIC update via IPMI SOL for {{ item['IPv4 Address'] }}..." >> {{ firmware_log_file }}
+#     echo "Starting SMC NIC update via IPMI SOL for {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
+#     # Create dynamic expect script with server IP
+#     sed "s/172\.25\.57\.43/{{ item['IPv4 Address'] }}/g; s/ADMIN1/{{ item.Username }}/g; s/cmb9\.admin/{{ item.Password }}/g" /home/ubuntu/smci/ansible-toolkit/toolkit/plugins/module_utils/flash-ipmi_SMCInic_run.sh > /tmp/flash_nic_{{ item['IPv4 Address'] }}.exp
+#     chmod +x /tmp/flash_nic_{{ item['IPv4 Address'] }}.exp
+#     echo "Executing NIC flashing script for {{ item['IPv4 Address'] }}..." >> {{ firmware_log_file }}
+#     echo "Executing NIC flashing script for {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
+#     /tmp/flash_nic_{{ item['IPv4 Address'] }}.exp >> {{ saa_module_log_file }} 2>&1
+#     echo "NIC flashing script completed for {{ item['IPv4 Address'] }}" >> {{ firmware_log_file }}
+#     echo "NIC flashing script completed for {{ item['IPv4 Address'] }}" >> {{ saa_module_log_file }}
+#   register: smci_nic_update_result
+#   ignore_errors: yes
+#   when: not skip_pcie
+
+# - name: "Wait for NIC flashing to complete"
+#   pause:
+#     seconds: 60
+#   when: not skip_pcie
+
+# - name: "Unmount ISO after NIC update"
+#   shell: |
+#     echo "Unmounting ISO after NIC update for {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
+#     {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c VmManage --action Unmount --dev_id 1 >> {{ saa_module_log_file }} 2>&1
+#   register: vm_unmount_final
+#   ignore_errors: yes
+#   when: not skip_pcie
+
+# - name: "Final reboot to return to normal OS"
+#   shell: |
+#     echo "Final reboot of {{ item['IPv4 Address'] }} to return to normal OS..." >> {{ saa_module_log_file }}
+#     {{ settings.saa_tool_path }} -i {{ item['IPv4 Address'] }} -u {{ item.Username }} -p {{ item.Password }} -c SetPowerAction --action Reset >> {{ saa_module_log_file }} 2>&1
+#   register: final_reboot_result
+#   ignore_errors: yes
+#   when: not skip_pcie
+
+# - name: "Wait for server to return to normal operation"
+#   pause:
+#     seconds: 180
+#     prompt: "Waiting for {{ item['IPv4 Address'] }} to return to normal operation (180 seconds)..."
+#   when: not skip_pcie
+
+# - name: "Cleanup extraction directory"
+#   file:
+#     path: "{{ temp_extract_path }}"
+#     state: absent
+
+# - name: "Cleanup temporary expect script"
+#   file:
+#     path: "/tmp/flash_nic_{{ item['IPv4 Address'] }}.exp"
+#     state: absent
+#   when: not skip_pcie
+
+- name: "Display completion message"
+  debug:
+    msg: |
+      Firmware update completed for {{ item['IPv4 Address'] }}:
+      - Phase 1 FRU Update: Completed
+      - BMC: {{ 'Skipped' if firmware_skip_bmc | default(false) else 'Updated' }}
+      - BIOS: {{ 'Skipped' if not bios_file_exists.stat.exists or (firmware_skip_bios | default(false)) else 'Updated' }}  
+      - PCIe/NIC: Skipped (commented out)
