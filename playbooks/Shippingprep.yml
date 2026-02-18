@@ -300,8 +300,8 @@
       loop_control:
         loop_var: item
       vars:
-        user_id_match: "{{ item.stdout | regex_search('([0-9]+)\\s*\\|\\s*' + item.item['Username'] + '\\s*\\|', '\\\\1') | default([]) }}"
-        extracted_user_id: "{{ user_id_match[0] if user_id_match | length > 0 else '' }}"
+        user_id_match: "{{ item.stdout | default('') | regex_search('([0-9]+)\\s*\\|\\s*' + item.item['Username'] + '\\s*\\|', '\\1') | default([]) }}"
+        extracted_user_id: "{{ user_id_match[0] if user_id_match is not none and user_id_match | length > 0 else '' }}"
       when: 
         - saa_user_list_raw is defined
         - item.rc == 0
@@ -439,26 +439,24 @@
       debug:
         msg: 
           - "Password update summary (IPv4/IPv6):"
-          - "- HA Servers (ilorest IPv6): {{ (ilorest_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ilorest_results.results | default([]) | length) }} successful"
-          - "- DS/Supermicro Servers (saa IPv4): {{ (saa_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_results.results | default([]) | length) }} successful"
-          - "- DS/Supermicro Servers (saa retry): {{ (saa_retry_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_retry_results.results | default([]) | length) }} successful"
-          - "- DS/Supermicro Servers (saa fallback user ID 2): {{ (saa_fallback_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_fallback_results.results | default([]) | length) }} successful"
-      when: 
-        - ilorest_results is defined or saa_results is defined
+          - "- HA Servers (ilorest IPv6): {{ (ilorest_results.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ilorest_results.results | default([]) | length) }} successful"
+          - "- DS/Supermicro Servers (saa IPv4): {{ (saa_results.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_results.results | default([]) | length) }} successful"
+          - "- DS/Supermicro Servers (saa retry): {{ (saa_retry_results.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_retry_results.results | default([]) | length) }} successful"
+          - "- DS/Supermicro Servers (saa fallback user ID 2): {{ (saa_fallback_results.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_fallback_results.results | default([]) | length) }} successful"
+      ignore_errors: yes
 
     - name: Log password update results
       lineinfile:
         path: "{{ log_file }}"
         line: |
           [{{ ansible_date_time.time }}] PASSWORD UPDATE SUMMARY:
-          [{{ ansible_date_time.time }}] - HA Servers (ilorest IPv6): {{ (ilorest_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ilorest_results.results | default([]) | length) }} successful
-          [{{ ansible_date_time.time }}] - DS/Supermicro Servers (saa IPv4): {{ (saa_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_results.results | default([]) | length) }} successful
-          [{{ ansible_date_time.time }}] - DS/Supermicro Servers (saa retry): {{ (saa_retry_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_retry_results.results | default([]) | length) }} successful
-          [{{ ansible_date_time.time }}] - DS/Supermicro Servers (saa fallback): {{ (saa_fallback_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_fallback_results.results | default([]) | length) }} successful
+          [{{ ansible_date_time.time }}] - HA Servers (ilorest IPv6): {{ (ilorest_results.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ilorest_results.results | default([]) | length) }} successful
+          [{{ ansible_date_time.time }}] - DS/Supermicro Servers (saa IPv4): {{ (saa_results.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_results.results | default([]) | length) }} successful
+          [{{ ansible_date_time.time }}] - DS/Supermicro Servers (saa retry): {{ (saa_retry_results.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_retry_results.results | default([]) | length) }} successful
+          [{{ ansible_date_time.time }}] - DS/Supermicro Servers (saa fallback): {{ (saa_fallback_results.results | default([]) | selectattr('rc', 'defined') | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_fallback_results.results | default([]) | length) }} successful
         state: present
         create: yes
-      when: 
-        - ilorest_results is defined or saa_results is defined
+      ignore_errors: yes
 
 
     - name: Write updated servers to CSV file

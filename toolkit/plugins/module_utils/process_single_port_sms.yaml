@@ -1,0 +1,123 @@
+---
+# Dynamic processing for a single port of network adapter
+
+- name: "Get details of a Port for Adapter {{ adapter_number }}"
+  uri:
+    url: "https://{{ server_data.ipv4 }}{{ port_info['@odata.id'] }}"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 30
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: current_adapter_port_ports
+  ignore_errors: true
+  when: port_id is defined
+
+# - name: Debug the response of current_adapter_port_networkports status
+#   ansible.builtin.debug:
+#     var: current_adapter_port_networkports.status
+
+- name: "Add detailed entry for Adapter {{ adapter_number }} "
+  shell: |
+    {% if current_adapter_details.status == 200 and current_adapter_details.json is defined %}
+    # Safely extract adapter details with proper null checks
+    {% if current_adapter_details.json.Manufacturer is defined %}
+      {% set manufacturer = current_adapter_details.json.Manufacturer %}
+    {% endif%}
+    {% if current_adapter_details_fromPCIeDevice.json.Manufacturer is defined %}
+      {% set manufacturer = current_adapter_details_fromPCIeDevice.json.Manufacturer %}
+    {% else %}
+      {% set manufacturer = 'Unknown' %}
+    {% endif %}
+    {% if current_adapter_details.json.Model is defined %}
+      {% set model = current_adapter_details.json.Model | default('Unknown') %}
+    {% endif %}
+    {% if current_adapter_details_fromPCIeDevice.json.Model is defined %}
+      {% set model = current_adapter_details_fromPCIeDevice.json.Model | default('Unknown') %}
+    {% else %}
+      {% set model = 'Unknown' %}
+    {% endif %}
+    {% if current_adapter_details.json.PartNumber is defined %}
+      {% set part_number = current_adapter_details.json.PartNumber | default('Unknown') %}
+    {% endif %}
+    {% if current_adapter_details_fromPCIeDevice.json.PartNumber is defined %}
+      {% set part_number = current_adapter_details_fromPCIeDevice.json.PartNumber | default('Unknown') %}
+    {% else %}
+      {% set part_number = 'Unknown' %}
+    {% endif %}
+    {% if current_adapter_details.json.SerialNumber is defined %}
+      {% set serial_number = current_adapter_details.json.SerialNumber | default('Unknown') %}
+    {% endif %}
+    {% if current_adapter_details_fromPCIeDevice.json.SerialNumber is defined %}
+      {% set serial_number = current_adapter_details_fromPCIeDevice.json.SerialNumber | default('Unknown') %}
+    {% else %}
+      {% set serial_number = 'Unknown' %}
+    {% endif %}
+    # Safely get firmware version with nested null checks
+    {% if current_adapter_details.json.Controllers is defined and current_adapter_details.json.Controllers | length > 0 and current_adapter_details.json.Controllers[0] is defined %}
+      {% if current_adapter_details.json.Controllers[0].FirmwarePackageVersion %}
+        {% set firmware = current_adapter_details.json.Controllers[0].FirmwarePackageVersion | default('Unknown') %}
+      {% else %}
+        {% set firmware = 'Unknown' %}
+      {% endif %}
+    {% else %}
+      {% set firmware = 'Unknown' %}
+      {% set port_number = 'Unknown' %}
+    {% endif %}
+    {% if current_adapter_port_ports is defined and current_adapter_port_ports.json is defined %}
+      {% if current_adapter_port_ports.json.PortId is defined and current_adapter_port_ports.json.PortId | length > 0 %}
+        {% set port_number = current_adapter_port_ports.json.PortId | default('Unknown') %}
+      {% endif %}
+      {% if current_adapter_port_ports is defined and current_adapter_port_ports.json.Ethernet is defined and current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses is defined and current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses | length > 0 %}
+        {% set mac_address = current_adapter_port_ports.json.Ethernet.AssociatedMACAddresses[0] | default('Unknown') %}
+      {% endif %}
+      {% set link_status = current_adapter_port_ports.json.LinkStatus | default('Unknown') %}
+    {% else %}
+      {% set port_number = 'Unknown' %}
+      {% set mac_address = 'Unknown' %}
+      {% set link_status = 'Unknown' %}
+    {% endif %}
+    
+    printf "║ %-41s │ %-41s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
+      "{{ server_data.hostname[:43] }}" \
+      "{{ server_data.ipv6[:43] }}" \
+      "{{ server_data.vendor[:12] }}" \
+      "{{ (current_adapter_details.json.Name | default('Adapter ' + adapter_number | string))[:20] }}" \
+      "{{ manufacturer[:12] }}" \
+      "{{ model[:18] }}" \
+      "{{ part_number[:12] }}" \
+      "{{ serial_number[:18] }}" \
+      "{{ firmware[:12] }}" \
+      "{{ port_number | string }}" \
+      "{{ mac_address[:17] }}" \
+      "{{ link_status[:17] }}" \
+      >> {{ current_discovery_table_file | default(discovery_table_file) }}
+    
+    echo "{{ server_data.hostname }},{{ server_data.ipv6 }},{{ server_data.vendor }},{{ current_adapter_details.json.Name | default('Adapter ' + adapter_number | string) }},{{ manufacturer }},{{ model }},{{ part_number }},{{ serial_number }},{{ firmware }},{{ port_number }},{{ mac_address }},{{ link_status }},DETAILED_SUCCESS" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+    {% else %}
+    printf "║ %-41s │ %-35s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s ║\n" \
+      "{{ server_data.hostname[:43] }}" \
+      "{{ server_data.ipv6[:15] }}" \
+      "{{ server_data.vendor[:12] }}" \
+      "Adapter {{ adapter_number }}" \
+      "DETAIL FAILED" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      "N/A" \
+      >> {{ current_discovery_table_file | default(discovery_table_file) }}
+
+    echo "{{ server_data.hostname }},{{ server_data.ipv6 }},{{ server_data.vendor }},Adapter {{ adapter_number }},DETAIL FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,DETAIL_FAILED" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+    {% endif %}
+  ignore_errors: true
+
+- name: "Log adapter {{ adapter_number }} processing result"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Adapter {{ adapter_number }} ({{ adapter_id }}) processing: {{ 'SUCCESS' if current_adapter_details.status == 200 else 'FAILED' }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}

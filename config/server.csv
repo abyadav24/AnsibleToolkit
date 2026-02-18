@@ -1,2 +1,3 @@
 Type,Host,Model,SKU,Serial Number,IPv4 Address,Username,Password
-DS_Server,fe80::85c1:5730:9ba3:d2c%enp0s8,Hitachi Advanced Server DS120_G6,To be filled by O.E.M.,S913237X5510206,172.23.55.80,admin,cmb9.admin
+HA_Server,FE80::7EA6:2AFF:FE6E:AB64%enp0s8,Hitachi Advanced Server HA810 G6,                ,3M1D30109P,172.23.55.104,admin,cmb9.admin
+HA_Server,FE80::5EED:8CFF:FE36:C630%enp0s8,Hitachi Advanced Server HA820 G3,NA,CNX24401KJ,172.23.55.123,admin,cmb9.admin

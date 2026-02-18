@@ -29,49 +29,17 @@
       file:
         path: /mnt/AnsibleMediakit
         state: directory
-        mode: '0755'
-      become: yes
       when: not mount_check.stat.exists
       ignore_errors: yes
       
-    - name: Check if AnsibleMediakit shared folder is already mounted
-      shell: mount | grep -q "AnsibleMediakit.*vboxsf" && echo "mounted" || echo "not_mounted"
-      register: vbox_mount_status
-      changed_when: false
-      ignore_errors: yes
-      
-    - name: Check if AnsibleMediakit has content (DS folder exists)
+    - name: Check if AnsibleMediakit is already available (skip mounting if accessible)
       stat:
-        path: /mnt/AnsibleMediakit/DS
-      register: ds_folder_check
-      
-    - name: Mount VirtualBox shared folder if not mounted
-      shell: mount -t vboxsf AnsibleMediakit /mnt/AnsibleMediakit
-      become: yes
-      when: >
-        (vbox_mount_status.stdout | default('not_mounted') == 'not_mounted') or 
-        (not ds_folder_check.stat.exists | default(true))
-      register: vbox_mount_result
-      ignore_errors: yes
-      
-    - name: Verify VirtualBox shared folder mount
-      stat:
-        path: /mnt/AnsibleMediakit/DS
-      register: mount_verify
-      
-    - name: Fail if shared folder mount failed
-      fail:
-        msg: |
-          ERROR: Failed to mount VirtualBox shared folder 'AnsibleMediakit'.
-          Please ensure:
-          1. VirtualBox Guest Additions are installed
-          2. Shared folder 'AnsibleMediakit' is configured in VM settings
-          3. Run: sudo mount -t vboxsf AnsibleMediakit /mnt/AnsibleMediakit
-      when: not mount_verify.stat.exists
+        path: /mnt/AnsibleMediakit
+      register: mount_available
       
     - name: Display mount status
       debug:
-        msg: "AnsibleMediakit shared folder mounted successfully - DS folder accessible: {{ mount_verify.stat.exists }}"
+        msg: "AnsibleMediakit directory status - exists: {{ mount_available.stat.exists }}, accessible: {{ mount_available.stat.readable | default(false) }}"
       
     - name: List contents of AnsibleMediakit folder
       shell: ls -la /mnt/AnsibleMediakit 2>/dev/null || echo "Directory not accessible"
@@ -160,7 +128,7 @@
 
     # Phase One: Update SMBIOS/FRU Info fields for rebranding
     - name: "Phase 1: Update FRU Info for each DS Server"
-      include_tasks: ../plugins/module_utils/smci_firmware_tasks_copy.yml
+      include_tasks: ../plugins/module_utils/smci_firmware_tasks.yml
       loop: "{{ server_list.list }}"
       vars:
         firmware_skip_bmc: "{{ skip_bmc }}"

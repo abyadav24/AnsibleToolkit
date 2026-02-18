@@ -381,6 +381,15 @@ def discover_server_type(ipv6_node, username, password):
             server_type = 'D52B'
         elif 'Q72D' in sku:
             server_type = 'Q72D'
+        # Check for DS model patterns BEFORE defaulting to HA_Server
+        elif 'DS120' in model and 'G6' in model:
+            server_type = 'DS_Server'
+        elif 'DS120' in model or 'DS120' in sku:
+            server_type = 'DS_Server'
+        elif 'DS220' in model or 'DS220' in sku:
+            server_type = 'DS_Server'
+        elif 'DS' in model and 'Advanced Server' in model:
+            server_type = 'DS_Server'
         elif 'Hitachi Advanced Server' in model:
             server_type = 'HA_Server'
         
@@ -1278,12 +1287,17 @@ def discover_server_type_fast(ipv6_node, username, password):
             server_type = 'D52B'
         elif 'Q72D' in sku:
             server_type = 'Q72D'
+        # Check for DS model patterns BEFORE defaulting to HA_Server
+        elif 'DS120' in model and 'G6' in model:
+            server_type = 'DS_Server'
+        elif 'DS120' in model or 'DS120' in sku:
+            server_type = 'DS_Server'
+        elif 'DS220' in model or 'DS220' in sku:
+            server_type = 'DS_Server'
+        elif 'DS' in model and 'Advanced Server' in model:
+            server_type = 'DS_Server'
         elif 'Hitachi Advanced Server' in model:
             server_type = 'HA_Server'
-        elif 'DS120' in model and 'G6' in model:
-            server_type = 'DS120_G6'
-        elif 'DS120' in model:
-            server_type = 'DS120_G6'  # Default DS120 to G6
         elif 'SuperServer' in model:
             server_type = 'SuperServer'
         elif model and model != 'Unknown':

@@ -12,7 +12,8 @@
   ],
   "use_target_nodes": true,
   "nodes": [
-    "fe80::85c1:5730:9ba3:d2c%enp0s8"
+    "FE80::7EA6:2AFF:FE6E:AB64%enp0s8",
+    "FE80::5EED:8CFF:FE36:C630%enp0s8"
   ],
   "network_interface": "auto",
   "_network_interface_comment": [
@@ -35,5 +36,5 @@
   "firmware_skip_bmc": true,
   "firmware_skip_bios": true,
   "firmware_skip_pcie_devices": false,
-  "minios_file_name": "minios20.04_Sep05_2024.iso"
+  "minios_file_name": "minios-smci_15Feb.iso"
 }

@@ -95,8 +95,8 @@
 
     - name: Get MAC addresses for DS/Supermicro servers using saa tool
       shell: >
-        {{ playbook_dir }}/../../saa_1.3.0_Linux_x86_64/saa
-        -i {{ item['Host'] }}
+        /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        -i {{ item['IPv4 Address'] }}
         -u {{ item['Username'] }}
         -p {{ item['Password'] }}
         -c GetSystemInfo
@@ -105,11 +105,10 @@
       ignore_errors: yes
       when: 
         - ds_servers | length > 0
-        - password_choice == 'unique'
 
     - name: Extract MAC addresses from HA servers
       set_fact:
-        ha_mac_list: "{{ ha_mac_list | default([]) + [ { 'server': item.item['Host'], 'mac': extracted_mac } ] }}"
+        ha_mac_list: "{{ ha_mac_list | default([]) + [ { 'server': item.item['Host'], 'ipv4': item.item['IPv4 Address'], 'mac': extracted_mac } ] }}"
       loop: "{{ ha_mac_info.results | default([]) }}"
       loop_control:
         loop_var: item
@@ -123,10 +122,19 @@
         - item.stdout is defined
         - extracted_mac != ''
 
+
     - name: Extract MAC addresses from DS/Supermicro servers
       set_fact:
-        ds_mac_list: "{{ ds_mac_list | default([]) + [ { 'server': item.item['Host'], 'mac': (item.stdout | regex_search('BMC MAC address\\.*\\s*([0-9A-Fa-f:]+)', '\\1')) | default('') } ] }}"
-      loop: "{{ ds_mac_info.results | default([]) }}"
+        ds_mac_list: "{{ ds_mac_list | default([]) + [ { 'server': item.item['IPv4 Address'], 'mac': (item.stdout | regex_search('BMC MAC address\\.*\\s*([0-9A-Fa-f:]+)', '\\1')) | default('') } ] }}"
+      loop: "{{ ds_mac_info.results }}"
+      loop_control:
+        loop_var: item
+
+    - name: Debug MAC extraction
+      debug:
+        msg: 
+          - "Password choice: {{ password_choice }}"
+          - "DS MAC List: {{ ds_mac_list | default('NOT SET') }}"
       loop_control:
         loop_var: item
       when: 
@@ -149,17 +157,31 @@
       set_fact:
         updated_servers: "{{ updated_servers | default([]) + [ new_server ] }}"
       vars:
-        mac_entry: >-
-          {{ (mac_list | default([]) | selectattr('server', 'equalto', item['Host']) | map(attribute='mac') | list | first) if password_choice == 'unique' else '' }}
+        # For HA servers, match by IPv4 Address in ha_mac_list
+        # For DS servers, match by IPv4 Address in ds_mac_list
+        ha_mac_entry: >-
+          {{ (ha_mac_list | default([]) | selectattr('ipv4', 'equalto', item['IPv4 Address']) | map(attribute='mac') | list | first) if password_choice == 'unique' and item['Type'] == 'HA_Server' else '' }}
+        ds_mac_entry: >-
+          {{ (ds_mac_list | default([]) | selectattr('server', 'equalto', item['IPv4 Address']) | map(attribute='mac') | list | first) if password_choice == 'unique' and item['Type'] != 'HA_Server' else '' }}
         mac_value: >-
-          {% if mac_entry is string %}
-            {{ mac_entry }}
-          {% elif mac_entry is sequence and mac_entry|length > 0 %}
-            {{ mac_entry[0] }}
+          {% if item['Type'] == 'HA_Server' %}
+            {% if ha_mac_entry is string and ha_mac_entry != '' %}
+              {{ ha_mac_entry }}
+            {% elif ha_mac_entry is sequence and ha_mac_entry|length > 0 %}
+              {{ ha_mac_entry[0] }}
+            {% else %}
+              ""
+            {% endif %}
           {% else %}
-            ""
+            {% if ds_mac_entry is string and ds_mac_entry != '' %}
+              {{ ds_mac_entry }}
+            {% elif ds_mac_entry is sequence and ds_mac_entry|length > 0 %}
+              {{ ds_mac_entry[0] }}
+            {% else %}
+              ""
+            {% endif %}
           {% endif %}
-        mac_clean: "{{ mac_value | regex_replace(':', '') }}"
+        mac_clean: "{{ mac_value | regex_replace(':', '') | trim }}"
         mac_last6: "{{ mac_clean[-6:] if mac_clean | length >= 6 else '000000' }}"
         new_password: >-
           {% if password_choice == 'default' %}
@@ -171,6 +193,7 @@
       loop: "{{ all_servers }}"
       loop_control:
         loop_var: item
+
 
     - name: Log password generation task
       lineinfile:
@@ -203,7 +226,7 @@
           iLOrest failed for server {{ item.item['Host'] }}:
           Return Code: {{ item.rc }}
           Command: ilorest_wrapper.sh iloaccounts changepass {{ item.item['Username'] }} [HIDDEN] --url "[{{ item.item['Host'] }}]" -u {{ item.item['Username'] }} -p [HIDDEN]
-          Error: {{ item.stderr | regex_replace('UCPMSP\.[0-9]+', '[PASSWORD]') | regex_replace('-p [^ ]+', '-p [HIDDEN]') | regex_replace('cmb9\.admin', '[PASSWORD]') }}
+          Error: {{ item.stderr | regex_replace('HISMSP\.[0-9A-Fa-f]+', '[PASSWORD]') | regex_replace('-p [^ ]+', '-p [HIDDEN]') | regex_replace('cmb9\.admin', '[PASSWORD]') }}
       loop: "{{ ilorest_results.results | default([]) }}"
       when: 
         - ilorest_results is defined
@@ -220,24 +243,48 @@
         - ilorest_results is defined
         - updated_servers | selectattr('Type', 'match', 'HA_Server') | list | length > 0
 
-    - name: Update passwords on DS/Supermicro servers using saa tool (IPv6)
+    - name: Get admin user ID for DS/Supermicro servers (using SAA tool)
       shell: >
-        {{ playbook_dir }}/../../saa_1.3.0_Linux_x86_64/saa
-        -i {{ item['Host'] }}
+        /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        -i {{ item['IPv4 Address'] }}
         -u {{ item['Username'] }}
-        -p {{ current_password }}
-        -c SetUserPassword
-        --userid 4
-        --newpassword {{ item['Password'] }}
+        -p '{{ current_password }}'
+        -c GetBmcUserList | 
+        grep -E "^\s*[0-9]+\s+\|\s+{{ item['Username'] }}\s+\|" | 
+        awk -F '|' '{gsub(/[^0-9]/,"",$1); print $1}' | 
+        head -1
       loop: "{{ updated_servers | rejectattr('Type', 'match', 'HA_Server') | list }}"
       loop_control:
         loop_var: item
       vars:
         current_password: "{{ all_servers | selectattr('Host', 'equalto', item['Host']) | map(attribute='Password') | first }}"
+      register: saa_admin_user_ids
+      ignore_errors: yes
+      when: updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length > 0
+
+    - name: Update passwords on DS/Supermicro servers using saa tool (IPv6)
+      shell: >
+        /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        -i {{ item['IPv4 Address'] }}
+        -u {{ item['Username'] }}
+        -p {{ current_password }}
+        -c SetBmcPassword
+        --user_id {{ admin_user_id }}
+        --new_password {{ item['Password'] }}
+        --confirm_password {{ item['Password'] }}
+      loop: "{{ updated_servers | rejectattr('Type', 'match', 'HA_Server') | list }}"
+      loop_control:
+        loop_var: item
+        index_var: server_index
+      vars:
+        current_password: "{{ all_servers | selectattr('Host', 'equalto', item['Host']) | map(attribute='Password') | first }}"
+        admin_user_id: "{{ saa_admin_user_ids.results[server_index].stdout | trim }}"
       register: saa_results
       no_log: true
       ignore_errors: yes
-      when: updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length > 0
+      when: 
+        - updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length > 0
+        - saa_admin_user_ids is defined
 
     - name: Log DS/Supermicro server password update task (IPv6)
       lineinfile:
@@ -248,22 +295,31 @@
         - saa_results is defined
         - updated_servers | rejectattr('Type', 'match', 'HA_Server') | list | length > 0
 
-    - name: Fallback - Update passwords on DS/Supermicro servers using ipmitool (IPv6)
-      command: >
-        ipmitool -I lanplus -H {{ item.item['Host'] | regex_replace('%.*$', '') }}
-        -U {{ item.item['Username'] }} -P '{{ current_password }}'
-        user set password 4 '{{ item.item['Password'] }}'
+    - name: Retry SAA password update for failed DS/Supermicro servers
+      shell: >
+        /home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa
+        -i {{ item.item['IPv4 Address'] }}
+        -u {{ item.item['Username'] }}
+        -p '{{ current_password }}'
+        -c SetBmcPassword
+        --user_id {{ user_id }}
+        --new_password '{{ item.item['Password'] }}'
+        --confirm_password '{{ item.item['Password'] }}'
       loop: "{{ saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list }}"
       loop_control:
         loop_var: item
+        index_var: server_index
       vars:
         current_password: "{{ all_servers | selectattr('Host', 'equalto', item.item['Host']) | map(attribute='Password') | first }}"
-      register: ipmi_fallback_results
+        # Get user ID dynamically using SAA tool
+        user_id: "{{ saa_admin_user_ids.results[server_index].stdout | trim }}"
+      register: saa_retry_results
       no_log: true
       ignore_errors: yes
       when: 
         - saa_results is defined
         - saa_results.results | default([]) | selectattr('rc', 'ne', 0) | list | length > 0
+        - saa_admin_user_ids is defined
 
     - name: Print password update results summary
       debug:
@@ -271,7 +327,7 @@
           - "Password update summary (IPv6):"
           - "- HA Servers (ilorest IPv6): {{ (ilorest_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ilorest_results.results | default([]) | length) }} successful"
           - "- DS/Supermicro Servers (saa IPv6): {{ (saa_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_results.results | default([]) | length) }} successful"
-          - "- DS/Supermicro Servers (ipmitool IPv6 fallback): {{ (ipmi_fallback_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (ipmi_fallback_results.results | default([]) | length) }} successful"
+          - "- DS/Supermicro Servers (saa retry): {{ (saa_retry_results.results | default([]) | selectattr('rc', 'eq', 0) | list | length) }}/{{ (saa_retry_results.results | default([]) | length) }} successful"
       when: 
         - ilorest_results is defined or saa_results is defined or ipmi_fallback_results is defined
 

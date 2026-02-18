@@ -359,30 +359,187 @@
     - not firmware_skip_pcie_devices
     - not (skip_remaining_nic_tasks | default(false))
 
-- name: "Update SMC NIC via IPMI SOL connection"
+- name: "Verify MiniOS boot completion via IPMI SOL"
   shell: |
-    echo "Starting SMC NIC update via IPMI SOL for {{ item['IPv4 Address'] }}..." >> {{ firmware_log_file }}
-    echo "Starting SMC NIC update via IPMI SOL for {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
-    # Create dynamic expect script with server IP
-    sed "s/172\.25\.57\.43/{{ item['IPv4 Address'] }}/g; s/ADMIN1/{{ item.Username }}/g; s/cmb9\.admin/{{ item.Password }}/g" /home/ubuntu/smci/ansible-toolkit/toolkit/plugins/module_utils/flash-ipmi_SMCInic_run.sh > /tmp/flash_nic_{{ item['IPv4 Address'] }}.exp
-    chmod +x /tmp/flash_nic_{{ item['IPv4 Address'] }}.exp
-    echo "Executing NIC flashing script for {{ item['IPv4 Address'] }}..." >> {{ firmware_log_file }}
-    echo "Executing NIC flashing script for {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
-    /tmp/flash_nic_{{ item['IPv4 Address'] }}.exp >> {{ saa_module_log_file }} 2>&1
-    echo "NIC flashing script completed for {{ item['IPv4 Address'] }}" >> {{ firmware_log_file }}
-    echo "NIC flashing script completed for {{ item['IPv4 Address'] }}" >> {{ saa_module_log_file }}
-  register: smci_nic_update_result
+    echo "Verifying MiniOS boot for {{ item['IPv4 Address'] }}..." >> {{ firmware_log_file }}
+    echo "Verifying MiniOS boot for {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
+    python3 {{ playbook_dir }}/../plugins/module_utils/ipmi_sol_helper.py verify_boot {{ item['IPv4 Address'] }} {{ item.Username }} {{ item.Password }} 2>&1 | tee -a {{ saa_module_log_file }}
+  register: verify_boot_result
   ignore_errors: yes
   when:
     - not firmware_skip_pcie_devices
     - not (skip_remaining_nic_tasks | default(false))
 
-- name: "Wait for NIC flashing to complete"
-  pause:
-    seconds: 60
+- name: "Display boot verification result"
+  debug:
+    msg: |
+      Boot Verification for {{ item['IPv4 Address'] }}:
+      {{ verify_boot_result.stdout | default('Boot verification attempted') }}
   when:
     - not firmware_skip_pcie_devices
     - not (skip_remaining_nic_tasks | default(false))
+
+- name: "List Ethernet adapters via SOL (JSON output)"
+  shell: |
+    echo "Listing Ethernet adapters for {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
+    python3 {{ playbook_dir }}/../plugins/module_utils/ipmi_sol_helper.py list_adapters {{ item['IPv4 Address'] }} {{ item.Username }} {{ item.Password }} Ethernet 2>> {{ saa_module_log_file }}
+  register: ethernet_adapters_result
+  ignore_errors: yes
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+
+- name: "Parse Ethernet adapters JSON"
+  set_fact:
+    ethernet_list: "{{ ethernet_adapters_result.stdout | default('[]') | from_json }}"
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+    - ethernet_adapters_result.stdout is defined
+    - ethernet_adapters_result.stdout | length > 2
+  ignore_errors: yes
+
+- name: "Set empty Ethernet list if parsing failed"
+  set_fact:
+    ethernet_list: []
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+    - ethernet_list is not defined
+
+- name: "Display Ethernet cards found"
+  debug:
+    msg: "Found {{ ethernet_list | length }} Ethernet card(s): {{ ethernet_list | map(attribute='pci_addr') | list }}"
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+
+- name: "List Fibre Channel adapters via SOL (JSON output)"
+  shell: |
+    echo "Listing Fibre Channel adapters for {{ item['IPv4 Address'] }}..." >> {{ saa_module_log_file }}
+    python3 {{ playbook_dir }}/../plugins/module_utils/ipmi_sol_helper.py list_adapters {{ item['IPv4 Address'] }} {{ item.Username }} {{ item.Password }} Fibre 2>> {{ saa_module_log_file }}
+  register: fibre_adapters_result
+  ignore_errors: yes
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+
+- name: "Parse Fibre Channel adapters JSON"
+  set_fact:
+    fibre_list: "{{ fibre_adapters_result.stdout | default('[]') | from_json }}"
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+    - fibre_adapters_result.stdout is defined
+    - fibre_adapters_result.stdout | length > 2
+  ignore_errors: yes
+
+- name: "Set empty Fibre list if parsing failed"
+  set_fact:
+    fibre_list: []
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+    - fibre_list is not defined
+
+- name: "Display Fibre Channel cards found"
+  debug:
+    msg: "Found {{ fibre_list | length }} Fibre Channel card(s): {{ fibre_list | map(attribute='pci_addr') | list }}"
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+
+- name: "Log cards to file"
+  shell: |
+    echo "Ethernet cards: {{ ethernet_list | map(attribute='pci_addr') | list }}" >> {{ firmware_log_file }}
+    echo "Fibre Channel cards: {{ fibre_list | map(attribute='pci_addr') | list }}" >> {{ firmware_log_file }}
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+
+- name: "Display cards to be processed for firmware"
+  debug:
+    msg: |
+      
+      ==========================================
+      Firmware Flashing Summary for {{ item['IPv4 Address'] }}
+      ==========================================
+      - Ethernet cards detected: {{ ethernet_list | default([]) | length }}
+      - Fibre Channel cards detected: {{ fibre_list | default([]) | length }}
+      - Mellanox cards to flash: {{ ethernet_list | default([]) | selectattr('vendor', 'search', 'Mellanox|NVIDIA') | list | length }}
+      - Emulex cards to flash: {{ fibre_list | default([]) | selectattr('vendor', 'search', 'Emulex') | list | length }}
+      ==========================================
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+
+- name: "Log firmware flashing summary"
+  shell: |
+    echo "" >> {{ firmware_log_file }}
+    echo "==========================================" >> {{ firmware_log_file }}
+    echo "Firmware Flashing Summary for {{ item['IPv4 Address'] }}" >> {{ firmware_log_file }}
+    echo "==========================================" >> {{ firmware_log_file }}
+    echo "- Ethernet cards detected: {{ ethernet_list | default([]) | length }}" >> {{ firmware_log_file }}
+    echo "- Fibre Channel cards detected: {{ fibre_list | default([]) | length }}" >> {{ firmware_log_file }}
+    echo "==========================================" >> {{ firmware_log_file }}
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+
+# Flash Mellanox cards
+- name: "Flash Mellanox cards"
+  shell: |
+    echo "" >> {{ firmware_log_file }}
+    echo "==========================================" | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+    echo "Flashing Mellanox card: {{ adapter_item.pci_addr }}" | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+    echo "Vendor: {{ adapter_item.vendor }}, Model: {{ adapter_item.model }}" | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+    echo "Submodel: {{ adapter_item.submodel | default('unknown') }}" | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+    echo "==========================================" | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+    
+    # Flash Mellanox card via SOL - pass submodel for firmware file selection
+    python3 {{ playbook_dir }}/../plugins/module_utils/ipmi_sol_helper.py flash_mellanox {{ item['IPv4 Address'] }} {{ item.Username }} {{ item.Password }} {{ adapter_item.pci_addr }} "{{ adapter_item.submodel | default('') }}" 2>&1 | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+    
+    echo "Mellanox card {{ adapter_item.pci_addr }} flashing completed" | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+  loop: "{{ ethernet_list | default([]) }}"
+  loop_control:
+    loop_var: adapter_item
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+    - ethernet_list is defined
+    - "'Mellanox' in adapter_item.vendor or 'NVIDIA' in adapter_item.vendor"
+  ignore_errors: yes
+
+# Flash Emulex cards
+- name: "Flash Emulex Fibre Channel cards"
+  shell: |
+    echo "" >> {{ firmware_log_file }}
+    echo "==========================================" | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+    echo "Flashing Emulex card: {{ adapter_item.pci_addr }}" | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+    echo "Vendor: {{ adapter_item.vendor }}, Model: {{ adapter_item.model }}" | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+    echo "==========================================" | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+    
+    # Flash Emulex card via SOL
+    python3 {{ playbook_dir }}/../plugins/module_utils/ipmi_sol_helper.py flash_emulex {{ item['IPv4 Address'] }} {{ item.Username }} {{ item.Password }} {{ adapter_item.pci_addr }} 2>&1 | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+    
+    echo "Emulex card {{ adapter_item.pci_addr }} flashing completed" | tee -a {{ firmware_log_file }} {{ saa_module_log_file }}
+  loop: "{{ fibre_list | default([]) }}"
+  loop_control:
+    loop_var: adapter_item
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+    - fibre_list is defined
+    - "'Emulex' in adapter_item.vendor"
+  ignore_errors: yes
+
+- name: "Wait for firmware flashing to settle"
+  pause:
+    seconds: 30
+  when:
+    - not firmware_skip_pcie_devices
+    - not (skip_remaining_nic_tasks | default(false))
+
 
 - name: "Unmount ISO after NIC update"
   shell: |
@@ -417,13 +574,14 @@
     path: "{{ temp_extract_path }}"
     state: absent
 
-- name: "Cleanup temporary expect script"
-  file:
-    path: "/tmp/flash_nic_{{ item['IPv4 Address'] }}.exp"
-    state: absent
-  when:
-    - not firmware_skip_pcie_devices
-    - not (skip_remaining_nic_tasks | default(false))
+# No need to cleanup expect script as we're using Python solution
+# - name: "Cleanup temporary expect script"
+#   file:
+#     path: "/tmp/flash_nic_{{ item['IPv4 Address'] }}.exp"
+#     state: absent
+#   when:
+#     - not firmware_skip_pcie_devices
+#     - not (skip_remaining_nic_tasks | default(false))
 
 - name: "Display completion message"
   debug:

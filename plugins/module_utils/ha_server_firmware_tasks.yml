@@ -1,0 +1,330 @@
+---
+# HA Server Firmware Tasks - Processes one HA server at a time
+# Called from Ucptoolkit_HA.yml for each HA_Server in server.csv
+
+- name: Load version config for SAA tool path
+  include_vars:
+    file: "{{ playbook_dir }}/../config/version_config.yaml"
+  when: settings is not defined
+
+- name: "=== Processing Server {{ server_number }}/{{ total_servers }}: {{ target_server_ip }} ==="
+  debug:
+    msg: |
+      ========================================
+      Processing HA Server {{ server_number }} of {{ total_servers }}
+      IP: {{ target_server_ip }}
+      Model: {{ target_server_model }}
+      ========================================
+
+- name: Log server processing start
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ========================================" >> {{ ha_toolkit_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Processing Server {{ server_number }}/{{ total_servers }}: {{ target_server_ip }}" >> {{ ha_toolkit_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Model: {{ target_server_model }}" >> {{ ha_toolkit_log_file }}
+
+# Check if server is G6
+- name: Check if server is G6
+  set_fact:
+    is_g6_server: "{{ 'G6' in target_server_model }}"
+
+- name: Skip non-G6 server (warning only)
+  debug:
+    msg: "WARNING: Server {{ target_server_ip }} ({{ target_server_model }}) is not a G6 model. Skipping BIOS template but continuing with firmware."
+  when: not is_g6_server
+
+- name: Log G6 status
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] G6 Server: {{ 'YES' if is_g6_server else 'NO - Skipping BIOS template' }}" >> {{ ha_toolkit_log_file }}
+
+# Apply BIOS template using ilorest (G6 only)
+- name: Apply BIOS template block (G6 servers only)
+  block:
+    - name: Find BIOS template file
+      find:
+        paths: ["/mnt/AnsibleMediakit/HA/BiosTemplates/HAG6"]
+        patterns: "*.json"
+      register: bios_template_files
+
+    - name: Set BIOS template path
+      set_fact:
+        bios_template_path: "{{ bios_template_files.files[0].path }}"
+      when: bios_template_files.files | length > 0
+
+    - name: Log BIOS template path
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using BIOS template: {{ bios_template_path | default('NOT FOUND') }}" >> {{ ha_toolkit_log_file }}
+
+    - name: Display ilorest commands for {{ target_server_ip }}
+      debug:
+        msg:
+          - "EXECUTING ILOREST COMMANDS for {{ target_server_ip }}:"
+          - "COMMAND 1: ./ilorest_wrapper.sh login {{ target_server_ip }} -u {{ target_server_user }} -p *******"
+          - "COMMAND 2: ./ilorest_wrapper.sh load -f {{ bios_template_path }}"
+          - "COMMAND 3: ./ilorest_wrapper.sh commit"
+          - "COMMAND 4: ./ilorest_wrapper.sh logout"
+
+    - name: Apply BIOS template using ilorest
+      shell: |
+        cd {{ playbook_dir }}/../vendor/tools
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ./ilorest_wrapper.sh login {{ target_server_ip }} -u {{ target_server_user }} -p *******" >> {{ ha_toolkit_log_file }}
+        
+        # Capture login output
+        login_output=$(./ilorest_wrapper.sh login {{ target_server_ip }} -u {{ target_server_user }} -p {{ target_server_password }} 2>&1)
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] LOGIN RESPONSE: $login_output" >> {{ ha_toolkit_log_file }}
+        echo "iLOrest LOGIN RESPONSE: $login_output"
+        
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ./ilorest_wrapper.sh load -f {{ bios_template_path }}" >> {{ ha_toolkit_log_file }}
+        
+        # Capture BIOS load output
+        load_output=$(./ilorest_wrapper.sh load -f "{{ bios_template_path }}" 2>&1)
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] BIOS LOAD RESPONSE: $load_output" >> {{ ha_toolkit_log_file }}
+        echo "iLOrest BIOS LOAD RESPONSE: $load_output"
+        
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ./ilorest_wrapper.sh commit" >> {{ ha_toolkit_log_file }}
+        
+        # Capture commit output
+        commit_output=$(./ilorest_wrapper.sh commit 2>&1)
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMIT RESPONSE: $commit_output" >> {{ ha_toolkit_log_file }}
+        echo "iLOrest COMMIT RESPONSE: $commit_output"
+        
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ./ilorest_wrapper.sh logout" >> {{ ha_toolkit_log_file }}
+        
+        # Capture logout output
+        logout_output=$(./ilorest_wrapper.sh logout 2>&1)
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] LOGOUT RESPONSE: $logout_output" >> {{ ha_toolkit_log_file }}
+        echo "iLOrest LOGOUT RESPONSE: $logout_output"
+      register: bios_apply_result
+      ignore_errors: yes
+      when: bios_template_path is defined
+
+    - name: Log BIOS template application result
+      shell: |
+        if [ {{ bios_apply_result.rc | default(1) }} -eq 0 ]; then
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] BIOS template application SUCCESS for {{ target_server_ip }}" >> {{ ha_toolkit_log_file }}
+        else
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] BIOS template application FAILED for {{ target_server_ip }} (Exit Code: {{ bios_apply_result.rc | default('N/A') }})" >> {{ ha_toolkit_log_file }}
+        fi
+      ignore_errors: yes
+  when: is_g6_server
+
+# ==================== SPV ISO VIRTUAL MEDIA MOUNT AND BOOT ====================
+- name: "SPV ISO Virtual Media Mount for {{ target_server_ip }}"
+  block:
+    # Find SPV ISO file
+    - name: Find SPV firmware ISO file
+      find:
+        paths: 
+          - "/mnt/AnsibleMediakit/HA/HASPV/HAG6"
+          - "/mnt/AnsibleMediakit/HA/SPV/HA G6"
+          - "/mnt/AnsibleMediakit/HA/SPV"
+        patterns: "*.iso"
+        recurse: yes
+      register: spv_iso_files
+
+    - name: Set SPV ISO path
+      set_fact:
+        spv_iso_path: "{{ spv_iso_files.files[0].path }}"
+        spv_iso_filename: "{{ spv_iso_files.files[0].path | basename }}"
+      when: spv_iso_files.files | length > 0
+
+    - name: Log SPV ISO path
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] SPV ISO found: {{ spv_iso_path | default('NOT FOUND') }}" >> {{ ha_toolkit_log_file }}
+
+    - name: Skip if no SPV ISO found
+      debug:
+        msg: "WARNING: No SPV ISO found for {{ target_server_ip }}. Skipping firmware update via virtual media."
+      when: spv_iso_files.files | length == 0
+
+    # Get local IP for HTTP serving
+    - name: Get all local IP addresses
+      shell: hostname -I
+      register: all_local_ips
+
+    - name: Extract BMC network prefix (first 2 octets)
+      set_fact:
+        bmc_network: "{{ target_server_ip.split('.')[0:2] | join('.') }}"
+      when: target_server_ip != ''
+
+    - name: Find matching IP from same network as BMC
+      shell: |
+        MATCHED_IP=$(echo "{{ all_local_ips.stdout }}" | tr ' ' '\n' | grep "^{{ bmc_network }}\." | head -1)
+        echo "$MATCHED_IP"
+      register: matched_ip_result
+      ignore_errors: yes
+      when: bmc_network is defined
+
+    - name: Select IP (matched or fallback)
+      set_fact:
+        selected_ip: "{{ matched_ip_result.stdout if (matched_ip_result.stdout is defined and matched_ip_result.stdout != '') else all_local_ips.stdout.split()[0] }}"
+
+    - name: Set SPV ISO URL
+      set_fact:
+        spv_iso_url: "http://{{ selected_ip }}/HA/HASPV/HAG6/{{ spv_iso_filename }}"
+      when: spv_iso_filename is defined
+
+    - name: Display SPV ISO details
+      debug:
+        msg: |
+          SPV ISO Configuration for {{ target_server_ip }}:
+          - ISO Path: {{ spv_iso_path | default('NOT FOUND') }}
+          - ISO URL: {{ spv_iso_url | default('NOT SET') }}
+          - Selected IP: {{ selected_ip }}
+
+    # Mount SPV ISO via virtual media
+    - name: Unmount any existing virtual media
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Unmounting existing virtual media for {{ target_server_ip }}..." >> {{ ha_toolkit_log_file }}
+        {{ settings.saa_tool_path }} -i {{ target_server_ip }} -u {{ target_server_user }} -p {{ target_server_password }} -c VmManage --action 4 --dev_id 1 2>&1 || true
+      ignore_errors: yes
+      when: spv_iso_url is defined
+
+    - name: Mount SPV ISO as virtual media
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Mounting SPV ISO for {{ target_server_ip }}..." >> {{ ha_toolkit_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ISO URL: {{ spv_iso_url }}" >> {{ ha_toolkit_log_file }}
+        {{ settings.saa_tool_path }} -i {{ target_server_ip }} -u {{ target_server_user }} -p {{ target_server_password }} -c VmManage --action 3 --image_url '{{ spv_iso_url }}' --id tmp --dev_id 1 2>&1
+      register: vm_mount_result
+      retries: 3
+      delay: 10
+      until: vm_mount_result.rc == 0
+      ignore_errors: yes
+      when: spv_iso_url is defined
+
+    - name: Log virtual media mount result
+      shell: |
+        if [ {{ vm_mount_result.rc | default(1) }} -eq 0 ]; then
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] SPV ISO mount SUCCESS for {{ target_server_ip }}" >> {{ ha_toolkit_log_file }}
+        else
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] SPV ISO mount FAILED for {{ target_server_ip }}" >> {{ ha_toolkit_log_file }}
+        fi
+      when: vm_mount_result is defined
+
+    - name: Set boot device to CD/DVD and reboot
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Setting boot device and rebooting {{ target_server_ip }}..." >> {{ ha_toolkit_log_file }}
+        {{ settings.saa_tool_path }} -i {{ target_server_ip }} -u {{ target_server_user }} -p {{ target_server_password }} -c SetBootOption --device_type 13 --action reset --post_complete 2>&1
+      register: boot_result
+      ignore_errors: yes
+      when: 
+        - vm_mount_result is defined
+        - vm_mount_result.rc | default(1) == 0
+
+    - name: Wait for server to boot from SPV ISO
+      pause:
+        seconds: 300
+        prompt: "Waiting for {{ target_server_ip }} to boot from SPV ISO and complete firmware update (300 seconds)..."
+      when:
+        - vm_mount_result is defined
+        - vm_mount_result.rc | default(1) == 0
+
+    - name: Unmount SPV ISO after firmware update
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Unmounting SPV ISO for {{ target_server_ip }}..." >> {{ ha_toolkit_log_file }}
+        {{ settings.saa_tool_path }} -i {{ target_server_ip }} -u {{ target_server_user }} -p {{ target_server_password }} -c VmManage --action 4 --dev_id 1 2>&1 || true
+      ignore_errors: yes
+      when:
+        - vm_mount_result is defined
+        - vm_mount_result.rc | default(1) == 0
+
+    - name: Final reboot to normal operation
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Final reboot of {{ target_server_ip }}..." >> {{ ha_toolkit_log_file }}
+        {{ settings.saa_tool_path }} -i {{ target_server_ip }} -u {{ target_server_user }} -p {{ target_server_password }} -c SetPowerAction --action Reset 2>&1
+      register: final_reboot_result
+      ignore_errors: yes
+      when:
+        - vm_mount_result is defined
+        - vm_mount_result.rc | default(1) == 0
+
+  when: spv_iso_files is defined and spv_iso_files.files | length > 0
+
+# Fallback: Use local SUM utility if virtual media mount failed
+- name: "Fallback: Local SUM utility firmware update for {{ target_server_ip }}"
+  block:
+    - name: Find firmware ISO file for local mount
+      find:
+        paths: 
+          - "/mnt/AnsibleMediakit/HA/HASPV/HAG6"
+          - "/mnt/AnsibleMediakit/HA/SPV/HA G6"
+        patterns: "*.iso"
+      register: local_iso_files
+
+    - name: Set firmware ISO path
+      set_fact:
+        firmware_iso_path: "{{ local_iso_files.files[0].path }}"
+      when: local_iso_files.files | length > 0
+
+    - name: Create ISO mount point
+      become: yes
+      become_method: sudo
+      vars:
+        ansible_become_pass: "{{ sudo_password.user_input }}"
+      shell: |
+        mkdir -p /tmp/spv_iso_{{ target_server_ip | replace('.', '_') }}
+      when: firmware_iso_path is defined
+
+    - name: Mount firmware ISO locally
+      become: yes
+      become_method: sudo
+      vars:
+        ansible_become_pass: "{{ sudo_password.user_input }}"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Mounting ISO locally for SUM utility: {{ firmware_iso_path }}" >> {{ ha_toolkit_log_file }}
+        mount -o loop,ro "{{ firmware_iso_path }}" /tmp/spv_iso_{{ target_server_ip | replace('.', '_') }}
+      when: firmware_iso_path is defined
+      ignore_errors: yes
+
+    - name: Update firmware using SUM utility
+      become: yes
+      become_method: sudo
+      vars:
+        ansible_become_pass: "{{ sudo_password.user_input }}"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Running SUM utility for {{ target_server_ip }}..." >> {{ ha_toolkit_log_file }}
+        export PATH="{{ playbook_dir }}/../vendor/tools/local-bin:$PATH"
+        export TMPDIR=/tmp/sum_temp_$$
+        mkdir -p $TMPDIR
+        
+        sum_output=$(/tmp/spv_iso_{{ target_server_ip | replace('.', '_') }}/packages/smartupdate --s --romonly --use_location /tmp/spv_iso_{{ target_server_ip | replace('.', '_') }}/packages --target {{ target_server_ip }} --user {{ target_server_user }} --password {{ target_server_password }} --ignore_warnings 2>&1)
+        sum_exit_code=$?
+        
+        rm -rf $TMPDIR
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] SUM UTILITY OUTPUT:" >> {{ ha_toolkit_log_file }}
+        echo "$sum_output" >> {{ ha_toolkit_log_file }}
+        echo "$sum_output"
+        
+        if echo "$sum_output" | grep -q "No applicable component found"; then
+          exit 0
+        elif echo "$sum_output" | grep -q "Cannot get a valid session"; then
+          exit 100
+        else
+          exit $sum_exit_code
+        fi
+      register: sum_update_result
+      failed_when: sum_update_result.rc not in [0, 100]
+      when: firmware_iso_path is defined
+      ignore_errors: yes
+
+    - name: Unmount local ISO
+      become: yes
+      become_method: sudo
+      vars:
+        ansible_become_pass: "{{ sudo_password.user_input }}"
+      shell: |
+        umount /tmp/spv_iso_{{ target_server_ip | replace('.', '_') }} || true
+        rmdir /tmp/spv_iso_{{ target_server_ip | replace('.', '_') }} || true
+      ignore_errors: yes
+      when: firmware_iso_path is defined
+
+  when: vm_mount_result is not defined or vm_mount_result.rc | default(1) != 0
+
+- name: "=== Completed Server {{ server_number }}/{{ total_servers }}: {{ target_server_ip }} ==="
+  debug:
+    msg: "Completed processing {{ target_server_ip }}. Moving to next server..."
+
+- name: Log server completion
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ========================================" >> {{ ha_toolkit_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMPLETED Server {{ server_number }}/{{ total_servers }}: {{ target_server_ip }}" >> {{ ha_toolkit_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ========================================" >> {{ ha_toolkit_log_file }}
