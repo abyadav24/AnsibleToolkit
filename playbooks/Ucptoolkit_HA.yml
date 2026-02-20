@@ -127,25 +127,37 @@
         path: "{{ ha_toolkit_log_file }}"
         line: "[{{ ansible_date_time.iso8601 }}] Successfully mounted AnsibleMediakit at /mnt/AnsibleMediakit"
 
-    # Step 3: Verify folder contents
-    - name: Verify required folders exist
+    # Step 3: Verify folder contents - check that at least one generation folder exists
+    - name: Check HAG6 folders exist
       stat:
         path: "{{ item }}"
-      register: folder_checks
+      register: hag6_folder_checks
       loop:
         - /mnt/AnsibleMediakit/HA/BiosTemplates/HAG6
-        - "/mnt/AnsibleMediakit/HA/SPV/HA G6"
         - /mnt/AnsibleMediakit/HA/HASPV/HAG6
 
-    - name: Validate required folder structure
+    - name: Check HAG3 folders exist
+      stat:
+        path: "{{ item }}"
+      register: hag3_folder_checks
+      loop:
+        - /mnt/AnsibleMediakit/HA/BiosTemplates/HAG3
+        - /mnt/AnsibleMediakit/HA/HASPV/HAG3
+
+    - name: Set folder availability facts
+      set_fact:
+        hag6_available: "{{ hag6_folder_checks.results | selectattr('stat.exists', 'equalto', true) | list | length == 2 }}"
+        hag3_available: "{{ hag3_folder_checks.results | selectattr('stat.exists', 'equalto', true) | list | length == 2 }}"
+
+    - name: Validate at least one generation folder structure exists
       fail:
-        msg: "Required folder structure not found in AnsibleMediakit"
-      when: folder_checks.results | selectattr('stat.exists', 'equalto', false) | list | length > 0
+        msg: "Required folder structure not found in AnsibleMediakit. Need either HAG6 or HAG3 folders."
+      when: not (hag6_available | bool or hag3_available | bool)
 
     - name: Log folder validation success
       lineinfile:
         path: "{{ ha_toolkit_log_file }}"
-        line: "[{{ ansible_date_time.iso8601 }}] All required folders validated successfully"
+        line: "[{{ ansible_date_time.iso8601 }}] Folder validation: HAG6={{ hag6_available }}, HAG3={{ hag3_available }}"
 
     # Step 4: Display menu and get user selection
     - name: Display menu options
@@ -187,43 +199,53 @@
             src: "{{ playbook_dir }}/../config/server.csv"
           register: server_csv_content
 
-        - name: Parse server data into structured list
+        - name: Parse server data
           set_fact:
             all_servers: "{{ (server_csv_content.content | b64decode).split('\n')[1:] | select | map('split', ',') | list }}"
 
-        - name: Filter HA servers only
+        # Filter HA servers - check if first column contains 'HA'
+        - name: Initialize HA servers list
           set_fact:
-            ha_servers: "{{ all_servers | selectattr('0', 'equalto', 'HA_Server') | list }}"
+            ha_servers: []
 
-        - name: Display servers to be processed
+        - name: Filter HA servers
+          set_fact:
+            ha_servers: "{{ ha_servers + [item] }}"
+          when: "'HA' in item[0]"
+          loop: "{{ all_servers }}"
+          loop_control:
+            label: "{{ item[0] | default('Unknown') }}"
+
+        - name: Display total servers to process
           debug:
-            msg: "Found {{ ha_servers | length }} HA server(s) to process"
+            msg:
+              - "============================================================"
+              - "Total HA Servers to process: {{ ha_servers | length }}"
+              - "============================================================"
+              - "Servers:"
+              - "{% for server in ha_servers %}  - {{ server[5] | default('N/A') }} ({{ server[2] | default('Unknown') }}){% endfor %}"
 
-        - name: Log all HA servers found
+        - name: Log server count
           lineinfile:
             path: "{{ ha_toolkit_log_file }}"
-            line: "[{{ ansible_date_time.iso8601 }}] Found {{ ha_servers | length }} HA server(s) to process"
+            line: "[{{ ansible_date_time.iso8601 }}] Starting processing of {{ ha_servers | length }} HA server(s)"
 
-        # Loop through each HA server
+        # Process each server using include_tasks
         - name: Process each HA server
-          include_tasks: ../plugins/module_utils/ha_server_firmware_tasks.yml
+          include_tasks: tasks/ha_server_process.yml
+          vars:
+            server_data: "{{ item }}"
+            server_index: "{{ idx }}"
+            total_servers: "{{ ha_servers | length }}"
           loop: "{{ ha_servers }}"
           loop_control:
-            loop_var: server_item
-            index_var: server_index
-            label: "{{ server_item[5] }} ({{ server_item[2] }})"
-          vars:
-            target_server_ip: "{{ server_item[5] }}"
-            target_server_user: "{{ server_item[6] }}"
-            target_server_password: "{{ server_item[7] }}"
-            target_server_model: "{{ server_item[2] }}"
-            server_number: "{{ server_index + 1 }}"
-            total_servers: "{{ ha_servers | length }}"
+            index_var: idx
+            label: "Server {{ idx + 1 }}/{{ ha_servers | length }}: {{ item[5] | default('N/A') }}"
 
-        - name: Log firmware update completion for all servers
+        - name: Log all servers processing completion
           lineinfile:
             path: "{{ ha_toolkit_log_file }}"
-            line: "[{{ ansible_date_time.iso8601 }}] Firmware update process completed for all {{ ha_servers | length }} HA server(s)"
+            line: "[{{ ansible_date_time.iso8601 }}] All {{ ha_servers | length }} server(s) processing completed"
 
       when: user_selection.user_input == "1"
 

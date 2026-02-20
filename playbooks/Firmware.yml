@@ -107,12 +107,12 @@
       set_fact:
         timestamp: "{{ ansible_date_time.epoch }}"
         log_timestamp: "{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
-        firmware_log_file: "{{ playbook_dir }}/logs/firmware_update_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
-        saa_module_log_file: "{{ playbook_dir }}/logs/Firmware_AnsibleModule_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
+        firmware_log_file: "{{ playbook_dir }}/../logs/firmware_update_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
+        saa_module_log_file: "{{ playbook_dir }}/../logs/Firmware_AnsibleModule_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
         
     - name: Create logs directory if it doesn't exist
       file:
-        path: "{{ playbook_dir }}/logs"
+        path: "{{ playbook_dir }}/../logs"
         state: directory
         mode: '0755'
         
