@@ -10,7 +10,7 @@ version_config:
           bmc: "11.03.00.06"
         firmware_files:
           bios: "BIOS_X14DBMS-1D37-HI0005DU00_20251009_1.4.1U_OEMsp.bin"
-          bmc: "BMC_X14AST2600-ROT20-4501MS_20251014_11.03.00.06_STDsp_E84B525B.bin"
+          bmc: "BMC_X14AST2600-ROT20-4501MS_20260203_11.06.00.00_OEMsp.bin"
         supported_io_cards:
           - "ConnectX-6"
           - "Mellanox-25G"
@@ -21,7 +21,7 @@ version_config:
           bmc: "11.03.00.06"
         firmware_files:
           bios: "BIOS_X14DBMS-1D37-HI0005DU00_20251010_1.4.2U_OEMsp.bin"
-          bmc: "BMC_X14AST2600-ROT20-4501MS_20251014_11.03.00.06_STDsp_E84B525B.bin"
+          bmc: "BMC_X14AST2600-ROT20-4501MS_20260203_11.06.00.00_OEMsp.bin"
         supported_io_cards:
           - "ConnectX-6"
           - "Mellanox-25G"
@@ -32,7 +32,7 @@ version_config:
           bmc: "01.03.33"
         firmware_files:
           bios: "BIOS_X13DETB-1C77_20241114_2.5_STDsp.zip"
-          bmc: "BMC_X13AST2600-ROT20-D301MS_20241102_01.03.33_STDsp.zip"
+          bmc: "BMC_X14AST2600-ROT20-4501MS_20260203_11.06.00.00_OEMsp.bin"
         supported_io_cards:
           - "ConnectX-6"
           - "Mellanox-25G"
@@ -43,7 +43,7 @@ version_config:
           bmc: "01.00.21.31"
         firmware_files:
           bios: "BIOS_X14DBTB-1D3C_20240925_1.0b_STDsp.zip"
-          bmc: "BMC_X14AST2600-ROT20-4501MS_20241025_01.00.21.12_STDsp.zip"
+          bmc: "BMC_X14AST2600-ROT20-4501MS_20260203_11.06.00.00_OEMsp.bin"
         supported_io_cards:
           - "ConnectX-6"
           - "Mellanox-25G"
@@ -59,46 +59,258 @@ version_config:
           bmc: "HA_BMC_example.zip"
         supported_io_cards:
           - "Intel-X710"
-  # IO Card firmware configurations at same level as servers
+  # IO Card firmware configurations with multi-release support
   io_cards:
-    mellanox:
-      ConnectX-6:
-        current_version: "26.41.1000"
-        firmware_file: "A25GM2S_20240605_26-41-1000_NUP.zip"
-        supported_servers:
-          - "X13DET-B"
-          - "X14DBM-SP"
+    # Release definitions
+    release_info:
+      n:
+        description: "Current/Latest Release"
+        release_date: "2025"
+      n-1:
+        description: "Previous Release"
+        release_date: "2024"
+      n-2:
+        description: "Two Releases Back"
+        release_date: "2023"
+    
+    # Network adapter cards with version tracking
+    cards:
+      AOC-653106A-HDAT:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-653106A-HDAT"
+        releases:
+          n:
+            version: "14.37.50"
+            firmware_file: "AOC-653106A-HDAT_Ax-UEFI-14.37.50-FlexBoot-3.7.500.bin.zip"
+          n-1:
+            version: "14.37.40"
+            firmware_file: "AOC-653106A-HDAT_Ax-UEFI-14.37.40-FlexBoot-3.7.400.bin.zip"
+          n-2:
+            version: "14.37.30"
+            firmware_file: "AOC-653106A-HDAT_Ax-UEFI-14.37.30-FlexBoot-3.7.300.bin.zip"
         update_tool: "mft"
       
-      Mellanox-25G:
-        current_version: "26.35.2000"
-        firmware_file: "ConnectX6Lx-rel-26_35_2000.bin"
-        supported_servers:
-          - "X13DET-B"
-          - "X14DBM-SP"
-        update_tool: "mft"
-    
-    intel:
-      X710:
-        current_version: "8.15"
-        firmware_file: "Intel_X710_8_15.bin"
-        supported_servers:
-          - "HA-SERVER-MODEL1"
+      AOC-A25G-i4SM:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-A25G-i4SM"
+        releases:
+          n:
+            version: "4.80"
+            firmware_file: "A25Gi4SM_20250708_4-80_NUP.zip"
+          n-1:
+            version: "4.70"
+            firmware_file: "A25Gi4SM_20240708_4-70_NUP.zip"
+          n-2:
+            version: "4.60"
+            firmware_file: "A25Gi4SM_20230708_4-60_NUP.zip"
         update_tool: "nvmupdate"
-    
-    broadcom:
-      BCM57416:
-        current_version: "214.0.308.0"
-        firmware_file: "BCM57416_214_0_308_0.pkg"
-        supported_servers:
-          - "QUANTA-MODEL1"
+      
+      AOC-A25G-M2SM:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-A25G-M2SM"
+        releases:
+          n:
+            version: "26.45.1020"
+            firmware_file: "A25GM2S_20250530_26-45-1020_NUP.zip"
+          n-1:
+            version: "26.41.1000"
+            firmware_file: "A25GM2S_20240605_26-41-1000_NUP.zip"
+          n-2:
+            version: "26.35.2000"
+            firmware_file: "A25GM2S_20230530_26-35-2000_NUP.zip"
+        update_tool: "mft"
+      
+      AOC-AH25G-M2S2TM_Intel:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-AH25G-M2S2TM"
+        chip_vendor: "intel"
+        releases:
+          n:
+            version: "3.7"
+            firmware_file: "AH25M_X550_20250919_3-7_NUP.zip"
+          n-1:
+            version: "3.6"
+            firmware_file: "AH25M_X550_20240919_3-6_NUP.zip"
+          n-2:
+            version: "3.5"
+            firmware_file: "AH25M_X550_20230919_3-5_NUP.zip"
+        update_tool: "nvmupdate"
+      
+      AOC-AH25G-M2S2TM_Mellanox:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-AH25G-M2S2TM"
+        chip_vendor: "nvidia"
+        releases:
+          n:
+            version: "14.32.1900"
+            firmware_file: "AH25M2S_20250128_NVIDIA_14-32-1900_NUP.zip"
+          n-1:
+            version: "14.32.1800"
+            firmware_file: "AH25M2S_20240128_NVIDIA_14-32-1800_NUP.zip"
+          n-2:
+            version: "14.32.1700"
+            firmware_file: "AH25M2S_20230128_NVIDIA_14-32-1700_NUP.zip"
+        update_tool: "mft"
+      
+      AOC-ATG-I2TM:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-ATG-I2TM"
+        releases:
+          n:
+            version: "3.7"
+            firmware_file: "ATGi2T_X550_20250116_3-7_NUP.zip"
+          n-1:
+            version: "3.6"
+            firmware_file: "ATGi2T_X550_20240116_3-6_NUP.zip"
+          n-2:
+            version: "3.5"
+            firmware_file: "ATGi2T_X550_20230116_3-5_NUP.zip"
+        update_tool: "nvmupdate"
+      
+      AOC-CX7660030-ST0:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-CX7660030-ST0"
+        chip_vendor: "nvidia"
+        releases:
+          n:
+            version: "28.47.1088"
+            firmware_file: "fw-ConnectX7-rel-28_47_1088-MCX75310AAS-HEA_Ax-UEFI-14.40.10-FlexBoot-3.8.201.signed.bin.zip"
+          n-1:
+            version: "28.47.1078"
+            firmware_file: "fw-ConnectX7-rel-28_47_1078-MCX75310AAS-HEA_Ax-UEFI-14.40.00-FlexBoot-3.8.200.signed.bin.zip"
+          n-2:
+            version: "28.47.1068"
+            firmware_file: "fw-ConnectX7-rel-28_47_1068-MCX75310AAS-HEA_Ax-UEFI-14.39.90-FlexBoot-3.8.199.signed.bin.zip"
+        update_tool: "mft"
+      
+      AOC-CX7AH0039-STZ:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-CX7AH0039-STZ"
+        chip_vendor: "nvidia"
+        releases:
+          n:
+            version: "28.47.1088"
+            firmware_file: "fw-ConnectX7-rel-28_47_1088-MCX715105AS-WEAT_Ax-UEFI-14.40.10-FlexBoot-3.8.201.signed.bin.zip"
+          n-1:
+            version: "28.47.1078"
+            firmware_file: "fw-ConnectX7-rel-28_47_1078-MCX715105AS-WEAT_Ax-UEFI-14.40.00-FlexBoot-3.8.200.signed.bin.zip"
+          n-2:
+            version: "28.47.1068"
+            firmware_file: "fw-ConnectX7-rel-28_47_1068-MCX715105AS-WEAT_Ax-UEFI-14.39.90-FlexBoot-3.8.199.signed.bin.zip"
+        update_tool: "mft"
+      
+      AOC-CX7AH0078-DTZ:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-CX7AH0078-DTZ"
+        chip_vendor: "nvidia"
+        releases:
+          n:
+            version: "28.47.1088"
+            firmware_file: "fw-ConnectX7-rel-28_47_1088-MCX755106AS-HEA_Ax-UEFI-14.40.10-FlexBoot-3.8.201.signed.bin.zip"
+          n-1:
+            version: "28.47.1078"
+            firmware_file: "fw-ConnectX7-rel-28_47_1078-MCX755106AS-HEA_Ax-UEFI-14.40.00-FlexBoot-3.8.200.signed.bin.zip"
+          n-2:
+            version: "28.47.1068"
+            firmware_file: "fw-ConnectX7-rel-28_47_1068-MCX755106AS-HEA_Ax-UEFI-14.39.90-FlexBoot-3.8.199.signed.bin.zip"
+        update_tool: "mft"
+      
+      AOCS100G-B2C:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOCS100G-B2C"
+        releases:
+          n:
+            version: "234.1.124.0"
+            firmware_file: "S100GB2C_20250715_234-1-124-0_NUP.zip"
+          n-1:
+            version: "234.1.123.0"
+            firmware_file: "S100GB2C_20240715_234-1-123-0_NUP.zip"
+          n-2:
+            version: "234.1.122.0"
+            firmware_file: "S100GB2C_20230715_234-1-122-0_NUP.zip"
         update_tool: "bnxtnvm"
+      
+      AOC-S100GC-i2C:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-S100GC-i2C"
+        releases:
+          n:
+            version: "4.80"
+            firmware_file: "S100GCi2C_20250916_4-80_NUP.zip"
+          n-1:
+            version: "4.70"
+            firmware_file: "S100GCi2C_20240916_4-70_NUP.zip"
+          n-2:
+            version: "4.60"
+            firmware_file: "S100GCi2C_20230916_4-60_NUP.zip"
+        update_tool: "nvmupdate"
+      
+      AOC-S25GC-I4S:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-S25GC-I4S"
+        releases:
+          n:
+            version: "4.80"
+            firmware_file: "S25Ci4S_20250709_4-80_NUP.zip"
+          n-1:
+            version: "4.70"
+            firmware_file: "S25Ci4S_20240709_4-70_NUP.zip"
+          n-2:
+            version: "4.60"
+            firmware_file: "S25Ci4S_20230709_4-60_NUP.zip"
+        update_tool: "nvmupdate"
+      
+      AOC-S25G-m2S:
+        vendor: "supermicro"
+        type: "network_adapter"
+        model: "AOC-S25G-m2S"
+        releases:
+          n:
+            version: "26.01"
+            firmware_file: "S25G2601_NUP.zip"
+          n-1:
+            version: "26.00"
+            firmware_file: "S25G2600_NUP.zip"
+          n-2:
+            version: "25.99"
+            firmware_file: "S25G2599_NUP.zip"
+        update_tool: "mft"
+      
+      Emulex_LPe35002-M2:
+        vendor: "broadcom"
+        type: "hba_adapter"
+        model: "LPe35002-M2"
+        releases:
+          n:
+            version: "14.2.673.40"
+            firmware_file: "prism_A14.2.673.40.grp"
+          n-1:
+            version: "14.2.673.30"
+            firmware_file: "prism_A14.2.673.30.grp"
+          n-2:
+            version: "14.2.673.20"
+            firmware_file: "prism_A14.2.673.20.grp"
+        update_tool: "hbacmd"
 
 # General settings
 settings:
   mounted_path: "/mnt/AnsibleMediakit"
   temp_path: "/tmp/firmware_update"
   log_file: "/tmp/firmware_update.log"
-  saa_tool_path: "/home/ubuntu/smci/saa_1.4.0_Linux_x86_64/saa"
+  # SAA tool path - uses vendor/tools directory relative to toolkit or absolute path
+  # User should place saa tool in toolkit/vendor/tools/ or set full path here
+  saa_tool_path: "{{ playbook_dir }}/../vendor/tools/saa"
   servers_csv_path: "../config/server.csv"
   nic_flashing_iso_url: "http://10.76.32.27/minios-smci_March10_2025.iso"

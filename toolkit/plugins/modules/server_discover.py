@@ -54,8 +54,23 @@ SKU:
 '''
 
 def setup_logger():
-    """Creates a timestamped logger in /tmp/server_discover_logs"""
-    log_dir = "/tmp/server_discover_logs"
+    """Creates a timestamped logger in AnsibleToolkit logs directory"""
+    # When running via Ansible, __file__ points inside a zip archive
+    log_dir = None
+    cwd = os.getcwd()
+    
+    # Check if we're in the playbooks directory
+    if os.path.basename(cwd) == 'playbooks':
+        parent_logs = os.path.join(os.path.dirname(cwd), 'logs')
+        if os.path.isdir(os.path.dirname(parent_logs)):
+            log_dir = parent_logs
+    
+    if log_dir is None or not os.path.isdir(os.path.dirname(log_dir)):
+        log_dir = os.path.join(cwd, 'logs')
+    
+    if '.zip' in str(log_dir) or not os.path.isdir(os.path.dirname(log_dir)):
+        log_dir = '/tmp/ansible_toolkit_logs'
+    
     os.makedirs(log_dir, exist_ok=True)
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

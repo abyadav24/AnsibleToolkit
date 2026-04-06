@@ -1,0 +1,68 @@
+# Python compiled files
+*.pyc
+*.pyo
+*.pyd
+*.py[cod]
+*$py.class
+.Python
+__pycache__/
+**/__pycache__/
+**/*.pyc
+
+# Log files
+*.log
+logs/
+**/logs/
+playbooks/logs/
+
+# Discovery reports (generated)
+logs/*.md
+logs/*.csv
+
+# Cache files
+*.cache
+.cache/
+**/.cache/
+
+# Vendor directory - external libs and tools
+vendor/
+toolkit/vendor/
+
+# Backup files
+*.backup
+*.backup2
+**/*.backup
+**/*.backup2
+
+# Archive directories
+*_Archive/
+**/*_Archive/
+plugins/modules_Archive/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+/tmp/
+*.tmp
+*.temp
+
+# Config files with sensitive data (optional - uncomment if needed)
+# config/server.csv
+# config/smci-switches.csv
+
+# Nested toolkit directory caches
+toolkit/**/__pycache__/
+toolkit/**/*.pyc
+
+# Test files
+test_*.py
+*_test.py

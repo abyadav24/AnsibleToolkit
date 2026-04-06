@@ -1,0 +1,40 @@
+---
+# SDS BareMetal Configuration Variables
+# Edit this file or override via command line
+
+# Shared folder mounted from Windows Host
+# This is the VirtualBox shared folder mounted on the Ansible VM
+shared_folder_path: "/mnt/AnsibleMediakit"
+
+# Output directory where AHK scripts will be generated
+# Option 1: Use local directory (default - works even if shared folder is read-only)
+# Option 2: Set to shared_folder_path if shared folder is writable
+ahk_output_dir: "{{ playbook_dir }}/output/SDS_BareMetal"
+
+# Set to true to copy output to shared folder after generation
+# If shared folder is read-only, set this to false and manually copy
+copy_to_shared_folder: true
+shared_folder_output: "{{ shared_folder_path }}/SDS_BareMetal"
+
+# Path to AutoHotKey executable on Windows Host
+# Use the local copy in script directory (copied by playbook)
+ahk_exe_path: 'C:\Users\Administrator\Desktop\AnsibleMediakit\SDS_BareMetal\AutoHotkeyU64.exe'
+
+# Windows path where shared folder is accessible
+# This is the path as seen from Windows (mapped drive or UNC path)
+windows_script_dir: 'C:\Users\Administrator\Desktop\AnsibleMediakit\SDS_BareMetal'
+
+# Timing configurations (in seconds)
+# Adjust these based on your network/server response times
+wait_between_nodes: 10      # Wait time between configuring different nodes
+wait_after_password: 20     # Wait time after password setup completes
+wait_after_settings: 25     # Wait time after settings configuration completes
+
+# Path to CSV file containing server details
+# Format: host,user,pw,setup_pw,hostname,ipv4address,subnetmask,mtu,route_count,route_destination,route_gateway
+servers_csv_file: "{{ playbook_dir }}/config/SDS_BaremetalserverDetails.csv"
+
+# Default values (used if not specified in CSV)
+defaults:
+  mtu: "9000"
+  route_count: "1"

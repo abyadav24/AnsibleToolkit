@@ -120,7 +120,7 @@
   shell: |
     echo "Starting SMC NIC update via IPMI SOL for {{ item.hostname }}..." >> {{ settings.log_file }}
     # Create dynamic expect script with server IP
-  sed "s/172\.25\.57\.43/{{ item.ipv4 }}/g; s/ADMIN1/{{ item.username }}/g; s/cmb9\.admin/{{ item.password }}/g" /home/ubuntu/smci/ansible-toolkit/toolkit/plugins/module_utils/flash-ipmi_SMCInic_run.sh > /tmp/flash_nic_{{ item.hostname }}.exp
+  sed "s/172\.25\.57\.43/{{ item.ipv4 }}/g; s/ADMIN1/{{ item.username }}/g; s/cmb9\.admin/{{ item.password }}/g" {{ playbook_dir }}/../plugins/module_utils/flash-ipmi_SMCInic_run.sh > /tmp/flash_nic_{{ item.hostname }}.exp
     chmod +x /tmp/flash_nic_{{ item.hostname }}.exp
     /tmp/flash_nic_{{ item.hostname }}.exp >> {{ settings.log_file }} 2>&1
   register: smci_nic_update_result

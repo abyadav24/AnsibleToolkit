@@ -82,3 +82,48 @@ To add new Python modules for offline use:
 3. Update requirements.txt and this README
 
 4. Test with the setup script
+
+## IPMI Tools
+
+### ipmitool (v1.8.18)
+For Supermicro server management, the toolkit includes a bundled ipmitool with all dependencies.
+
+**Location**: `tools/bin/ipmitool`
+**Wrapper**: `tools/bin/ipmitool.sh` (automatically sets library paths)
+**Library**: `tools/lib/libfreeipmi.so.17*`
+
+**Usage**:
+```bash
+# Version check
+./vendor/tools/bin/ipmitool.sh -V
+
+# The wrapper is automatically used by the toolkit
+```
+
+**Features**:
+- ✅ No installation required
+- ✅ Bundled with libfreeipmi dependency
+- ✅ Works offline without internet
+
+### ipmi_sol_helper.py
+Python script for IPMI SOL operations without requiring 'expect' package.
+
+**Location**: `vendor/ipmi_sol_helper.py`
+
+**Features**:
+- Verify MiniOS boot completion via SOL
+- List Ethernet adapters through SOL connection
+- List Fibre Channel adapters through SOL connection
+- Built-in timeout and error handling
+
+**Usage**:
+```bash
+# Verify boot
+python3 vendor/ipmi_sol_helper.py verify_boot <ip> <user> <pass>
+
+# List Ethernet adapters
+python3 vendor/ipmi_sol_helper.py list_adapters <ip> <user> <pass> Ethernet
+
+# List Fibre adapters
+python3 vendor/ipmi_sol_helper.py list_adapters <ip> <user> <pass> Fibre
+```

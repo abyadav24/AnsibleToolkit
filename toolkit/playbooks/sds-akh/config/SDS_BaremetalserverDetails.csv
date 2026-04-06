@@ -1,0 +1,2 @@
+host,user,pw,setup_pw,hostname,ipv4address,subnetmask,mtu,route_count,route_destination,route_gateway
+172.23.55.100,admin,cmb9.admin,SDS_NewPass123,sds-node1,10.0.0.1,255.255.255.0,9000,1,0.0.0.0,10.0.0.254

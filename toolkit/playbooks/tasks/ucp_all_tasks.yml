@@ -57,6 +57,11 @@
         path: "{{ ha_toolkit_log_file }}"
         line: "[{{ ansible_date_time.time }}] G6 server detected: {{ is_g6_server }}"
 
+    - name: Set BIOS template path for G6 servers
+      set_fact:
+        bios_template_dir: "{{ '/mnt/AnsibleMediakit/HA/BiosTemplates/HAG6' if is_g6_server | bool else 'N/A' }}"
+        bios_template_json: "{{ '/mnt/AnsibleMediakit/HA/BiosTemplates/HAG6/HA_G6_Intel_HA810_HA820_G6.json' if is_g6_server | bool else 'N/A' }}"
+
     - name: Apply G6 BIOS Template
       block:
         - name: Check if G6 BIOS template JSON exists
@@ -77,7 +82,7 @@
         - name: Check if ilorest is available
           shell: |
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking for ilorest tool availability" >> {{ ha_toolkit_log_file }}
-            if [ -f "/home/ubuntu/smci/AnsibleToolkit/toolkit/vendor/tools/ilorest_wrapper.sh" ]; then
+            if [ -f "{{ playbook_dir }}/../vendor/tools/ilorest_wrapper.sh" ]; then
               echo "[$(date '+%Y-%m-%d %H:%M:%S')] ilorest wrapper found and available" >> {{ ha_toolkit_log_file }}
               echo "ilorest_available"
             else
@@ -97,7 +102,7 @@
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ilorest login {{ server_ip }} -u {{ server_user }} -p [HIDDEN]" >> {{ ha_toolkit_log_file }}
             
             # Execute ilorest login and capture output
-            ilo_output=$(/home/ubuntu/smci/AnsibleToolkit/toolkit/vendor/tools/ilorest_wrapper.sh login {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
+            ilo_output=$({{ playbook_dir }}/../vendor/tools/ilorest_wrapper.sh login {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
             ilo_rc=$?
             
             echo "============================================================"
@@ -133,7 +138,7 @@
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ilorest load -f {{ bios_template_json }}" >> {{ ha_toolkit_log_file }}
             
             # Execute ilorest load and capture output
-            load_output=$(/home/ubuntu/smci/AnsibleToolkit/toolkit/vendor/tools/ilorest_wrapper.sh load -f "{{ bios_template_json }}" 2>&1)
+            load_output=$({{ playbook_dir }}/../vendor/tools/ilorest_wrapper.sh load -f "{{ bios_template_json }}" 2>&1)
             load_rc=$?
             
             echo "============================================================"
@@ -152,13 +157,13 @@
             # Return the load command exit code
             exit $load_rc
           register: bios_template_result
-          failed_when: bios_template_result.rc != 0
+          failed_when: bios_template_result.rc not in [0, 8]
           when: "'ilorest_available' in ilorest_check.stdout"
 
         - name: Log G6 BIOS template application result
           lineinfile:
             path: "{{ ha_toolkit_log_file }}"
-            line: "[{{ ansible_date_time.time }}] G6 BIOS template applied successfully"
+            line: "[{{ ansible_date_time.time }}] G6 BIOS template applied successfully (rc={{ bios_template_result.rc }}, {{ 'no changes needed' if bios_template_result.rc == 8 else 'changes applied' }})"
           when: "'ilorest_available' in ilorest_check.stdout and bios_template_result is succeeded"
 
         - name: Log G6 BIOS template skipped due to missing tool
@@ -176,7 +181,7 @@
             echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ilorest logout" >> {{ ha_toolkit_log_file }}
             
             # Execute ilorest logout and capture output
-            logout_output=$(/home/ubuntu/smci/AnsibleToolkit/toolkit/vendor/tools/ilorest_wrapper.sh logout 2>&1)
+            logout_output=$({{ playbook_dir }}/../vendor/tools/ilorest_wrapper.sh logout 2>&1)
             logout_rc=$?
             
             echo "============================================================"
@@ -201,7 +206,7 @@
               - "G6 BIOS TEMPLATE APPLICATION COMMAND SUMMARY"
               - "======================================================="
               - "ilorest login: {{ 'SUCCESS' if ilo_login_result.rc == 0 else 'FAILED' }} (RC: {{ ilo_login_result.rc }})"
-              - "ilorest load:  {{ 'SUCCESS' if bios_template_result.rc == 0 else 'FAILED' }} (RC: {{ bios_template_result.rc }})"
+              - "ilorest load:  {{ 'SUCCESS' if bios_template_result.rc in [0, 8] else 'FAILED' }} (RC: {{ bios_template_result.rc }}){{ ' - No changes needed' if bios_template_result.rc == 8 else '' }}"
               - "ilorest logout: Completed (see logs for details)"
               - "======================================================="
               - "Note: Full command outputs are logged to {{ ha_toolkit_log_file | basename }}"
@@ -246,8 +251,6 @@
         state: directory
         mode: '0755'
       become: yes
-      vars:
-        ansible_become_pass: "{{ mount_sudo_password.user_input }}"
 
     - name: Mount SPV ISO
       mount:
@@ -257,8 +260,6 @@
         opts: loop,ro
         state: mounted
       become: yes
-      vars:
-        ansible_become_pass: "{{ mount_sudo_password.user_input }}"
 
     - name: Log SPV ISO mount
       shell: |
@@ -291,6 +292,19 @@
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] SUM executable found: {{ sum_executable }}" >> {{ ha_toolkit_log_file }}
         echo "Found SUM tool at: {{ sum_executable }}"
 
+    - name: Kill any existing SUM instances and clean temp directories
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Cleaning up any existing SUM instances" >> {{ ha_toolkit_log_file }}
+        pkill -f smartupdate 2>/dev/null || true
+        pkill -f sum 2>/dev/null || true
+        rm -rf /tmp/.sum_lock* /var/lock/sum* 2>/dev/null || true
+        rm -rf /tmp/sum_* 2>/dev/null || true
+        rm -rf /var/tmp/localsum 2>/dev/null || true
+        sleep 2
+        echo "Cleaned up existing SUM instances and temp directories"
+      become: yes
+      ignore_errors: yes
+
     - name: Execute firmware update using SUM
       shell: |
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting firmware update with SUM tool" >> {{ ha_toolkit_log_file }}
@@ -299,19 +313,26 @@
         echo "============================================================"
         echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: {{ sum_executable }} -s {{ server_ip }} -u {{ server_user }} -p [HIDDEN]" >> {{ ha_toolkit_log_file }}
         
-        # Check file extension and execute accordingly
-        sum_file="{{ sum_executable }}"
-        if echo "$sum_file" | grep -q "\.py$"; then
-          echo "Executing Python SUM script"
-          sum_output=$(python3 "$sum_file" -s {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
-        elif echo "$sum_file" | grep -q "\.sh$"; then
-          echo "Executing Shell SUM script"
-          chmod +x "$sum_file"
-          sum_output=$(bash "$sum_file" -s {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
+        # Change to ISO mount directory for relative paths to work
+        cd /mnt/spv_iso
+        
+        # Execute smartupdate directly with bash (launch_sum.sh uses sh which causes syntax errors)
+        if [ -f "./packages/smartupdate" ]; then
+          echo "Executing smartupdate directly with bash"
+          sum_output=$(bash ./packages/smartupdate -s {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
         else
-          echo "Executing SUM binary/other"
-          chmod +x "$sum_file" 2>/dev/null || true
-          sum_output=$("$sum_file" -s {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
+          # Fallback to original method
+          sum_file="{{ sum_executable }}"
+          if echo "$sum_file" | grep -q "\.py$"; then
+            echo "Executing Python SUM script"
+            sum_output=$(python3 "$sum_file" -s {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
+          elif echo "$sum_file" | grep -q "\.sh$"; then
+            echo "Executing Shell SUM script with bash"
+            sum_output=$(bash "$sum_file" -s {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
+          else
+            echo "Executing SUM binary/other"
+            sum_output=$("$sum_file" -s {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
+          fi
         fi
         sum_rc=$?
         
@@ -330,6 +351,8 @@
         
         # Set the return code for the shell task
         exit $sum_rc
+      args:
+        chdir: /mnt/spv_iso
       register: firmware_update_result
       ignore_errors: yes
 
@@ -366,8 +389,6 @@
         path: /mnt/spv_iso
         state: absent
       become: yes
-      vars:
-        ansible_become_pass: "{{ mount_sudo_password.user_input }}"
       ignore_errors: yes
 
     - name: Remove SPV mount directory
@@ -375,8 +396,6 @@
         path: /mnt/spv_iso
         state: absent
       become: yes
-      vars:
-        ansible_become_pass: "{{ mount_sudo_password.user_input }}"
       ignore_errors: yes
 
     - name: Log cleanup completion
@@ -401,15 +420,15 @@
       - "COMMANDS EXECUTED:"
       - "1. ilorest login {{ server_ip }} -u {{ server_user }} -p [HIDDEN]"
       - "   Status: {{ 'SUCCESS' if ilo_login_result is defined and ilo_login_result.rc == 0 else 'FAILED/SKIPPED' }}"
-      - "2. ilorest load -f {{ bios_template_json }}"
-      - "   Status: {{ 'SUCCESS' if bios_template_result is defined and bios_template_result.rc == 0 else 'FAILED/SKIPPED' }}"
+      - "2. ilorest load -f {{ bios_template_json | default('N/A') }}"
+      - "   Status: {{ 'SUCCESS' if bios_template_result is defined and bios_template_result.rc in [0, 8] else 'FAILED/SKIPPED' }}{{ ' (No changes needed)' if bios_template_result is defined and bios_template_result.rc == 8 else '' }}"
       - "3. ilorest logout"
       - "   Status: Executed (see logs for details)"
       - "4. {{ sum_executable | default('SUM_TOOL_NOT_FOUND') }} -s {{ server_ip }} -u {{ server_user }} -p [HIDDEN]"
       - "   Status: {{ 'SUCCESS' if firmware_update_result is defined and firmware_update_result.rc == 0 else 'FAILED/WARNING' }} (RC: {{ firmware_update_result.rc | default('N/A') }})"
       - "============================================================================="
       - "FILES USED:"
-      - "- BIOS Template: {{ bios_template_json }}"
+      - "- BIOS Template: {{ bios_template_json | default('N/A') }}"
       - "- Firmware ISO: {{ selected_spv_iso | default(spv_firmware_iso) }}"
       - "============================================================================="
       - "All command outputs and details are logged to: {{ ha_toolkit_log_file | basename }}"

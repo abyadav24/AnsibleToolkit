@@ -4,13 +4,13 @@
 - name: "Log start of enhanced server discovery for {{ server_data.hostname }}"
   shell: |
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting DYNAMIC discovery for server {{ server_data.hostname }}" >> {{ configchecker_log_file }}
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IPv6: {{ server_data.ipv6 }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IP: {{ server_data.ipv4 }}" >> {{ configchecker_log_file }}
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting DYNAMIC discovery for server {{ server_data.hostname }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
-    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IPv6: {{ server_data.ipv6 }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IP: {{ server_data.ipv4 }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
 
 - name: "Test basic connectivity to {{ server_data.hostname }}"
   uri:
-    url: "https://[{{ server_data.ipv6 }}]/redfish/v1"
+    url: "https://{{ server_data.ipv4 }}/redfish/v1"
     method: GET
     user: "{{ server_data.username }}"
     password: "{{ server_data.password }}"
@@ -30,7 +30,7 @@
 
 - name: "Get network adapters collection for {{ server_data.hostname }}"
   uri:
-    url: "https://[{{ server_data.ipv6 }}]/redfish/v1/Chassis/1/NetworkAdapters"
+    url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters"
     method: GET
     user: "{{ server_data.username }}"
     password: "{{ server_data.password }}"
@@ -77,7 +77,7 @@
       shell: |
         printf "║ %-12s │ %-15s │ %-12s │ %-20s │ %-12s │ %-18s │ %-12s │ %-18s │ %-12s │ %-6s │ %-17s │ %-13s ║\n" \
           "{{ server_data.hostname[:12] }}" \
-          "{{ server_data.ipv6[:15] }}" \
+          "{{ server_data.ipv4[:15] }}" \
           "{{ server_data.vendor[:12] }}" \
           "DISCOVERY FAILED" \
           "N/A" \
@@ -90,7 +90,7 @@
           "N/A" \
           >> {{ current_discovery_table_file | default(discovery_table_file) }}
 
-        echo "{{ server_data.hostname }},{{ server_data.ipv6 }},{{ server_data.vendor }},DISCOVERY FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,DISCOVERY_FAILED" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
+        echo "{{ server_data.hostname }},{{ server_data.ipv4 }},{{ server_data.vendor }},DISCOVERY FAILED,N/A,N/A,N/A,N/A,N/A,N/A,N/A,N/A,DISCOVERY_FAILED" >> {{ current_discovery_csv_file | default(discovery_csv_file) }}
 
     - name: "Log failed discovery for {{ server_data.hostname }}"
       shell: |

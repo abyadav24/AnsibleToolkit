@@ -22,8 +22,21 @@ except ImportError:
 # Setup logging
 def setup_logging():
     """Setup logging to file with timestamp"""
-    # Use a fixed logs directory path - avoid using module path during Ansible execution
-    logs_dir = "/home/ubuntu/smci/ansible-toolkit/toolkit/logs"
+    # When running via Ansible, __file__ points inside a zip archive
+    logs_dir = None
+    cwd = os.getcwd()
+    
+    # Check if we're in the playbooks directory
+    if os.path.basename(cwd) == 'playbooks':
+        parent_logs = os.path.join(os.path.dirname(cwd), 'logs')
+        if os.path.isdir(os.path.dirname(parent_logs)):
+            logs_dir = parent_logs
+    
+    if logs_dir is None or not os.path.isdir(os.path.dirname(logs_dir)):
+        logs_dir = os.path.join(cwd, 'logs')
+    
+    if '.zip' in str(logs_dir) or not os.path.isdir(os.path.dirname(logs_dir)):
+        logs_dir = '/tmp/ansible_toolkit_logs'
     
     # Ensure logs directory exists
     os.makedirs(logs_dir, exist_ok=True)

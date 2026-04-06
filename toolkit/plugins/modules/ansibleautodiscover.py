@@ -124,6 +124,41 @@ import signal
 from datetime import datetime
 from ansible.module_utils.basic import AnsibleModule
 
+# Add vendor libraries to Python path
+script_dir = os.path.dirname(os.path.abspath(__file__))
+toolkit_root = os.path.dirname(os.path.dirname(script_dir))
+vendor_path = os.path.join(toolkit_root, 'vendor', 'python-libs')
+
+# If the standard path doesn't exist (e.g., when run by Ansible), 
+# try alternative path detection methods
+if not os.path.exists(vendor_path):
+    # Try from the current working directory
+    cwd_vendor = os.path.join(os.getcwd(), 'vendor', 'python-libs')
+    if os.path.exists(cwd_vendor):
+        vendor_path = cwd_vendor
+    else:
+        # Try finding the toolkit directory relative to script location
+        possible_paths = [
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(script_dir))), 'vendor', 'python-libs'),
+            os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(script_dir)))), 'vendor', 'python-libs'),
+            os.path.join(os.getcwd(), '..', 'vendor', 'python-libs'),
+        ]
+        for path in possible_paths:
+            if os.path.exists(path):
+                vendor_path = path
+                break
+
+if vendor_path not in sys.path:
+    sys.path.insert(0, vendor_path)
+
+# Import netmiko after setting the path
+try:
+    from netmiko import ConnectHandler
+    NETMIKO_AVAILABLE = True
+except ImportError as e:
+    ConnectHandler = None
+    NETMIKO_AVAILABLE = False
+
 urllib3.disable_warnings()
 
 # Global timeout handler
@@ -154,8 +189,25 @@ def with_timeout(timeout_seconds):
 # Setup logging
 def setup_logging():
     """Setup logging to file with timestamp"""
-    # Use the correct logs directory path
-    logs_dir = "/home/ubuntu/smci/AnsibleToolkit/toolkit/logs"
+    # When running via Ansible, __file__ points inside a zip archive
+    # We need to find the actual toolkit logs directory
+    logs_dir = None
+    
+    # First, try to find logs directory from CWD (playbooks dir when run via ansible-playbook)
+    cwd = os.getcwd()
+    # Check if we're in the playbooks directory
+    if os.path.basename(cwd) == 'playbooks':
+        parent_logs = os.path.join(os.path.dirname(cwd), 'logs')
+        if os.path.isdir(os.path.dirname(parent_logs)):
+            logs_dir = parent_logs
+    
+    # If not found, try CWD/logs
+    if logs_dir is None or not os.path.isdir(os.path.dirname(logs_dir)):
+        logs_dir = os.path.join(cwd, 'logs')
+    
+    # Last resort: /tmp for logging
+    if '.zip' in str(logs_dir) or not os.path.isdir(os.path.dirname(logs_dir)):
+        logs_dir = '/tmp/ansible_toolkit_logs'
     
     # Ensure logs directory exists
     os.makedirs(logs_dir, exist_ok=True)
@@ -346,6 +398,15 @@ def discover_server_type(ipv6_node, username, password):
             server_type = 'D52B'
         elif 'Q72D' in sku:
             server_type = 'Q72D'
+        # Check for DS model patterns BEFORE defaulting to HA_Server
+        elif 'DS120' in model and 'G6' in model:
+            server_type = 'DS_Server'
+        elif 'DS120' in model or 'DS120' in sku:
+            server_type = 'DS_Server'
+        elif 'DS220' in model or 'DS220' in sku:
+            server_type = 'DS_Server'
+        elif 'DS' in model and 'Advanced Server' in model:
+            server_type = 'DS_Server'
         elif 'Hitachi Advanced Server' in model:
             server_type = 'HA_Server'
         
@@ -524,7 +585,10 @@ def discover_switch_type(ipv6_address, username, password):
         return None
     
     try:
-        from netmiko import ConnectHandler
+        # Check if netmiko is available
+        if not NETMIKO_AVAILABLE:
+            log_debug(f"Netmiko not available, cannot perform switch discovery")
+            return None
         
         log_debug(f"Attempting SSH connection to {ipv6_address}")
         net_connect = ConnectHandler(
@@ -595,12 +659,12 @@ def discover_switch_type(ipv6_address, username, password):
         
         log_debug(f"Identified switch type: {switch_type}, model: {model}")
         
-        # Resolve IPv4 address for this switch
+        # Resolve IPv4 address for this switch - skip slow IP scanning
         device_info = {
             'model': model,
             'type': switch_type
         }
-        ipv4_address = resolve_ipv4_address(ipv6_address, device_info)
+        ipv4_address = resolve_ipv4_address(ipv6_address, device_info, username, password, skip_slow_scan=True)
         
         if ipv4_address:
             log_debug(f"Resolved IPv4 address {ipv4_address} for switch {ipv6_address}")
@@ -621,8 +685,13 @@ def discover_switch_type(ipv6_address, username, password):
         log_debug(f"Exception during switch discovery for {ipv6_address}: {e}")
         return None
 
-def resolve_ipv4_address(ipv6_address, device_info=None):
-    """Resolve IPv4 address from IPv6 link-local address - improved correlation"""
+def resolve_ipv4_address(ipv6_address, device_info=None, username='admin', password='cmb9.admin', skip_slow_scan=False):
+    """Resolve IPv4 address from IPv6 link-local address - improved correlation
+    
+    Args:
+        skip_slow_scan: If True, skip the slow IP range scanning for serial correlation.
+                       Use this when doing interface discovery with many devices.
+    """
     try:
         log_debug(f"Attempting to resolve IPv4 for {ipv6_address}")
         
@@ -668,50 +737,102 @@ def resolve_ipv4_address(ipv6_address, device_info=None):
         
         # Method 2: Try direct REST API query with very short timeout
         try:
-            ipv6_clean = ipv6_address.split('%')[0] if '%' in ipv6_address else ipv6_address
-            log_debug(f"Attempting direct REST query for {ipv6_clean}")
+            # URL-encode the zone ID (%) to %25 for proper IPv6 link-local addressing
+            ipv6_url_encoded = ipv6_address.replace('%', '%25')
+            log_debug(f"Attempting direct REST query for {ipv6_address}")
             
-            url = f"https://[{ipv6_clean}]/redfish/v1/Managers/BMC/EthernetInterfaces/1"
-            log_debug(f"Trying URL: {url}")
+            # Try multiple possible endpoints for different server types
+            network_endpoints = [
+                '/redfish/v1/Managers/BMC/EthernetInterfaces/1',
+                '/redfish/v1/Managers/1/EthernetInterfaces/1',
+                '/redfish/v1/Managers/BMC/EthernetInterfaces',
+                '/redfish/v1/Managers/1/EthernetInterfaces'
+            ]
             
-            response = requests.get(url, 
-                                  auth=('admin', 'cmb9.admin'),
-                                  verify=False, timeout=3)
-            if response.status_code == 200:
-                data = response.json()
-                log_debug(f"Got response: {str(data)[:200]}...")
-                
-                # Look for IPv4 addresses in the response
-                if 'IPv4Addresses' in data and data['IPv4Addresses']:
-                    for ipv4_entry in data['IPv4Addresses']:
-                        if 'Address' in ipv4_entry:
-                            ipv4 = ipv4_entry['Address']
-                            if ipv4 and ipv4 != '0.0.0.0' and ipv4 != 'null':
-                                log_debug(f"Found IPv4 {ipv4} via direct query")
-                                return ipv4
-            else:
-                log_debug(f"REST query failed with status: {response.status_code}")
+            redfish_header = {
+                'Content-Type': 'application/json',
+                'User-Agent': 'curl/7.54.0'
+            }
+            
+            for endpoint in network_endpoints:
+                try:
+                    url = f"https://[{ipv6_url_encoded}]{endpoint}"
+                    log_debug(f"Trying URL: {url}")
+                    
+                    response = requests.get(url, 
+                                          auth=(username, password),
+                                          verify=False, 
+                                          headers=redfish_header,
+                                          timeout=5)
+                    if response.status_code == 200:
+                        data = response.json()
+                        log_debug(f"Got response from {endpoint}: {str(data)[:200]}...")
+                        
+                        # Look for IPv4 addresses in the response
+                        if 'IPv4Addresses' in data and data['IPv4Addresses']:
+                            for ipv4_entry in data['IPv4Addresses']:
+                                if isinstance(ipv4_entry, dict) and 'Address' in ipv4_entry:
+                                    ipv4 = ipv4_entry['Address']
+                                    if ipv4 and ipv4 != '0.0.0.0' and ipv4 != 'null' and '.' in ipv4:
+                                        log_debug(f"Found IPv4 {ipv4} via direct query from {endpoint}")
+                                        return ipv4
+                        
+                        # Check for IPv4StaticAddresses
+                        if 'IPv4StaticAddresses' in data and data['IPv4StaticAddresses']:
+                            for ipv4_entry in data['IPv4StaticAddresses']:
+                                if isinstance(ipv4_entry, dict) and 'Address' in ipv4_entry:
+                                    ipv4 = ipv4_entry['Address']
+                                    if ipv4 and ipv4 != '0.0.0.0' and ipv4 != 'null' and '.' in ipv4:
+                                        log_debug(f"Found IPv4 {ipv4} via static addresses from {endpoint}")
+                                        return ipv4
+                        
+                        # Check if this is a collection endpoint with members
+                        if 'Members' in data and data['Members']:
+                            log_debug(f"Found {len(data['Members'])} interface members")
+                            for member in data['Members'][:3]:  # Check first 3 members only
+                                member_url = member.get('@odata.id', '')
+                                if member_url:
+                                    try:
+                                        member_response = requests.get(f"https://[{ipv6_url_encoded}]{member_url}",
+                                                                     auth=(username, password),
+                                                                     verify=False,
+                                                                     headers=redfish_header,
+                                                                     timeout=3)
+                                        if member_response.status_code == 200:
+                                            member_data = member_response.json()
+                                            
+                                            # Check IPv4 addresses in member
+                                            if 'IPv4Addresses' in member_data and member_data['IPv4Addresses']:
+                                                for ipv4_entry in member_data['IPv4Addresses']:
+                                                    if isinstance(ipv4_entry, dict) and 'Address' in ipv4_entry:
+                                                        ipv4 = ipv4_entry['Address']
+                                                        if ipv4 and ipv4 != '0.0.0.0' and ipv4 != 'null' and '.' in ipv4:
+                                                            log_debug(f"Found IPv4 {ipv4} from member {member_url}")
+                                                            return ipv4
+                                    except Exception as e:
+                                        log_debug(f"Failed to query member {member_url}: {e}")
+                    else:
+                        log_debug(f"REST query to {endpoint} failed with status: {response.status_code}")
+                except Exception as e:
+                    log_debug(f"Failed to query endpoint {endpoint}: {e}")
+                    continue
                         
         except Exception as e:
             log_debug(f"Direct query failed: {e}")
         
         # Method 3: Correlate by querying devices directly via IPv4 to match serial numbers
-        if device_info and device_info.get('serial_number'):
+        # Only do this if not skipping slow scans (interface discovery mode)
+        if not skip_slow_scan and device_info and device_info.get('serial_number'):
             log_debug(f"Attempting device correlation using serial number: {device_info['serial_number']}")
             ipv4 = find_ipv4_by_serial_correlation(device_info['serial_number'], ipv6_address)
             if ipv4:
                 return ipv4
-        
-        # Method 4: Only try direct device query - remove unreliable IP scanning
-        log_debug("Attempting device correlation using direct query...")
-        if device_info and device_info.get('serial_number'):
-            log_debug(f"Attempting device correlation using serial number: {device_info['serial_number']}")
-            ipv4 = find_ipv4_by_serial_correlation(device_info['serial_number'], ipv6_address)
-            if ipv4:
-                return ipv4
+        elif skip_slow_scan:
+            log_debug("Skipping slow IP range scan (skip_slow_scan=True)")
         
         # No reliable method found - return None instead of guessing
         log_debug(f"Could not reliably resolve IPv4 for {ipv6_address}")
+        return None
         return None
         
     except Exception as e:
@@ -1240,12 +1361,17 @@ def discover_server_type_fast(ipv6_node, username, password):
             server_type = 'D52B'
         elif 'Q72D' in sku:
             server_type = 'Q72D'
+        # Check for DS model patterns BEFORE defaulting to HA_Server
+        elif 'DS120' in model and 'G6' in model:
+            server_type = 'DS_Server'
+        elif 'DS120' in model or 'DS120' in sku:
+            server_type = 'DS_Server'
+        elif 'DS220' in model or 'DS220' in sku:
+            server_type = 'DS_Server'
+        elif 'DS' in model and 'Advanced Server' in model:
+            server_type = 'DS_Server'
         elif 'Hitachi Advanced Server' in model:
             server_type = 'HA_Server'
-        elif 'DS120' in model and 'G6' in model:
-            server_type = 'DS120_G6'
-        elif 'DS120' in model:
-            server_type = 'DS120_G6'  # Default DS120 to G6
         elif 'SuperServer' in model:
             server_type = 'SuperServer'
         elif model and model != 'Unknown':
@@ -1254,12 +1380,14 @@ def discover_server_type_fast(ipv6_node, username, password):
         log_debug(f"Identified server type: {server_type}")
         
         # Fast IPv4 resolution - only try the most reliable methods
+        # Skip slow IP range scanning since we're doing interface discovery with many devices
         device_info = {
             'model': model,
             'sku': sku,
-            'type': server_type
+            'type': server_type,
+            'serial_number': serial
         }
-        ipv4_address = resolve_ipv4_address(ipv6_node, device_info)
+        ipv4_address = resolve_ipv4_address(ipv6_node, device_info, username, password, skip_slow_scan=True)
         
         if ipv4_address:
             log_debug(f"Resolved IPv4 address {ipv4_address} for server {ipv6_node}")
@@ -1282,7 +1410,7 @@ def discover_server_type_fast(ipv6_node, username, password):
         return None
 
 def discover_switches(ipv6_addresses, usernames, passwords):
-    """Discover switches sequentially"""
+    """Discover switches sequentially with custom password logic"""
     log_debug(f"Starting switch discovery for {len(ipv6_addresses)} nodes")
     switches = []
     for i, ipv6_address in enumerate(ipv6_addresses):
@@ -1294,19 +1422,42 @@ def discover_switches(ipv6_addresses, usernames, passwords):
             continue
             
         result = None
+        
+        # First try the default credentials
+        log_debug(f"Trying default credentials for {ipv6_address}")
         for username in usernames:
             for password in passwords:
+                log_debug(f"Attempting login with {username}/{password}")
                 result = discover_switch_type(ipv6_address, username, password)
                 if result:
-                    log_debug(f"Successfully discovered switch: {result['type']}")
+                    log_debug(f"Successfully discovered switch with default creds: {result['type']}")
                     switches.append(result)
                     break  # Stop trying passwords for this node
             if result:
                 break  # Stop trying usernames for this node
         
-        # If no switch found, log and continue to next node
+        # If default credentials failed, try custom password logic
         if not result:
-            log_debug(f"No switch discovered at {ipv6_address}")
+            log_debug(f"Default credentials failed, trying custom password logic for {ipv6_address}")
+            
+            # Extract last 6 digits from IPv6 address (remove interface part after %)
+            ipv6_clean = ipv6_address.split('%')[0]  # Remove interface suffix
+            last6digits = ipv6_clean.replace(':', '')[-6:]  # Get last 6 hex characters
+            custom_password = f"UCPMSP.{last6digits}"
+            
+            log_debug(f"Generated custom password: UCPMSP.{last6digits}")
+            
+            for username in usernames:
+                log_debug(f"Attempting login with {username}/{custom_password}")
+                result = discover_switch_type(ipv6_address, username, custom_password)
+                if result:
+                    log_debug(f"Successfully discovered switch with custom password: {result['type']}")
+                    switches.append(result)
+                    break  # Stop trying usernames
+                    
+        # If no switch found with either method, log and continue to next node
+        if not result:
+            log_debug(f"No switch discovered at {ipv6_address} with any credentials")
     
     log_debug(f"Total switches discovered: {len(switches)}")
     return switches

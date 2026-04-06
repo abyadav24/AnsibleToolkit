@@ -1,0 +1,416 @@
+---
+# UCP All Tasks - Streamlined BIOS Template and Firmware Update
+- name: Log UCP All tasks start
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ================================================" >> {{ ha_toolkit_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] UCP ALL TASKS: Starting BIOS template and firmware update" >> {{ ha_toolkit_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] ================================================" >> {{ ha_toolkit_log_file }}
+    echo "UCP All Tasks: Starting BIOS template and firmware update"
+
+# SERVER CONFIGURATION LOADING
+- name: Load server configuration
+  block:
+    - name: Set servers CSV file path
+      set_fact:
+        servers_csv_path: "{{ playbook_dir }}/../config/server.csv"
+
+    - name: Verify servers CSV file exists
+      stat:
+        path: "{{ servers_csv_path }}"
+      register: csv_file_check
+      failed_when: not csv_file_check.stat.exists
+
+    - name: Read server information from CSV
+      read_csv:
+        path: "{{ servers_csv_path }}"
+      register: server_data
+
+    - name: Set server facts from CSV
+      set_fact:
+        server_ip: "{{ server_data.list[0]['IPv4 Address'] }}"
+        server_user: "{{ server_data.list[0]['Username'] }}"
+        server_password: "{{ server_data.list[0]['Password'] }}"
+        server_model: "{{ server_data.list[0]['Model'] | default('Unknown') }}"
+
+    - name: Log server information
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ================================================" >> {{ ha_toolkit_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] SERVER CONFIGURATION LOADED" >> {{ ha_toolkit_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Target server IP: {{ server_ip }}" >> {{ ha_toolkit_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Username: {{ server_user }}" >> {{ ha_toolkit_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server model: {{ server_model }}" >> {{ ha_toolkit_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] ================================================" >> {{ ha_toolkit_log_file }}
+        echo "Server Configuration:"
+        echo "  Target IP: {{ server_ip }}"
+        echo "  Username: {{ server_user }}"
+        echo "  Model: {{ server_model }}"
+
+# G6 SERVER DETECTION AND BIOS TEMPLATE APPLICATION
+- name: G6 Server Processing
+  block:
+    - name: Check if server is G6 generation
+      set_fact:
+        is_g6_server: "{{ 'G6' in server_model }}"
+
+    - name: Log G6 detection
+      lineinfile:
+        path: "{{ ha_toolkit_log_file }}"
+        line: "[{{ ansible_date_time.time }}] G6 server detected: {{ is_g6_server }}"
+
+    - name: Apply G6 BIOS Template
+      block:
+        - name: Check if G6 BIOS template JSON exists
+          stat:
+            path: "{{ bios_template_json }}"
+          register: g6_template_check
+
+        - name: Fail if G6 BIOS template JSON not found
+          fail:
+            msg: "G6 BIOS Template JSON not found at {{ bios_template_json }}"
+          when: not g6_template_check.stat.exists
+
+        - name: Log G6 BIOS template application start
+          lineinfile:
+            path: "{{ ha_toolkit_log_file }}"
+            line: "[{{ ansible_date_time.time }}] Applying G6 BIOS template from {{ bios_template_json }}"
+
+        - name: Check if ilorest is available
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Checking for ilorest tool availability" >> {{ ha_toolkit_log_file }}
+            if [ -f "{{ playbook_dir }}/../vendor/tools/ilorest_wrapper.sh" ]; then
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] ilorest wrapper found and available" >> {{ ha_toolkit_log_file }}
+              echo "ilorest_available"
+            else
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] WARNING: ilorest wrapper not found" >> {{ ha_toolkit_log_file }}
+              echo "WARNING: ilorest wrapper not found"
+              echo "Please ensure ilorest_wrapper.sh is available"
+              echo "ilorest_not_available"
+            fi
+          register: ilorest_check
+
+        - name: Connect to iLO for G6 BIOS template application
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Connecting to iLO at {{ server_ip }}" >> {{ ha_toolkit_log_file }}
+            echo "============================================================"
+            echo "EXECUTING: ilorest login {{ server_ip }} -u {{ server_user }} -p [HIDDEN]"
+            echo "============================================================"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ilorest login {{ server_ip }} -u {{ server_user }} -p [HIDDEN]" >> {{ ha_toolkit_log_file }}
+            
+            # Execute ilorest login and capture output
+            ilo_output=$({{ playbook_dir }}/../vendor/tools/ilorest_wrapper.sh login {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
+            ilo_rc=$?
+            
+            echo "============================================================"
+            echo "ILOREST LOGIN OUTPUT:"
+            echo "$ilo_output"
+            echo "============================================================"
+            echo "Return code: $ilo_rc"
+            echo "============================================================"
+            
+            # Log output to file
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ILOREST LOGIN OUTPUT:" >> {{ ha_toolkit_log_file }}
+            echo "$ilo_output" >> {{ ha_toolkit_log_file }}
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ILOREST LOGIN RETURN CODE: $ilo_rc" >> {{ ha_toolkit_log_file }}
+            
+            if [ $ilo_rc -eq 0 ]; then
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] iLO connection successful" >> {{ ha_toolkit_log_file }}
+              echo "iLO connection successful"
+            else
+              echo "[$(date '+%Y-%m-%d %H:%M:%S')] iLO connection failed" >> {{ ha_toolkit_log_file }}
+              echo "iLO connection failed"
+              exit $ilo_rc
+            fi
+          register: ilo_login_result
+          failed_when: ilo_login_result.rc != 0
+          when: "'ilorest_available' in ilorest_check.stdout"
+
+        - name: Apply G6 BIOS template using ilorest load
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Using G6 BIOS template JSON file directly" >> {{ ha_toolkit_log_file }}
+            echo "============================================================"
+            echo "EXECUTING: ilorest load -f {{ bios_template_json }}"
+            echo "============================================================"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ilorest load -f {{ bios_template_json }}" >> {{ ha_toolkit_log_file }}
+            
+            # Execute ilorest load and capture output
+            load_output=$({{ playbook_dir }}/../vendor/tools/ilorest_wrapper.sh load -f "{{ bios_template_json }}" 2>&1)
+            load_rc=$?
+            
+            echo "============================================================"
+            echo "ILOREST LOAD OUTPUT:"
+            echo "$load_output"
+            echo "============================================================"
+            echo "Return code: $load_rc"
+            echo "============================================================"
+            
+            # Log output to file
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ILOREST LOAD OUTPUT:" >> {{ ha_toolkit_log_file }}
+            echo "$load_output" >> {{ ha_toolkit_log_file }}
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ILOREST LOAD RETURN CODE: $load_rc" >> {{ ha_toolkit_log_file }}
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] BIOS template application completed" >> {{ ha_toolkit_log_file }}
+            
+            # Return the load command exit code
+            exit $load_rc
+          register: bios_template_result
+          failed_when: bios_template_result.rc != 0
+          when: "'ilorest_available' in ilorest_check.stdout"
+
+        - name: Log G6 BIOS template application result
+          lineinfile:
+            path: "{{ ha_toolkit_log_file }}"
+            line: "[{{ ansible_date_time.time }}] G6 BIOS template applied successfully"
+          when: "'ilorest_available' in ilorest_check.stdout and bios_template_result is succeeded"
+
+        - name: Log G6 BIOS template skipped due to missing tool
+          lineinfile:
+            path: "{{ ha_toolkit_log_file }}"
+            line: "[{{ ansible_date_time.time }}] G6 BIOS template skipped - ilorest tool not available"
+          when: "'ilorest_not_available' in ilorest_check.stdout"
+
+        - name: Logout from iLO after BIOS template application
+          shell: |
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] Logging out from iLO" >> {{ ha_toolkit_log_file }}
+            echo "============================================================"
+            echo "EXECUTING: ilorest logout"
+            echo "============================================================"
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: ilorest logout" >> {{ ha_toolkit_log_file }}
+            
+            # Execute ilorest logout and capture output
+            logout_output=$({{ playbook_dir }}/../vendor/tools/ilorest_wrapper.sh logout 2>&1)
+            logout_rc=$?
+            
+            echo "============================================================"
+            echo "ILOREST LOGOUT OUTPUT:"
+            echo "$logout_output"
+            echo "============================================================"
+            echo "Return code: $logout_rc"
+            echo "============================================================"
+            
+            # Log output to file
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ILOREST LOGOUT OUTPUT:" >> {{ ha_toolkit_log_file }}
+            echo "$logout_output" >> {{ ha_toolkit_log_file }}
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] ILOREST LOGOUT RETURN CODE: $logout_rc" >> {{ ha_toolkit_log_file }}
+            echo "[$(date '+%Y-%m-%d %H:%M:%S')] iLO logout completed" >> {{ ha_toolkit_log_file }}
+          ignore_errors: yes
+          when: "'ilorest_available' in ilorest_check.stdout"
+
+        - name: Display G6 BIOS Command Execution Summary
+          debug:
+            msg:
+              - "======================================================="
+              - "G6 BIOS TEMPLATE APPLICATION COMMAND SUMMARY"
+              - "======================================================="
+              - "ilorest login: {{ 'SUCCESS' if ilo_login_result.rc == 0 else 'FAILED' }} (RC: {{ ilo_login_result.rc }})"
+              - "ilorest load:  {{ 'SUCCESS' if bios_template_result.rc == 0 else 'FAILED' }} (RC: {{ bios_template_result.rc }})"
+              - "ilorest logout: Completed (see logs for details)"
+              - "======================================================="
+              - "Note: Full command outputs are logged to {{ ha_toolkit_log_file | basename }}"
+              - "======================================================="
+          when: "'ilorest_available' in ilorest_check.stdout"
+
+      when: is_g6_server
+
+    - name: Log non-G6 server handling
+      lineinfile:
+        path: "{{ ha_toolkit_log_file }}"
+        line: "[{{ ansible_date_time.time }}] Non-G6 server, proceeding with standard firmware update"
+      when: not is_g6_server
+
+# SPV ISO FILE DISCOVERY AND MOUNTING
+- name: SPV ISO Processing
+  block:
+    - name: Find SPV ISO files
+      find:
+        paths: ["/mnt/AnsibleMediakit/HA/HASPV/HAG6/"]
+        patterns: "*.iso"
+        file_type: file
+      register: spv_iso_files
+
+    - name: Verify SPV ISO files found
+      fail:
+        msg: "No SPV ISO files found in /mnt/AnsibleMediakit/HA/HASPV/HAG6/"
+      when: spv_iso_files.files | length == 0
+
+    - name: Select SPV ISO file
+      set_fact:
+        selected_spv_iso: "{{ spv_iso_files.files[0].path }}"
+
+    - name: Log SPV ISO selection
+      lineinfile:
+        path: "{{ ha_toolkit_log_file }}"
+        line: "[{{ ansible_date_time.time }}] Selected SPV ISO: {{ selected_spv_iso }}"
+
+    - name: Create SPV mount directory
+      file:
+        path: /mnt/spv_iso
+        state: directory
+        mode: '0755'
+      become: yes
+      vars:
+        ansible_become_pass: "{{ mount_sudo_password.user_input }}"
+
+    - name: Mount SPV ISO
+      mount:
+        path: /mnt/spv_iso
+        src: "{{ selected_spv_iso }}"
+        fstype: iso9660
+        opts: loop,ro
+        state: mounted
+      become: yes
+      vars:
+        ansible_become_pass: "{{ mount_sudo_password.user_input }}"
+
+    - name: Log SPV ISO mount
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] SPV ISO mounted at /mnt/spv_iso from {{ selected_spv_iso }}" >> {{ ha_toolkit_log_file }}
+        echo "Executing: mount -t iso9660 -o loop,ro {{ selected_spv_iso }} /mnt/spv_iso"
+
+# FIRMWARE UPDATE EXECUTION
+- name: Firmware Update Operations
+  block:
+    - name: Check for SUM executable in SPV ISO
+      find:
+        paths: ["/mnt/spv_iso"]
+        patterns: ["*sum*", "*SUM*", "*.py", "*.sh"]
+        recurse: yes
+        file_type: file
+      register: sum_executable_search
+
+    - name: Set SUM executable path
+      set_fact:
+        sum_executable: "{{ (sum_executable_search.files | selectattr('path', 'match', '.*\\.(py|sh)$') | first).path | default((sum_executable_search.files | first).path) }}"
+      when: sum_executable_search.files | length > 0
+
+    - name: Fail if SUM executable not found
+      fail:
+        msg: "SUM executable not found in SPV ISO"
+      when: sum_executable_search.files | length == 0
+
+    - name: Log SUM executable found
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] SUM executable found: {{ sum_executable }}" >> {{ ha_toolkit_log_file }}
+        echo "Found SUM tool at: {{ sum_executable }}"
+
+    - name: Execute firmware update using SUM
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Starting firmware update with SUM tool" >> {{ ha_toolkit_log_file }}
+        echo "============================================================"
+        echo "EXECUTING: {{ sum_executable }} -s {{ server_ip }} -u {{ server_user }} -p [HIDDEN]"
+        echo "============================================================"
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] COMMAND: {{ sum_executable }} -s {{ server_ip }} -u {{ server_user }} -p [HIDDEN]" >> {{ ha_toolkit_log_file }}
+        
+        # Check file extension and execute accordingly
+        sum_file="{{ sum_executable }}"
+        if echo "$sum_file" | grep -q "\.py$"; then
+          echo "Executing Python SUM script"
+          sum_output=$(python3 "$sum_file" -s {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
+        elif echo "$sum_file" | grep -q "\.sh$"; then
+          echo "Executing Shell SUM script"
+          chmod +x "$sum_file"
+          sum_output=$(bash "$sum_file" -s {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
+        else
+          echo "Executing SUM binary/other"
+          chmod +x "$sum_file" 2>/dev/null || true
+          sum_output=$("$sum_file" -s {{ server_ip }} -u {{ server_user }} -p {{ server_password }} 2>&1)
+        fi
+        sum_rc=$?
+        
+        echo "============================================================"
+        echo "SUM TOOL OUTPUT:"
+        echo "$sum_output"
+        echo "============================================================"
+        echo "Return code: $sum_rc"
+        echo "============================================================"
+        
+        # Log output to file
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] SUM TOOL OUTPUT:" >> {{ ha_toolkit_log_file }}
+        echo "$sum_output" >> {{ ha_toolkit_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] SUM TOOL RETURN CODE: $sum_rc" >> {{ ha_toolkit_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] SUM tool execution completed with return code: $sum_rc" >> {{ ha_toolkit_log_file }}
+        
+        # Set the return code for the shell task
+        exit $sum_rc
+      register: firmware_update_result
+      ignore_errors: yes
+
+    - name: Log firmware update result
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Firmware update completed - Return code: {{ firmware_update_result.rc }}" >> {{ ha_toolkit_log_file }}
+        if [ "{{ firmware_update_result.rc }}" = "0" ]; then
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Firmware update SUCCESS" >> {{ ha_toolkit_log_file }}
+          echo "Firmware update completed successfully"
+        else
+          echo "[$(date '+%Y-%m-%d %H:%M:%S')] Firmware update completed with warnings/errors" >> {{ ha_toolkit_log_file }}
+          echo "Firmware update completed with return code: {{ firmware_update_result.rc }}"
+        fi
+
+    - name: Display firmware update status
+      debug:
+        msg:
+          - "======================================================="
+          - "FIRMWARE UPDATE COMMAND SUMMARY"
+          - "======================================================="
+          - "SUM Tool Executable: {{ sum_executable | default('Not found') }}"
+          - "Command: {{ sum_executable | default('N/A') }} -s {{ server_ip }} -u {{ server_user }} -p [HIDDEN]"
+          - "SUM Execution: {{ 'SUCCESS' if firmware_update_result.rc == 0 else 'FAILED/WARNING' }} (RC: {{ firmware_update_result.rc }})"
+          - "======================================================="
+          - "Status: {{ 'Firmware update completed successfully' if firmware_update_result.rc == 0 else 'Firmware update completed with warnings/errors' }}"
+          - "Note: Full SUM tool output is logged to {{ ha_toolkit_log_file | basename }}"
+          - "======================================================="
+
+# CLEANUP OPERATIONS
+- name: Cleanup mounted resources
+  block:
+    - name: Unmount SPV ISO
+      mount:
+        path: /mnt/spv_iso
+        state: absent
+      become: yes
+      vars:
+        ansible_become_pass: "{{ mount_sudo_password.user_input }}"
+      ignore_errors: yes
+
+    - name: Remove SPV mount directory
+      file:
+        path: /mnt/spv_iso
+        state: absent
+      become: yes
+      vars:
+        ansible_become_pass: "{{ mount_sudo_password.user_input }}"
+      ignore_errors: yes
+
+    - name: Log cleanup completion
+      lineinfile:
+        path: "{{ ha_toolkit_log_file }}"
+        line: "[{{ ansible_date_time.time }}] UCP All tasks cleanup completed"
+
+- name: Log UCP All tasks completion
+  lineinfile:
+    path: "{{ ha_toolkit_log_file }}"
+    line: "[{{ ansible_date_time.time }}] UCP All: BIOS template and firmware update completed successfully"
+
+- name: Display Complete Command Execution Summary
+  debug:
+    msg:
+      - "============================================================================="
+      - "                   COMPLETE COMMAND EXECUTION SUMMARY"
+      - "============================================================================="
+      - "Target Server: {{ server_ip }} ({{ server_model }})"
+      - "User: {{ server_user }}"
+      - "============================================================================="
+      - "COMMANDS EXECUTED:"
+      - "1. ilorest login {{ server_ip }} -u {{ server_user }} -p [HIDDEN]"
+      - "   Status: {{ 'SUCCESS' if ilo_login_result is defined and ilo_login_result.rc == 0 else 'FAILED/SKIPPED' }}"
+      - "2. ilorest load -f {{ bios_template_json }}"
+      - "   Status: {{ 'SUCCESS' if bios_template_result is defined and bios_template_result.rc == 0 else 'FAILED/SKIPPED' }}"
+      - "3. ilorest logout"
+      - "   Status: Executed (see logs for details)"
+      - "4. {{ sum_executable | default('SUM_TOOL_NOT_FOUND') }} -s {{ server_ip }} -u {{ server_user }} -p [HIDDEN]"
+      - "   Status: {{ 'SUCCESS' if firmware_update_result is defined and firmware_update_result.rc == 0 else 'FAILED/WARNING' }} (RC: {{ firmware_update_result.rc | default('N/A') }})"
+      - "============================================================================="
+      - "FILES USED:"
+      - "- BIOS Template: {{ bios_template_json }}"
+      - "- Firmware ISO: {{ selected_spv_iso | default(spv_firmware_iso) }}"
+      - "============================================================================="
+      - "All command outputs and details are logged to: {{ ha_toolkit_log_file | basename }}"
+      - "============================================================================="

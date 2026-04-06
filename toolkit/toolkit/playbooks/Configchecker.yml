@@ -1,0 +1,291 @@
+---
+# Final Network Card Discovery with Table Output
+- name: Network Card Discovery - Final Version
+  hosts: localhost
+  gather_facts: true
+  vars_files:
+    - ../config/version_config.yaml
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  environment:
+    ANSIBLE_LIBRARY: "{{ playbook_dir }}/../plugins/modules"
+  tasks:
+    - name: Generate timestamped log file paths for network discovery
+      set_fact:
+        log_timestamp: "{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}"
+        configchecker_log_file: "{{ playbook_dir }}/../logs/configchecker_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
+        discovery_module_log_file: "{{ playbook_dir }}/../logs/NetworkDiscovery_AnsibleModule_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
+        discovery_table_file: "{{ playbook_dir }}/../logs/network_discovery_table_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt"
+        discovery_csv_file: "{{ playbook_dir }}/../logs/network_discovery_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.csv"
+        ha_discovery_module_log_file: "{{ playbook_dir }}/../logs/HA_NetworkDiscovery_AnsibleModule_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.log"
+        ha_discovery_table_file: "{{ playbook_dir }}/../logs/ha_network_discovery_table_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.txt"
+        ha_discovery_csv_file: "{{ playbook_dir }}/../logs/ha_network_discovery_{{ ansible_date_time.year }}{{ ansible_date_time.month }}{{ ansible_date_time.day }}_{{ ansible_date_time.hour }}{{ ansible_date_time.minute }}{{ ansible_date_time.second }}.csv"
+
+    - name: Initialize timestamped log files for network discovery
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Network Card Discovery Started" > {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Log Timestamp: {{ log_timestamp }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Starting network card discovery process" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Network Discovery Ansible Module Operations Log Started" > {{ discovery_module_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Module initialization completed" >> {{ discovery_module_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [HA_NetworkDiscovery] HA Server Network Discovery Ansible Module Operations Log Started" > {{ ha_discovery_module_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [HA_NetworkDiscovery] HA Module initialization completed" >> {{ ha_discovery_module_log_file }}
+
+    - name: Load configuration
+      include_vars:
+        file: ../config/version_config.yaml
+
+    - name: Log configuration loading
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Configuration loaded successfully" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] Version config file: ../config/version_config.yaml" >> {{ configchecker_log_file }}
+
+    - name: Load server list from CSV
+      read_csv:
+        path: "../config/server.csv"
+        delimiter: ','
+      register: server_list
+
+    - name: Log server list loading
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Server list loaded from CSV" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] CSV file path: ../config/server.csv" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Total servers found: {{ server_list.list | length }}" >> {{ configchecker_log_file }}
+
+    - name: Filter SMCI/DS servers and HA servers
+      set_fact:
+        smci_servers: "{{ server_list.list | selectattr('Type', 'ne', 'HA_Server') | list }}"
+        ha_servers: "{{ server_list.list | selectattr('Type', 'equalto', 'HA_Server') | list }}"
+
+    - name: Log server classification
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Server classification completed" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] SMCI/DS Servers found: {{ smci_servers | length }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] HA Servers found: {{ ha_servers | length }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] Processing will handle both types separately" >> {{ configchecker_log_file }}
+
+    # SMCI/DS SERVERS PROCESSING
+    - name: Initialize SMCI/DS table file
+      copy:
+        content: |
+          ╔═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+          ║                                                                                      SMCI/DS NETWORK CARD DISCOVERY REPORT                                                                                                                                    ║
+          ╠═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+          ║ Server                                    │ IP Address                               │ Vendor       │ Card Name            │ Manufacturer │ Model              │ Part Number  │ Serial Number      │ Firmware     │ Ports  │ MAC Address       | Link Status  ║
+          ╠═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+        dest: "{{ discovery_table_file }}"
+      when: smci_servers | length > 0
+
+    - name: Initialize HA table file
+      copy:
+        content: |
+          ╔══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╗
+          ║                                                                                        HA SERVER NETWORK CARD DISCOVERY REPORT                                                                                                               ║
+          ╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+          ║ Server                                      │ IP Address      │ Vendor       │ Card Name            │ Manufacturer │ Model              │ Part Number  │ Serial Number      │ Firmware     │ Ports  │ MAC Address       │ Link Status   ║
+          ╠══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╣
+        dest: "{{ ha_discovery_table_file }}"
+      when: ha_servers | length > 0
+
+    - name: Log table file initialization
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Table files initialization completed" >> {{ configchecker_log_file }}
+        {% if smci_servers | length > 0 %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] SMCI/DS Table file path: {{ discovery_table_file }}" >> {{ configchecker_log_file }}
+        {% endif %}
+        {% if ha_servers | length > 0 %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] HA Table file path: {{ ha_discovery_table_file }}" >> {{ configchecker_log_file }}
+        {% endif %}
+
+    - name: Initialize SMCI/DS CSV file
+      copy:
+        content: "Server,IP Address,Vendor,Card Name,Manufacturer,Model,Part Number,Serial Number,Firmware,Port Count,MAC Address,Status\n"
+        dest: "{{ discovery_csv_file }}"
+      when: smci_servers | length > 0
+
+    - name: Initialize HA CSV file
+      copy:
+        content: "Server,IP Address,Vendor,Card Name,Manufacturer,Model,Part Number,Serial Number,Firmware,Port Count,MAC Address,Link Status,Status\n"
+        dest: "{{ ha_discovery_csv_file }}"
+      when: ha_servers | length > 0
+
+    - name: Log CSV file initialization
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] CSV files initialization completed" >> {{ configchecker_log_file }}
+        {% if smci_servers | length > 0 %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] SMCI/DS CSV file path: {{ discovery_csv_file }}" >> {{ configchecker_log_file }}
+        {% endif %}
+        {% if ha_servers | length > 0 %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] HA CSV file path: {{ ha_discovery_csv_file }}" >> {{ configchecker_log_file }}
+        {% endif %}
+
+    - name: Log start of SMCI/DS server processing
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Starting SMCI/DS server processing" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Processing {{ smci_servers | length }} SMCI/DS servers" >> {{ configchecker_log_file }}
+      when: smci_servers | length > 0
+
+    - name: Process each SMCI/DS server
+      include_tasks: ../plugins/module_utils/process_single_server_discovery_fixed.yaml
+      vars:
+        server_data:
+          hostname: "{{ item.Host }}"
+          ipv6: "{{ item.Host }}"
+          username: "{{ item.Username }}"
+          password: "{{ item.Password }}"
+          vendor: "{{ item.Type }}"
+          model: "{{ item.Model }}"
+          serial: "{{ item['Serial Number'] }}"
+          ipv4: "{{item['IPv4 Address']}}"
+        current_discovery_table_file: "{{ discovery_table_file }}"
+        current_discovery_csv_file: "{{ discovery_csv_file }}"
+        current_discovery_module_log_file: "{{ discovery_module_log_file }}"
+      loop: "{{ smci_servers }}"
+      when: smci_servers | length > 0
+
+    - name: Log start of HA server processing
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Starting HA server processing" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Processing {{ ha_servers | length }} HA servers" >> {{ configchecker_log_file }}
+      when: ha_servers | length > 0
+
+    - name: Process each HA server
+      include_tasks: ../plugins/module_utils/process_single_server_discovery_dynamic.yaml
+      vars:
+        server_data:
+          hostname: "{{ item.Host }}"
+          ipv6: "{{ item.Host }}"
+          username: "{{ item.Username }}"
+          password: "{{ item.Password }}"
+          vendor: "{{ item.Type }}"
+          model: "{{ item.Model }}"
+          serial: "{{ item['Serial Number'] }}"
+          ipv4: "{{ item['IPv4 Address'] }}"
+        current_discovery_table_file: "{{ ha_discovery_table_file }}"
+        current_discovery_csv_file: "{{ ha_discovery_csv_file }}"
+        current_discovery_module_log_file: "{{ ha_discovery_module_log_file }}"
+      loop: "{{ ha_servers }}"
+      when: ha_servers | length > 0
+
+    - name: Log completion of server processing
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Completed processing all servers" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] SMCI/DS servers processed: {{ smci_servers | length }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] HA servers processed: {{ ha_servers | length }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Total servers processed: {{ server_list.list | length }}" >> {{ configchecker_log_file }}
+
+    - name: "Add SMCI/DS table footer"
+      shell: |
+        echo "╚═══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝" >> {{ discovery_table_file }}
+      when: smci_servers | length > 0
+
+    - name: "Add HA table footer"
+      shell: |
+        echo "╚══════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════════╝" >> {{ ha_discovery_table_file }}
+      when: ha_servers | length > 0
+
+    - name: Log table footer addition
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Table footers completed" >> {{ configchecker_log_file }}
+        {% if smci_servers | length > 0 %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] SMCI/DS table completed" >> {{ configchecker_log_file }}
+        {% endif %}
+        {% if ha_servers | length > 0 %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] HA table completed" >> {{ configchecker_log_file }}
+        {% endif %}
+
+    - name: Display the SMCI/DS table
+      shell: cat {{ discovery_table_file }}
+      register: smci_table_output
+      when: smci_servers | length > 0
+
+    - name: Display the HA table
+      shell: cat {{ ha_discovery_table_file }}
+      register: ha_table_output
+      when: ha_servers | length > 0
+
+    - name: Log table display
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Table outputs displayed successfully" >> {{ configchecker_log_file }}
+        {% if smci_servers | length > 0 %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] SMCI/DS table file size: $(wc -l {{ discovery_table_file }} | cut -d' ' -f1) lines" >> {{ configchecker_log_file }}
+        {% endif %}
+        {% if ha_servers | length > 0 %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker] HA table file size: $(wc -l {{ ha_discovery_table_file }} | cut -d' ' -f1) lines" >> {{ configchecker_log_file }}
+        {% endif %}
+
+    - name: Show SMCI/DS server results
+      debug:
+        msg: 
+          - "==============================================================="
+          - "SMCI/DS NETWORK CARD DISCOVERY RESULTS"
+          - "==============================================================="
+          - "{{ smci_table_output.stdout_lines }}"
+      when: smci_servers | length > 0
+
+    - name: Show HA server results
+      debug:
+        msg: 
+          - "==============================================================="
+          - "HA SERVER NETWORK CARD DISCOVERY RESULTS"
+          - "==============================================================="
+          - "{{ ha_table_output.stdout_lines }}"
+      when: ha_servers | length > 0
+
+    - name: Display completion message
+      debug:
+        msg:
+          - ""
+          - "==============================================================="
+          - "NETWORK CARD DISCOVERY COMPLETED SUCCESSFULLY"
+          - "==============================================================="
+          - ""
+          - "SMCI/DS Servers: {{ smci_servers | length }} processed"
+          - "HA Servers: {{ ha_servers | length }} processed"
+          - "Total Servers: {{ server_list.list | length }} processed"
+          - ""
+          - "Files Generated:"
+          - "[TABLE] HA Table: {{ ha_discovery_table_file if ha_servers | length > 0 else 'N/A' }}"
+          - "[CSV]   HA CSV: {{ ha_discovery_csv_file if ha_servers | length > 0 else 'N/A' }}"
+          - "[LOG]   HA Module Log: {{ ha_discovery_module_log_file if ha_servers | length > 0 else 'N/A' }}"
+          - "[LOG]   Main Log: {{ configchecker_log_file }}"
+          - ""
+          - "Commands to view results:"
+          - "{{ 'cat ' + ha_discovery_table_file if ha_servers | length > 0 else 'No HA servers processed' }}"
+          - "{{ 'cat ' + ha_discovery_csv_file if ha_servers | length > 0 else 'No CSV files generated' }}"
+
+    - name: Show final log location
+      debug:
+        msg: 
+          - "==============================================================="
+          - "DETAILED LOG FILES CREATED"
+          - "==============================================================="
+          - " Main ConfigChecker Log: {{ configchecker_log_file }}"
+          - " View all logs with: ls -la {{ playbook_dir }}/../logs/"
+          - " View log summary: tail -20 {{ configchecker_log_file }}"
+          - "==============================================================="
+
+    - name: Log final completion
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] ===== NETWORK CARD DISCOVERY COMPLETED SUCCESSFULLY =====" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] SMCI/DS servers processed: {{ smci_servers | length }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] HA servers processed: {{ ha_servers | length }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Total servers processed: {{ server_list.list | length }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Generated files summary:" >> {{ configchecker_log_file }}
+        {% if smci_servers | length > 0 %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker]   SMCI/DS Table: {{ discovery_table_file }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker]   SMCI/DS CSV: {{ discovery_csv_file }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker]   SMCI/DS Module Log: {{ discovery_module_log_file }}" >> {{ configchecker_log_file }}
+        {% endif %}
+        {% if ha_servers | length > 0 %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker]   HA Table: {{ ha_discovery_table_file }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker]   HA CSV: {{ ha_discovery_csv_file }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker]   HA Module Log: {{ ha_discovery_module_log_file }}" >> {{ configchecker_log_file }}
+        {% endif %}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [ConfigChecker]   Main Log: {{ configchecker_log_file }}" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] Process completed successfully with separate HA server handling" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [ConfigChecker] ===== END OF NETWORK CARD DISCOVERY SESSION =====" >> {{ configchecker_log_file }}
+
+
+
+

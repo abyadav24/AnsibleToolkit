@@ -32,7 +32,6 @@ if [ -d "$VENDOR_BIN_DIR" ]; then
                     echo " $tool is functional"
                 else
                     echo "$tool has execute permissions but may have missing library dependencies"
-                    echo "  Note: This is common when vendor tools are compiled for different systems"
                     echo "  If SUM service fails, you may need to install system packages for dependencies"
                 fi
             else
@@ -66,6 +65,13 @@ done
 echo "Step 1: Setting execute permissions for vendor tools..."
 chmod +x "$SCRIPT_DIR/vendor/tools/ilorest_wrapper.sh" 2>/dev/null || true
 chmod +x "$SCRIPT_DIR/vendor/tools/ilorest/usr/bin/ilorest" 2>/dev/null || true
+chmod +x "$SCRIPT_DIR/vendor/tools/saa" 2>/dev/null || true
+
+# Fix playbooks directory permissions (required for ansible.cfg to be loaded)
+echo "Fixing playbooks directory permissions for ansible.cfg..."
+chmod 755 "$SCRIPT_DIR/playbooks" 2>/dev/null || true
+chmod 644 "$SCRIPT_DIR/playbooks/ansible.cfg" 2>/dev/null || true
+echo " Playbooks directory permissions fixed (ansible.cfg will be loaded)"
 
 # Fix permissions for any SUM (Smart Update Manager) tools
 if [ -d "$SCRIPT_DIR/vendor/tools" ]; then

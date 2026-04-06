@@ -1,0 +1,48 @@
+---
+# Simple Working Network Card Discovery Playbook
+- name: Network Card Discovery for All Servers
+  hosts: localhost
+  gather_facts: false
+  vars_files:
+    - version_config.yaml
+  tasks:
+    - name: Load configuration
+      include_vars: version_config.yaml
+
+    - name: Read server details from CSV file
+      read_csv:
+        path: "{{ settings.servers_csv_path }}"
+      register: server_list
+
+    - name: Initialize discovery log
+      shell: |
+        echo "=== Network Card Discovery Started: $(date) ===" > {{ settings.log_file }}
+        echo "Processing {{ server_list.list | length }} servers" >> {{ settings.log_file }}
+
+    - name: Process each server individually
+      include_tasks: process_server_network_discovery.yaml
+      vars:
+        server_item: "{{ item }}"
+      loop: "{{ server_list.list }}"
+
+    - name: Display final results
+      debug:
+        msg: |
+          
+          ===============================================================
+          NETWORK CARD DISCOVERY COMPLETED
+          ===============================================================
+          
+          Total Servers Processed: {{ server_list.list | length }}
+          
+          Check detailed results in:
+          - Log file: {{ settings.log_file }}
+          - Individual server reports in /tmp/
+
+    - name: Show log file contents
+      shell: cat {{ settings.log_file }}
+      register: log_contents
+
+    - name: Display log summary
+      debug:
+        var: log_contents.stdout_lines

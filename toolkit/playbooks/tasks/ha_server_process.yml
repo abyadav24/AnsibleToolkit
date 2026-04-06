@@ -1,0 +1,523 @@
+---
+# Task file to process a single HA server
+# Variables expected:
+#   - server_data: List containing [Type, Host, Model, SKU, Serial, IPv4, Username, Password]
+#   - server_index: Index of the server being processed
+#   - total_servers: Total number of servers
+#   - ha_toolkit_log_file: Path to log file
+#   - sudo_password: Sudo password for privileged operations
+#   - hag6_available: Whether HAG6 folders are available
+#   - hag3_available: Whether HAG3 folders are available
+
+- name: Set server details for server {{ server_index + 1 }}
+  set_fact:
+    current_server_type: "{{ server_data[0] | default('Unknown') }}"
+    current_server_host: "{{ server_data[1] | default('') }}"
+    current_server_model: "{{ server_data[2] | default('') }}"
+    current_server_sku: "{{ server_data[3] | default('') }}"
+    current_server_serial: "{{ server_data[4] | default('') }}"
+    current_server_ip: "{{ server_data[5] | default('') }}"
+    current_server_user: "{{ server_data[6] | default('admin') }}"
+    current_server_password: "{{ server_data[7] | default('') | trim }}"
+
+- name: Display processing server {{ server_index + 1 }} of {{ total_servers }}
+  debug:
+    msg:
+      - "============================================================"
+      - "Processing Server {{ server_index + 1 }} of {{ total_servers }}"
+      - "============================================================"
+      - "Model: {{ current_server_model }}"
+      - "IP: {{ current_server_ip }}"
+      - "Serial: {{ current_server_serial }}"
+
+- name: Log server processing start
+  lineinfile:
+    path: "{{ ha_toolkit_log_file }}"
+    line: "[{{ ansible_date_time.iso8601 }}] Processing server {{ server_index + 1 }}/{{ total_servers }}: {{ current_server_ip }} ({{ current_server_model }})"
+
+# Detect server generation (G3 or G6)
+- name: Detect server generation
+  set_fact:
+    is_g6_server: "{{ 'G6' in current_server_model }}"
+    is_g3_server: "{{ 'G3' in current_server_model }}"
+
+- name: Set server generation
+  set_fact:
+    server_generation: "{{ 'G6' if is_g6_server else ('G3' if is_g3_server else 'Unknown') }}"
+
+- name: Log server generation detection
+  lineinfile:
+    path: "{{ ha_toolkit_log_file }}"
+    line: "[{{ ansible_date_time.iso8601 }}] Detected server generation: {{ server_generation }}"
+
+# Validate server generation is supported
+- name: Check G6 server support
+  fail:
+    msg: "Server {{ current_server_ip }} is G6 but HAG6 folders are not available in AnsibleMediakit"
+  when: is_g6_server and not (hag6_available | bool)
+
+- name: Check G3 server support
+  fail:
+    msg: "Server {{ current_server_ip }} is G3 but HAG3 folders are not available in AnsibleMediakit"
+  when: is_g3_server and not (hag3_available | bool)
+
+- name: Skip unsupported server generation
+  debug:
+    msg: "WARNING: Server {{ current_server_ip }} has unsupported generation ({{ current_server_model }}). Skipping..."
+  when: not is_g6_server and not is_g3_server
+
+# Set paths based on server generation
+- name: Set paths for G6 server
+  set_fact:
+    bios_template_dir: "/mnt/AnsibleMediakit/HA/BiosTemplates/HAG6"
+    firmware_iso_dir: "/mnt/AnsibleMediakit/HA/HASPV/HAG6"
+  when: is_g6_server
+
+- name: Set paths for G3 server
+  set_fact:
+    bios_template_dir: "/mnt/AnsibleMediakit/HA/BiosTemplates/HAG3"
+    firmware_iso_dir: "/mnt/AnsibleMediakit/HA/HASPV/HAG3"
+  when: is_g3_server
+
+- name: Log selected paths
+  lineinfile:
+    path: "{{ ha_toolkit_log_file }}"
+    line: "[{{ ansible_date_time.iso8601 }}] Using BIOS template dir: {{ bios_template_dir }}, Firmware ISO dir: {{ firmware_iso_dir }}"
+  when: is_g6_server or is_g3_server
+
+# Extract model number from server model string (e.g., HA820, HA810, HA805, etc.)
+- name: Extract HA model number from server model
+  set_fact:
+    ha_model_number: "{{ current_server_model | regex_search('HA[0-9]+') }}"
+  when: is_g6_server or is_g3_server
+
+- name: Display detected model number
+  debug:
+    msg:
+      - "============================================================"
+      - "SERVER MODEL DETECTION"
+      - "============================================================"
+      - "Full Model Name: {{ current_server_model }}"
+      - "Detected HA Model: {{ ha_model_number | default('Not detected') }}"
+      - "Server Generation: {{ server_generation }}"
+      - "============================================================"
+  when: is_g6_server or is_g3_server
+
+- name: Log detected model number
+  lineinfile:
+    path: "{{ ha_toolkit_log_file }}"
+    line: "[{{ ansible_date_time.iso8601 }}] Detected HA model number: {{ ha_model_number | default('Unknown') }} from {{ current_server_model }}"
+  when: is_g6_server or is_g3_server
+
+# Find all BIOS template files in the directory
+- name: Find all BIOS template files
+  find:
+    paths: ["{{ bios_template_dir }}"]
+    patterns: "*.json"
+  register: bios_template_files
+  when: is_g6_server or is_g3_server
+
+- name: Validate BIOS templates found
+  fail:
+    msg: "No BIOS template JSON files found in {{ bios_template_dir }}"
+  when: 
+    - is_g6_server or is_g3_server
+    - bios_template_files.files | length == 0
+
+# Find the matching template based on model number
+- name: Initialize matching template
+  set_fact:
+    matching_template: ""
+    matching_template_name: ""
+  when: is_g6_server or is_g3_server
+
+- name: Find matching BIOS template for model {{ ha_model_number | default('Unknown') }}
+  set_fact:
+    matching_template: "{{ item.path }}"
+    matching_template_name: "{{ item.path | basename }}"
+  when: 
+    - is_g6_server or is_g3_server
+    - ha_model_number is defined
+    - ha_model_number in item.path | basename
+  loop: "{{ bios_template_files.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+# Try matching just the numeric part if full model not found (e.g. 825 for HA825)
+- name: Extract numeric model part for fallback matching
+  set_fact:
+    ha_model_numeric: "{{ ha_model_number | regex_replace('^HA', '') }}"
+  when:
+    - is_g6_server or is_g3_server
+    - ha_model_number is defined
+    - matching_template == ""
+
+- name: Find matching BIOS template using numeric part {{ ha_model_numeric | default('') }}
+  set_fact:
+    matching_template: "{{ item.path }}"
+    matching_template_name: "{{ item.path | basename }}"
+  when: 
+    - is_g6_server or is_g3_server
+    - ha_model_numeric is defined
+    - matching_template == ""
+    - ('_' + ha_model_numeric + '_') in item.path | basename or ('_' + ha_model_numeric + '.') in item.path | basename
+  loop: "{{ bios_template_files.files }}"
+  loop_control:
+    label: "{{ item.path | basename }}"
+
+# If no exact match found, use first available template (fallback)
+- name: Use fallback template if no match found
+  set_fact:
+    matching_template: "{{ bios_template_files.files[0].path }}"
+    matching_template_name: "{{ bios_template_files.files[0].path | basename }}"
+    template_match_type: "FALLBACK (no model-specific template found)"
+  when:
+    - is_g6_server or is_g3_server
+    - matching_template == ""
+    - bios_template_files.files | length > 0
+
+- name: Set match type for exact match
+  set_fact:
+    template_match_type: "EXACT MATCH"
+  when:
+    - is_g6_server or is_g3_server
+    - matching_template != ""
+    - template_match_type is not defined
+
+- name: Set BIOS template path
+  set_fact:
+    bios_template_path: "{{ matching_template }}"
+  when: 
+    - is_g6_server or is_g3_server
+    - matching_template != ""
+
+- name: Display BIOS template selection
+  debug:
+    msg:
+      - "============================================================"
+      - "BIOS TEMPLATE SELECTION"
+      - "============================================================"
+      - "Server Model: {{ current_server_model }}"
+      - "HA Model Number: {{ ha_model_number | default('Not detected') }}"
+      - "Match Type: {{ template_match_type | default('MATCHED') }}"
+      - "Selected Template: {{ matching_template_name }}"
+      - "Template Path: {{ bios_template_path }}"
+      - "============================================================"
+  when: is_g6_server or is_g3_server
+
+- name: Log BIOS template selection
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }}: Model={{ ha_model_number | default('Unknown') }}, Template={{ matching_template_name }}" >> {{ ha_toolkit_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }}: Using BIOS template: {{ bios_template_path }}" >> {{ ha_toolkit_log_file }}
+  when: is_g6_server or is_g3_server
+
+- name: Display ilorest commands for server {{ server_index + 1 }}
+  debug:
+    msg:
+      - "EXECUTING ILOREST COMMANDS for {{ current_server_ip }}:"
+      - "COMMAND 1: ./ilorest_wrapper.sh login {{ current_server_ip }} -u {{ current_server_user }} -p *******"
+      - "COMMAND 2: ./ilorest_wrapper.sh load -f {{ bios_template_path }}"
+      - "COMMAND 3: ./ilorest_wrapper.sh commit"
+      - "COMMAND 4: ./ilorest_wrapper.sh logout"
+  when: is_g6_server or is_g3_server
+
+- name: Apply BIOS template using ilorest
+  shell: |
+    cd {{ playbook_dir }}/../vendor/tools
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: ./ilorest_wrapper.sh login {{ current_server_ip }} -u {{ current_server_user }} -p *******" >> {{ ha_toolkit_log_file }}
+    
+    # Capture login output
+    login_output=$(./ilorest_wrapper.sh login {{ current_server_ip }} -u {{ current_server_user }} -p {{ current_server_password }} 2>&1)
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} LOGIN RESPONSE: $login_output" >> {{ ha_toolkit_log_file }}
+    echo "iLOrest LOGIN RESPONSE: $login_output"
+    
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: ./ilorest_wrapper.sh load -f {{ bios_template_path }}" >> {{ ha_toolkit_log_file }}
+    
+    # Capture BIOS load output
+    load_output=$(./ilorest_wrapper.sh load -f "{{ bios_template_path }}" 2>&1)
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} BIOS LOAD RESPONSE: $load_output" >> {{ ha_toolkit_log_file }}
+    echo "iLOrest BIOS LOAD RESPONSE: $load_output"
+    
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: ./ilorest_wrapper.sh commit" >> {{ ha_toolkit_log_file }}
+    
+    # Capture commit output
+    commit_output=$(./ilorest_wrapper.sh commit 2>&1)
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMIT RESPONSE: $commit_output" >> {{ ha_toolkit_log_file }}
+    echo "iLOrest COMMIT RESPONSE: $commit_output"
+    
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: ./ilorest_wrapper.sh logout" >> {{ ha_toolkit_log_file }}
+    
+    # Capture logout output
+    logout_output=$(./ilorest_wrapper.sh logout 2>&1)
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} LOGOUT RESPONSE: $logout_output" >> {{ ha_toolkit_log_file }}
+    echo "iLOrest LOGOUT RESPONSE: $logout_output"
+  register: bios_apply_result
+  when: is_g6_server or is_g3_server
+
+- name: Log BIOS template application result
+  shell: |
+    if [ {{ bios_apply_result.rc }} -eq 0 ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} BIOS template application SUCCESS" >> {{ ha_toolkit_log_file }}
+      echo "BIOS template applied successfully for server {{ server_index + 1 }}!"
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} BIOS template application FAILED (Exit Code: {{ bios_apply_result.rc }})" >> {{ ha_toolkit_log_file }}
+      echo "BIOS template application failed for server {{ server_index + 1 }} with exit code {{ bios_apply_result.rc }}"
+    fi
+  when: is_g6_server or is_g3_server
+
+# Mount ISO and update firmware
+- name: Find firmware ISO file
+  find:
+    paths: ["{{ firmware_iso_dir }}"]
+    patterns: "*.iso"
+  register: firmware_iso_files
+  when: is_g6_server or is_g3_server
+
+- name: Validate firmware ISO found
+  fail:
+    msg: "No firmware ISO file found in {{ firmware_iso_dir }}"
+  when:
+    - is_g6_server or is_g3_server
+    - firmware_iso_files.files | length == 0
+
+- name: Set firmware ISO path
+  set_fact:
+    firmware_iso_path: "{{ firmware_iso_files.files[0].path }}"
+  when:
+    - is_g6_server or is_g3_server
+    - firmware_iso_files.files | length > 0
+
+- name: Log firmware ISO path
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }}: Using firmware ISO: {{ firmware_iso_path }}" >> {{ ha_toolkit_log_file }}
+  when: is_g6_server or is_g3_server
+
+- name: Display ISO mount commands for server {{ server_index + 1 }}
+  debug:
+    msg:
+      - "EXECUTING ISO MOUNT COMMANDS:"
+      - "COMMAND 1: mkdir -p /tmp/spv_iso"
+      - "COMMAND 2: mount -o loop,ro '{{ firmware_iso_path }}' /tmp/spv_iso"
+  when: is_g6_server or is_g3_server
+
+- name: Create ISO mount point
+  become: yes
+  become_method: sudo
+  vars:
+    ansible_become_pass: "{{ sudo_password.user_input }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: mkdir -p /tmp/spv_iso" >> {{ ha_toolkit_log_file }}
+    mkdir -p /tmp/spv_iso
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} RESULT: ISO mount point created at /tmp/spv_iso" >> {{ ha_toolkit_log_file }}
+  when: is_g6_server or is_g3_server
+
+- name: Mount firmware ISO
+  become: yes
+  become_method: sudo
+  vars:
+    ansible_become_pass: "{{ sudo_password.user_input }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: mount -o loop,ro '{{ firmware_iso_path }}' /tmp/spv_iso" >> {{ ha_toolkit_log_file }}
+    # Unmount any existing mount first to prevent stacking
+    umount -l /tmp/spv_iso 2>/dev/null || true
+    mount -o loop,ro "{{ firmware_iso_path }}" /tmp/spv_iso
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} RESULT: Firmware ISO mounted at /tmp/spv_iso" >> {{ ha_toolkit_log_file }}
+  when: is_g6_server or is_g3_server
+
+- name: Display firmware update command for server {{ server_index + 1 }}
+  debug:
+    msg:
+      - "EXECUTING FIRMWARE UPDATE COMMAND:"
+      - "COMMAND: /tmp/spv_iso/packages/smartupdate --s --romonly --use_location /tmp/spv_iso/packages --target {{ current_server_ip }} --user {{ current_server_user }} --password ******* --ignore_warnings"
+  when: is_g6_server or is_g3_server
+
+- name: Clean up previous SUM utility files and processes
+  become: yes
+  become_method: sudo
+  vars:
+    ansible_become_pass: "{{ sudo_password.user_input }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: Cleaning up SUM processes and files" >> {{ ha_toolkit_log_file }}
+    echo "Cleaning up previous SUM utility processes and files..."
+    
+    # Kill any stale SUM service processes by finding exact process
+    for pid in $(ps aux | grep '[s]um_service_x64' | awk '{print $2}'); do
+      echo "Killing stale SUM process: $pid"
+      kill -9 $pid 2>/dev/null || true
+    done
+    sleep 1
+    
+    # Remove all SUM-related directories and files thoroughly
+    rm -rf /var/tmp/localsum 2>/dev/null || true
+    rm -rf /var/tmp/sum 2>/dev/null || true
+    rm -f /var/tmp/instance# 2>/dev/null || true
+    rm -rf /tmp/sum_temp_* 2>/dev/null || true
+    
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} RESULT: SUM cleanup completed" >> {{ ha_toolkit_log_file }}
+    echo "SUM cleanup completed"
+  when: is_g6_server or is_g3_server
+
+- name: Update firmware using SUM utility
+  become: yes
+  become_method: sudo
+  vars:
+    ansible_become_pass: "{{ sudo_password.user_input }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: /tmp/spv_iso/packages/smartupdate --s --romonly --use_location /tmp/spv_iso/packages --target {{ current_server_ip }} --user {{ current_server_user }} --password ******* --ignore_warnings" >> {{ ha_toolkit_log_file }}
+    echo "Starting firmware update for server {{ server_index + 1 }} - this may take several minutes..."
+    
+    # Add vendor tools to PATH for required utilities (gawk, etc.)
+    export PATH="{{ playbook_dir }}/../vendor/tools/local-bin:$PATH"
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} INFO: Added vendor tools to PATH: {{ playbook_dir }}/../vendor/tools/local-bin" >> {{ ha_toolkit_log_file }}
+    
+    # Set custom temp directory to avoid permission issues
+    export TMPDIR=/tmp/sum_temp_$$
+    mkdir -p $TMPDIR
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} INFO: Using custom temp directory: $TMPDIR" >> {{ ha_toolkit_log_file }}
+    
+    # Capture full SUM utility output
+    sum_output=$(/tmp/spv_iso/packages/smartupdate --s --romonly --use_location /tmp/spv_iso/packages --target {{ current_server_ip }} --user {{ current_server_user }} --password {{ current_server_password }} --ignore_warnings 2>&1)
+    sum_exit_code=$?
+    
+    # Clean up temp directory
+    rm -rf $TMPDIR
+    
+    # Log the complete output to file
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} SUM UTILITY FULL OUTPUT START:" >> {{ ha_toolkit_log_file }}
+    echo "$sum_output" >> {{ ha_toolkit_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} SUM UTILITY FULL OUTPUT END (Exit Code: $sum_exit_code)" >> {{ ha_toolkit_log_file }}
+    
+    # Display the complete output on console
+    echo "SUM UTILITY COMPLETE OUTPUT for server {{ server_index + 1 }}:"
+    echo "================================"
+    echo "$sum_output"
+    echo "================================"
+    echo "SUM UTILITY EXIT CODE: $sum_exit_code"
+    
+    # Check if "No applicable component found" is in output (this is a success condition)
+    if echo "$sum_output" | grep -q "No applicable component found"; then
+      echo "INFO: No firmware updates needed - all components are current"
+      exit 0
+    # Check for HPE SUM session error with non-HPE servers (Supermicro/Hitachi)
+    elif echo "$sum_output" | grep -q "Cannot get a valid session"; then
+      echo "WARNING: HPE SUM tool cannot connect to non-HPE BMC (Supermicro/Hitachi server detected)"
+      echo "INFO: BIOS template was applied successfully. Firmware update requires compatible tool."
+      exit 0
+    # Check for PPDB copy failure - stale SUM state
+    elif echo "$sum_output" | grep -q "PPDB copying failed"; then
+      echo "WARNING: SUM prepopulated database copy failed - stale SUM state detected"
+      echo "INFO: Please run cleanup and retry. BIOS template was applied successfully."
+      # Clean up stale files for next run
+      rm -rf /var/tmp/localsum /var/tmp/sum 2>/dev/null || true
+      exit 0
+    else
+      # Return the actual exit code for other cases
+      exit $sum_exit_code
+    fi
+  register: firmware_update_result
+  ignore_errors: yes
+  when: is_g6_server or is_g3_server
+
+- name: Log firmware update result
+  shell: |
+    if [ {{ firmware_update_result.rc }} -eq 0 ]; then
+      if echo "{{ firmware_update_result.stdout }}" | grep -q "No applicable component found"; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} Firmware update SUCCESS - No updates needed (all components current)" >> {{ ha_toolkit_log_file }}
+        echo "Firmware scan completed for server {{ server_index + 1 }} - No updates needed (all components are current)"
+      elif echo "{{ firmware_update_result.stdout }}" | grep -q "Required utility(s).*was not found"; then
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} Firmware update SKIPPED - Missing dependencies (rpm, gawk, strings)" >> {{ ha_toolkit_log_file }}
+        echo "Firmware update skipped for server {{ server_index + 1 }} - SUM utility dependencies missing (rpm, gawk, strings not found)"
+      else
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} Firmware update SUCCESS" >> {{ ha_toolkit_log_file }}
+        echo "Firmware update completed successfully for server {{ server_index + 1 }}!"
+      fi
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} Firmware update FAILED (Exit Code: {{ firmware_update_result.rc }})" >> {{ ha_toolkit_log_file }}
+      echo "Firmware update failed for server {{ server_index + 1 }} with exit code {{ firmware_update_result.rc }}"
+    fi
+  when: is_g6_server or is_g3_server
+
+- name: Display server reboot commands for server {{ server_index + 1 }}
+  debug:
+    msg:
+      - "EXECUTING SERVER REBOOT COMMANDS:"
+      - "COMMAND 1: ./ilorest_wrapper.sh login {{ current_server_ip }} -u {{ current_server_user }} -p *******"
+      - "COMMAND 2: ./ilorest_wrapper.sh reboot ForceRestart"
+      - "COMMAND 3: ./ilorest_wrapper.sh logout"
+  when: 
+    - is_g6_server or is_g3_server
+    - firmware_update_result.rc == 0
+
+- name: Reboot server using ilorest after firmware update
+  shell: |
+    cd {{ playbook_dir }}/../vendor/tools
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: ./ilorest_wrapper.sh login {{ current_server_ip }} -u {{ current_server_user }} -p *******" >> {{ ha_toolkit_log_file }}
+    
+    # Login to iLO
+    login_output=$(./ilorest_wrapper.sh login {{ current_server_ip }} -u {{ current_server_user }} -p {{ current_server_password }} 2>&1)
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} REBOOT LOGIN RESPONSE: $login_output" >> {{ ha_toolkit_log_file }}
+    echo "iLOrest REBOOT LOGIN RESPONSE: $login_output"
+    
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: ./ilorest_wrapper.sh reboot ForceRestart" >> {{ ha_toolkit_log_file }}
+    
+    # Execute reboot command
+    reboot_output=$(./ilorest_wrapper.sh reboot ForceRestart 2>&1)
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} REBOOT RESPONSE: $reboot_output" >> {{ ha_toolkit_log_file }}
+    echo "iLOrest REBOOT RESPONSE: $reboot_output"
+    
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: ./ilorest_wrapper.sh logout" >> {{ ha_toolkit_log_file }}
+    
+    # Logout from iLO
+    logout_output=$(./ilorest_wrapper.sh logout 2>&1)
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} REBOOT LOGOUT RESPONSE: $logout_output" >> {{ ha_toolkit_log_file }}
+    echo "iLOrest REBOOT LOGOUT RESPONSE: $logout_output"
+  register: reboot_result
+  when: 
+    - is_g6_server or is_g3_server
+    - firmware_update_result.rc == 0
+
+- name: Log server reboot result
+  shell: |
+    if [ {{ reboot_result.rc }} -eq 0 ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} reboot command SUCCESS - Server is rebooting" >> {{ ha_toolkit_log_file }}
+      echo "Server {{ server_index + 1 }} reboot initiated successfully!"
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} reboot command FAILED (Exit Code: {{ reboot_result.rc }})" >> {{ ha_toolkit_log_file }}
+      echo "Server {{ server_index + 1 }} reboot failed with exit code {{ reboot_result.rc }}"
+    fi
+  when: 
+    - is_g6_server or is_g3_server
+    - firmware_update_result.rc == 0
+
+- name: Display unmount ISO command for server {{ server_index + 1 }}
+  debug:
+    msg:
+      - "EXECUTING ISO UNMOUNT COMMAND:"
+      - "COMMAND: umount /tmp/spv_iso"
+  when: is_g6_server or is_g3_server
+
+- name: Unmount firmware ISO
+  become: yes
+  become_method: sudo
+  vars:
+    ansible_become_pass: "{{ sudo_password.user_input }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} COMMAND: umount /tmp/spv_iso" >> {{ ha_toolkit_log_file }}
+    umount /tmp/spv_iso || true
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] Server {{ server_index + 1 }} RESULT: ISO unmounted successfully" >> {{ ha_toolkit_log_file }}
+  ignore_errors: yes
+  when: is_g6_server or is_g3_server
+
+- name: Log server processing completion
+  lineinfile:
+    path: "{{ ha_toolkit_log_file }}"
+    line: "[{{ ansible_date_time.iso8601 }}] Server {{ server_index + 1 }}/{{ total_servers }} ({{ current_server_ip }}) processing completed"
+
+- name: Display server processing completion
+  debug:
+    msg:
+      - "============================================================"
+      - "Server {{ server_index + 1 }} of {{ total_servers }} processing COMPLETED"
+      - "IP: {{ current_server_ip }}"
+      - "Model: {{ current_server_model }}"
+      - "============================================================"

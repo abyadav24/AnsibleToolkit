@@ -1,0 +1,140 @@
+---
+# Task file for VSSB (Virtual Storage Software for Block) Server Setup
+# This task file handles VSSB server specific setup and configuration
+# Corresponds to option 10 in SDS_HA_old.py
+
+- name: Log VSSB setup task start
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] Starting VSSB Server setup" >> {{ sds_ha_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] Starting VSSB Server setup" >> {{ ha_module_log_file }}
+
+- name: Display VSSB setup information
+  debug:
+    msg: |
+      ================================================================
+      VSSB SERVER SETUP
+      ================================================================
+      This operation will configure servers for VSSB deployment:
+      - Apply VSSB-specific BIOS settings
+      - Mount SUSE Linux installation ISO
+      - Configure boot options
+      ================================================================
+
+- name: Set VSSB servers CSV file path
+  set_fact:
+    vssb_csv_path: "{{ servers_csv_path }}"
+
+- name: Check if servers CSV exists
+  stat:
+    path: "{{ vssb_csv_path }}"
+  register: vssb_csv_check
+
+- name: Fail if CSV not found
+  fail:
+    msg: "Server CSV file not found at {{ vssb_csv_path }}"
+  when: not vssb_csv_check.stat.exists
+
+- name: Read server CSV content
+  slurp:
+    src: "{{ vssb_csv_path }}"
+  register: vssb_server_csv_content
+
+- name: Parse VSSB servers
+  set_fact:
+    vssb_all_servers: "{{ (vssb_server_csv_content.content | b64decode).split('\n')[1:] | select | map('split', ',') | list }}"
+
+- name: Filter HA servers for VSSB Setup
+  set_fact:
+    vssb_ha_servers: []
+
+- name: Build VSSB server list
+  set_fact:
+    vssb_ha_servers: "{{ vssb_ha_servers + [item] }}"
+  when: "'HA' in item[0] | default('')"
+  loop: "{{ vssb_all_servers }}"
+  loop_control:
+    label: "{{ item[0] | default('Unknown') }}"
+
+- name: Display VSSB server count
+  debug:
+    msg: |
+      ================================================================
+      VSSB SERVER CONFIGURATION
+      ================================================================
+      Total HA Servers for VSSB Setup: {{ vssb_ha_servers | length }}
+      ================================================================
+
+- name: Log VSSB server count
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] Found {{ vssb_ha_servers | length }} servers for VSSB setup" >> {{ sds_ha_log_file }}
+
+- name: Prompt for SUSE installation ISO URL
+  pause:
+    prompt: |
+      Enter the SUSE Linux installation ISO URL for VSSB
+      (e.g., http://10.1.1.100:8080/SUSE-Linux.iso)
+  register: vssb_iso_url_input
+
+- name: Validate ISO URL
+  fail:
+    msg: "SUSE Linux ISO URL is required for VSSB setup"
+  when: vssb_iso_url_input.user_input | length == 0
+
+- name: Prompt for VSSB kickstart configuration URL (optional)
+  pause:
+    prompt: |
+      Enter the kickstart/autoyast configuration URL (press Enter to skip)
+      (e.g., http://10.1.1.100:8080/vssb-autoyast.xml)
+  register: vssb_kickstart_url_input
+
+- name: Set VSSB configuration
+  set_fact:
+    vssb_config:
+      solution_type: "10"  # VSSB
+      iso_url: "{{ vssb_iso_url_input.user_input }}"
+      kickstart_url: "{{ vssb_kickstart_url_input.user_input | default('') }}"
+      bios_template_type: "VSSB"
+
+- name: Display VSSB configuration
+  debug:
+    msg: |
+      VSSB Configuration:
+      - Solution Type: {{ vssb_config.solution_type }}
+      - ISO URL: {{ vssb_config.iso_url }}
+      - Kickstart URL: {{ vssb_config.kickstart_url if vssb_config.kickstart_url else 'Not specified' }}
+      - BIOS Template Type: {{ vssb_config.bios_template_type }}
+
+- name: Log VSSB configuration
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] Configuration:" >> {{ sds_ha_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB]   - ISO URL: {{ vssb_config.iso_url }}" >> {{ sds_ha_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB]   - Kickstart: {{ vssb_config.kickstart_url | default('N/A') }}" >> {{ sds_ha_log_file }}
+
+# Process each server for VSSB setup
+- name: Process VSSB servers
+  include_tasks: vssb_server_process.yml
+  vars:
+    vssb_server_data: "{{ item }}"
+    vssb_server_index: "{{ idx }}"
+    vssb_total_servers: "{{ vssb_ha_servers | length }}"
+    vssb_iso_url: "{{ vssb_config.iso_url }}"
+    vssb_kickstart_url: "{{ vssb_config.kickstart_url }}"
+  loop: "{{ vssb_ha_servers }}"
+  loop_control:
+    index_var: idx
+    label: "VSSB Server {{ idx + 1 }}/{{ vssb_ha_servers | length }}: {{ item[5] | default('N/A') }}"
+  when: vssb_ha_servers | length > 0
+
+- name: Log VSSB completion
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] VSSB server setup completed for all servers" >> {{ sds_ha_log_file }}
+
+- name: Display VSSB completion
+  debug:
+    msg: |
+      ================================================================
+      VSSB SERVER SETUP COMPLETE
+      ================================================================
+      Processed Servers: {{ vssb_ha_servers | length }}
+      Solution Type: VSSB (Virtual Storage Software for Block)
+      ================================================================

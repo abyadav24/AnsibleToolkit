@@ -1,0 +1,118 @@
+---
+# Task file for Azure Stack HCI operations
+# This task file handles Azure Stack HCI specific setup and configuration
+# Corresponds to option 9 in SDS_HA_old.py
+
+- name: Log Azure Stack HCI task start
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] Starting Azure Stack HCI setup" >> {{ sds_ha_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] Starting Azure Stack HCI setup" >> {{ ha_module_log_file }}
+
+- name: Set Azure Stack HCI servers CSV file path
+  set_fact:
+    azure_hci_csv_path: "{{ servers_csv_path }}"
+
+- name: Check if servers CSV exists
+  stat:
+    path: "{{ azure_hci_csv_path }}"
+  register: azure_csv_check
+
+- name: Fail if CSV not found
+  fail:
+    msg: "Server CSV file not found at {{ azure_hci_csv_path }}"
+  when: not azure_csv_check.stat.exists
+
+- name: Read server CSV content
+  slurp:
+    src: "{{ azure_hci_csv_path }}"
+  register: azure_server_csv_content
+
+- name: Parse Azure Stack HCI servers
+  set_fact:
+    azure_hci_servers: "{{ (azure_server_csv_content.content | b64decode).split('\n')[1:] | select | map('split', ',') | list }}"
+
+- name: Filter HA servers for Azure Stack HCI
+  set_fact:
+    azure_ha_servers: []
+
+- name: Build Azure HA server list
+  set_fact:
+    azure_ha_servers: "{{ azure_ha_servers + [item] }}"
+  when: "'HA' in item[0] | default('')"
+  loop: "{{ azure_hci_servers }}"
+  loop_control:
+    label: "{{ item[0] | default('Unknown') }}"
+
+- name: Display Azure Stack HCI server count
+  debug:
+    msg: |
+      ================================================================
+      AZURE STACK HCI SERVER CONFIGURATION
+      ================================================================
+      Total HA Servers for Azure Stack HCI: {{ azure_ha_servers | length }}
+      ================================================================
+
+- name: Log server count
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] Found {{ azure_ha_servers | length }} servers for Azure Stack HCI setup" >> {{ sds_ha_log_file }}
+
+- name: Prompt for Azure Stack HCI ISO URL
+  pause:
+    prompt: |
+      Enter the Azure Stack HCI ISO URL
+      (e.g., http://10.1.1.100:8080/AzureStackHCI.iso)
+  register: azure_hci_iso_url_input
+
+- name: Validate ISO URL
+  fail:
+    msg: "Azure Stack HCI ISO URL is required"
+  when: azure_hci_iso_url_input.user_input | length == 0
+
+- name: Set Azure HCI configuration
+  set_fact:
+    azure_hci_config:
+      solution_type: "9"  # Azure Stack HCI
+      iso_url: "{{ azure_hci_iso_url_input.user_input }}"
+      bios_template_type: "ASHCI"
+
+- name: Display Azure HCI configuration
+  debug:
+    msg: |
+      Azure Stack HCI Configuration:
+      - Solution Type: {{ azure_hci_config.solution_type }}
+      - ISO URL: {{ azure_hci_config.iso_url }}
+      - BIOS Template Type: {{ azure_hci_config.bios_template_type }}
+
+- name: Log Azure HCI configuration
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] Configuration:" >> {{ sds_ha_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI]   - ISO URL: {{ azure_hci_config.iso_url }}" >> {{ sds_ha_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI]   - BIOS Template: {{ azure_hci_config.bios_template_type }}" >> {{ sds_ha_log_file }}
+
+# Process each server for Azure Stack HCI
+- name: Process Azure Stack HCI servers
+  include_tasks: azure_stack_hci_server_process.yml
+  vars:
+    azure_server_data: "{{ item }}"
+    azure_server_index: "{{ idx }}"
+    azure_total_servers: "{{ azure_ha_servers | length }}"
+    azure_iso_url: "{{ azure_hci_config.iso_url }}"
+  loop: "{{ azure_ha_servers }}"
+  loop_control:
+    index_var: idx
+    label: "Azure HCI Server {{ idx + 1 }}/{{ azure_ha_servers | length }}: {{ item[5] | default('N/A') }}"
+  when: azure_ha_servers | length > 0
+
+- name: Log Azure Stack HCI completion
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] Azure Stack HCI setup completed for all servers" >> {{ sds_ha_log_file }}
+
+- name: Display Azure Stack HCI completion
+  debug:
+    msg: |
+      ================================================================
+      AZURE STACK HCI SETUP COMPLETE
+      ================================================================
+      Processed Servers: {{ azure_ha_servers | length }}
+      Solution Type: Azure Stack HCI
+      ================================================================

@@ -1,0 +1,115 @@
+---
+# Task file for processing individual Azure Stack HCI servers
+# Variables expected:
+#   - azure_server_data: List containing server details
+#   - azure_server_index: Index of current server
+#   - azure_total_servers: Total number of servers
+#   - azure_iso_url: Azure Stack HCI ISO URL
+
+- name: Set Azure HCI server details
+  set_fact:
+    azure_server_type: "{{ azure_server_data[0] | default('Unknown') }}"
+    azure_server_host: "{{ azure_server_data[1] | default('') }}"
+    azure_server_model: "{{ azure_server_data[2] | default('') }}"
+    azure_server_sku: "{{ azure_server_data[3] | default('') }}"
+    azure_server_serial: "{{ azure_server_data[4] | default('') }}"
+    azure_server_ip: "{{ azure_server_data[5] | default('') }}"
+    azure_server_user: "{{ azure_server_data[6] | default('admin') }}"
+    azure_server_password: "{{ azure_server_data[7] | default('') | trim }}"
+
+- name: Display Azure HCI server processing info
+  debug:
+    msg: |
+      ================================================================
+      Processing Azure Stack HCI Server {{ azure_server_index + 1 }} of {{ azure_total_servers }}
+      ================================================================
+      Model: {{ azure_server_model }}
+      IP: {{ azure_server_ip }}
+      Serial: {{ azure_server_serial }}
+      ================================================================
+
+- name: Log server processing start
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] Processing server {{ azure_server_index + 1 }}/{{ azure_total_servers }}: {{ azure_server_ip }}" >> {{ sds_ha_log_file }}
+
+# Detect server generation
+- name: Detect Azure HCI server generation
+  set_fact:
+    azure_is_g6: "{{ 'G6' in azure_server_model }}"
+    azure_is_g3: "{{ 'G3' in azure_server_model }}"
+
+- name: Set Azure HCI server generation
+  set_fact:
+    azure_server_gen: "{{ 'G6' if azure_is_g6 else ('G3' if azure_is_g3 else 'Unknown') }}"
+
+# Determine BIOS template for Azure Stack HCI
+- name: Set Azure HCI BIOS template path
+  set_fact:
+    azure_bios_template: "{{ default_templates_dir }}/HA{{ azure_server_gen }}/HA_{{ azure_server_gen }}_ASHCI.bios.json"
+  when: azure_server_gen != 'Unknown'
+
+- name: Display Azure HCI BIOS template
+  debug:
+    msg: "Using BIOS template: {{ azure_bios_template | default('N/A') }}"
+  when: azure_server_gen != 'Unknown'
+
+# Step 1: Apply Azure Stack HCI BIOS template
+- name: Apply Azure Stack HCI BIOS template
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] Applying BIOS template to {{ azure_server_ip }}" >> {{ ha_module_log_file }}
+    {{ ilorest_path }} --nologo login {{ azure_server_ip }} -u {{ azure_server_user }} -p {{ azure_server_password }}
+    {{ ilorest_path }} --nologo load --filename {{ azure_bios_template | default('') }}
+    {{ ilorest_path }} --nologo logout
+  register: azure_bios_result
+  ignore_errors: yes
+  when: 
+    - azure_server_gen != 'Unknown'
+    - azure_bios_template is defined
+
+- name: Log BIOS template result
+  shell: |
+    if [ "{{ azure_bios_result.rc | default(1) }}" = "0" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] BIOS template applied successfully to {{ azure_server_ip }}" >> {{ sds_ha_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARN] [AzureStackHCI] BIOS template application may have issues for {{ azure_server_ip }}" >> {{ sds_ha_log_file }}
+    fi
+  ignore_errors: yes
+
+# Step 2: Mount Azure Stack HCI ISO
+- name: Mount Azure Stack HCI ISO
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] Mounting Azure HCI ISO on {{ azure_server_ip }}" >> {{ ha_module_log_file }}
+    {{ ilorest_path }} --nologo login {{ azure_server_ip }} -u {{ azure_server_user }} -p {{ azure_server_password }}
+    {{ ilorest_path }} --nologo virtualmedia 2 --url {{ azure_iso_url }}
+    {{ ilorest_path }} --nologo virtualmedia 2 --bootnext
+    {{ ilorest_path }} --nologo logout
+  register: azure_mount_result
+  ignore_errors: yes
+
+- name: Log ISO mount result
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] ISO mount command completed for {{ azure_server_ip }}" >> {{ sds_ha_log_file }}
+  ignore_errors: yes
+
+# Step 3: Reboot server to boot from ISO
+- name: Reboot Azure HCI server
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] Rebooting {{ azure_server_ip }} to boot from Azure HCI ISO" >> {{ ha_module_log_file }}
+    {{ ilorest_path }} --nologo login {{ azure_server_ip }} -u {{ azure_server_user }} -p {{ azure_server_password }}
+    {{ ilorest_path }} --nologo reboot --ResetType ForceRestart
+    {{ ilorest_path }} --nologo logout
+  register: azure_reboot_result
+  ignore_errors: yes
+
+- name: Log reboot result
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [AzureStackHCI] Reboot command sent to {{ azure_server_ip }}" >> {{ sds_ha_log_file }}
+  ignore_errors: yes
+
+- name: Display Azure HCI server completion
+  debug:
+    msg: |
+      Azure Stack HCI setup for {{ azure_server_ip }} completed:
+      - BIOS Template: {{ 'Applied' if (azure_bios_result.rc | default(1)) == 0 else 'Skipped/Failed' }}
+      - ISO Mount: {{ 'Success' if (azure_mount_result.rc | default(1)) == 0 else 'Skipped/Failed' }}
+      - Reboot: {{ 'Initiated' if (azure_reboot_result.rc | default(1)) == 0 else 'Skipped/Failed' }}

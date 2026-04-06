@@ -1,0 +1,358 @@
+---
+# SDS BareMetal Configuration Automation Playbook
+# This playbook generates INI files and AHK scripts for SDS BareMetal setup
+# The generated files are copied to a shared folder accessible from Windows
+# A batch script is created to run all AHK automations in sequence
+#
+# Usage:
+#   ansible-playbook SDS_BareMetal.yml
+#   ansible-playbook SDS_BareMetal.yml -e "servers_csv_file=/path/to/custom.csv"
+
+- name: SDS BareMetal Configuration - Generate AHK Automation Files
+  hosts: localhost
+  gather_facts: true
+  
+  vars_files:
+    - vars/sds_baremetal_vars.yml
+  
+  vars:
+    ansible_python_interpreter: "{{ ansible_playbook_python }}"
+  
+  tasks:
+    # =========================================
+    # STEP 0: Mount Shared Folder
+    # =========================================
+    - name: Check if AnsibleMediakit is already mounted
+      shell: mount | grep "/mnt/AnsibleMediakit" || echo "not_mounted"
+      register: mount_check
+      changed_when: false
+
+    - name: Display mount status
+      debug:
+        msg: "AnsibleMediakit mount status: {{ 'MOUNTED' if mount_check.stdout != 'not_mounted' else 'NOT MOUNTED' }}"
+
+    - name: Force unmount AnsibleMediakit if already mounted
+      become: yes
+      block:
+        - name: Kill processes using AnsibleMediakit
+          shell: |
+            lsof +D /mnt/AnsibleMediakit 2>/dev/null | awk 'NR>1 {print $2}' | xargs -r kill -9 || true
+          ignore_errors: yes
+        
+        - name: Force unmount
+          shell: |
+            umount -f /mnt/AnsibleMediakit || umount -l /mnt/AnsibleMediakit || true
+          ignore_errors: yes
+      when: mount_check.stdout != "not_mounted"
+
+    - name: Ensure mount point directory exists
+      become: yes
+      file:
+        path: /mnt/AnsibleMediakit
+        state: directory
+        mode: '0755'
+
+    - name: Mount AnsibleMediakit VirtualBox shared folder
+      become: yes
+      shell: |
+        mount -t vboxsf -o uid={{ ansible_user_uid }},gid={{ ansible_user_gid }} AnsibleMediakit /mnt/AnsibleMediakit
+      register: mount_result
+
+    - name: Verify mount was successful
+      shell: mount | grep "/mnt/AnsibleMediakit"
+      register: mount_verify
+      changed_when: false
+
+    - name: Display mount result
+      debug:
+        msg: "AnsibleMediakit mounted successfully: {{ mount_verify.stdout }}"
+
+    # =========================================
+    # STEP 1: Validate Prerequisites
+    # =========================================
+    - name: Display playbook information
+      debug:
+        msg: |
+          ============================================
+          SDS BareMetal Configuration Automation
+          ============================================
+          This playbook will:
+          1. Read server details from CSV file
+          2. Generate INI configuration files
+          3. Generate AutoHotKey scripts for password setup
+          4. Generate AutoHotKey scripts for settings configuration
+          5. Generate a batch file to run all automation in sequence
+          6. Save files to: {{ ahk_output_dir }}
+          
+          After completion, copy files to Windows and run 'run_all_ahk.bat'.
+          ============================================
+
+    - name: Check if CSV file exists
+      stat:
+        path: "{{ servers_csv_file }}"
+      register: csv_file_check
+
+    - name: Fail if CSV file not found
+      fail:
+        msg: |
+          ERROR: Server CSV file not found at {{ servers_csv_file }}
+          
+          Please create the CSV file with the following format:
+          host,user,pw,setup_pw,hostname,ipv4address,subnetmask,mtu,route_count,route_destination,route_gateway
+          
+          Example:
+          192.168.1.100,admin,password123,newpass123,sds-node1,10.0.0.1,255.255.255.0,9000,1,0.0.0.0,10.0.0.254
+      when: not csv_file_check.stat.exists
+
+    # =========================================
+    # STEP 2: Read Server Data from CSV
+    # =========================================
+    - name: Read server details from CSV file
+      read_csv:
+        path: "{{ servers_csv_file }}"
+        delimiter: ','
+      register: servers_csv_data
+
+    - name: Validate CSV has data
+      fail:
+        msg: "ERROR: CSV file is empty or has no valid data rows"
+      when: servers_csv_data.list | length == 0
+
+    - name: Display servers to be configured
+      debug:
+        msg: |
+          Found {{ servers_csv_data.list | length }} server(s) to configure:
+          {% for server in servers_csv_data.list %}
+          - {{ server.hostname }} (iLO: {{ server.host }}, IP: {{ server.ipv4address }})
+          {% endfor %}
+
+    - name: Set servers list for templates
+      set_fact:
+        servers: "{{ servers_csv_data.list }}"
+
+    # =========================================
+    # STEP 3: Create Output Directory
+    # =========================================
+    - name: Create output directory in shared folder
+      file:
+        path: "{{ ahk_output_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Clean existing files in output directory
+      file:
+        path: "{{ ahk_output_dir }}"
+        state: absent
+      
+    - name: Recreate output directory
+      file:
+        path: "{{ ahk_output_dir }}"
+        state: directory
+        mode: '0755'
+
+    # =========================================
+    # STEP 4: Generate INI Files for Each Server
+    # =========================================
+    - name: Generate INI configuration files for each server
+      template:
+        src: templates/server.ini.j2
+        dest: "{{ ahk_output_dir }}/SN{{ idx + 1 }}.ini"
+        mode: '0644'
+      loop: "{{ servers }}"
+      loop_control:
+        index_var: idx
+        label: "{{ item.hostname }}"
+      vars:
+        server: "{{ item }}"
+
+    # =========================================
+    # STEP 5: Generate AHK Password Setup Scripts
+    # =========================================
+    - name: Generate setup_password AHK scripts for each server
+      template:
+        src: templates/setup_password.ahk.j2
+        dest: "{{ ahk_output_dir }}/setup_password_{{ idx + 1 }}.ahk"
+        mode: '0644'
+      loop: "{{ servers }}"
+      loop_control:
+        index_var: idx
+        label: "{{ item.hostname }}"
+      vars:
+        ini_file: "{{ windows_script_dir }}\\SN{{ idx + 1 }}.ini"
+        server_index: "{{ idx + 1 }}"
+
+    # =========================================
+    # STEP 6: Generate AHK Set Settings Scripts
+    # =========================================
+    - name: Generate set_setting AHK scripts for each server
+      template:
+        src: templates/set_setting.ahk.j2
+        dest: "{{ ahk_output_dir }}/set_setting_{{ idx + 1 }}.ahk"
+        mode: '0644'
+      loop: "{{ servers }}"
+      loop_control:
+        index_var: idx
+        label: "{{ item.hostname }}"
+      vars:
+        ini_file: "{{ windows_script_dir }}\\SN{{ idx + 1 }}.ini"
+        server_index: "{{ idx + 1 }}"
+
+    # =========================================
+    # STEP 7: Generate Master Batch Script
+    # =========================================
+    - name: Generate master batch script to run all AHK automations
+      template:
+        src: templates/run_all_ahk.bat.j2
+        dest: "{{ ahk_output_dir }}/run_all_ahk.bat"
+        mode: '0755'
+
+    # =========================================
+    # STEP 8: Copy AutoHotKey Executable
+    # =========================================
+    - name: Check if AutoHotKey exe exists in old code location
+      stat:
+        path: "{{ playbook_dir }}/old_Toolkit_code/AutoHotkey/AutoHotkeyU64.exe"
+      register: ahk_exe_check
+
+    - name: Copy AutoHotKey executable to output directory
+      copy:
+        src: "{{ playbook_dir }}/old_Toolkit_code/AutoHotkey/AutoHotkeyU64.exe"
+        dest: "{{ ahk_output_dir }}/AutoHotkeyU64.exe"
+        mode: '0755'
+      when: ahk_exe_check.stat.exists
+
+    # =========================================
+    # STEP 9: Generate Summary
+    # =========================================
+    - name: List generated files
+      find:
+        paths: "{{ ahk_output_dir }}"
+        patterns: "*"
+      register: generated_files
+
+    - name: Display completion summary
+      debug:
+        msg: |
+          ============================================
+          SDS BareMetal Configuration - COMPLETE
+          ============================================
+          
+          Generated {{ generated_files.files | length }} files in: {{ ahk_output_dir }}
+          
+          Files created:
+          {% for file in generated_files.files | map(attribute='path') | map('basename') | sort %}
+          - {{ file }}
+          {% endfor %}
+          
+          ============================================
+          NEXT STEPS (On Windows Host):
+          ============================================
+          1. Navigate to the shared folder ({{ windows_script_dir }})
+          2. Verify AutoHotkeyU64.exe is present (or copy it there)
+          3. Double-click 'run_all_ahk.bat' to start automation
+          4. DO NOT move the mouse or press any keys during execution!
+          
+          Manual execution (if needed):
+          - AutoHotkeyU64.exe setup_password_1.ahk
+          - AutoHotkeyU64.exe set_setting_1.ahk
+          ============================================
+
+    - name: Create README file in output directory
+      copy:
+        content: |
+          SDS BareMetal Configuration Automation
+          ======================================
+          Generated by Ansible on {{ ansible_date_time.iso8601 }}
+          
+          Files in this directory:
+          - SN*.ini           : Configuration files for each server
+          - setup_password_*.ahk : AutoHotKey scripts for password setup
+          - set_setting_*.ahk    : AutoHotKey scripts for settings configuration
+          - run_all_ahk.bat      : Master batch script to run all automations
+          - AutoHotkeyU64.exe    : AutoHotKey runtime (if copied)
+          
+          How to use:
+          1. Ensure AutoHotkeyU64.exe is in this directory (or update path in batch file)
+          2. Double-click 'run_all_ahk.bat'
+          3. Press any key to start when prompted
+          4. DO NOT move the mouse or press any keys during execution!
+          
+          Servers configured:
+          {% for server in servers %}
+          {{ loop.index }}. {{ server.hostname }} (iLO: {{ server.host }})
+          {% endfor %}
+          
+          Timing Configuration:
+          - Wait between nodes: {{ wait_between_nodes }} seconds
+          - Wait after password: {{ wait_after_password }} seconds
+          - Wait after settings: {{ wait_after_settings }} seconds
+        dest: "{{ ahk_output_dir }}/README.txt"
+        mode: '0644'
+
+    # =========================================
+    # STEP 10: Copy Files to Shared Folder
+    # =========================================
+    - name: Check if shared folder exists
+      stat:
+        path: "{{ shared_folder_path }}"
+      register: shared_folder_check
+      when: copy_to_shared_folder | bool
+
+    - name: Check if shared folder is writable
+      shell: touch "{{ shared_folder_path }}/.ansible_write_test" && rm -f "{{ shared_folder_path }}/.ansible_write_test"
+      register: shared_folder_writable
+      ignore_errors: true
+      changed_when: false
+      when: copy_to_shared_folder | bool and shared_folder_check.stat.exists
+
+    - name: Create output directory in shared folder
+      file:
+        path: "{{ shared_folder_output }}"
+        state: directory
+        mode: '0755'
+      when: copy_to_shared_folder | bool and shared_folder_check.stat.exists and shared_folder_writable.rc == 0
+
+    - name: Copy all generated files to shared folder
+      copy:
+        src: "{{ ahk_output_dir }}/"
+        dest: "{{ shared_folder_output }}/"
+        mode: '0755'
+      when: copy_to_shared_folder | bool and shared_folder_check.stat.exists and shared_folder_writable.rc == 0
+
+    - name: Display shared folder copy status
+      debug:
+        msg: |
+          ============================================
+          FILES COPIED TO SHARED FOLDER
+          ============================================
+          Location: {{ shared_folder_output }}
+          
+          The files are now accessible from Windows at:
+          {{ windows_script_dir }}
+          
+          You can run 'run_all_ahk.bat' directly from there!
+          ============================================
+      when: copy_to_shared_folder | bool and shared_folder_check.stat.exists and shared_folder_writable.rc == 0
+
+    - name: Warn if shared folder not found
+      debug:
+        msg: |
+          WARNING: Shared folder not found at {{ shared_folder_path }}
+          Files were generated but NOT copied to shared folder.
+          Please manually copy files from: {{ ahk_output_dir }}
+      when: copy_to_shared_folder | bool and not shared_folder_check.stat.exists
+
+    - name: Warn if shared folder is read-only
+      debug:
+        msg: |
+          WARNING: Shared folder {{ shared_folder_path }} is READ-ONLY!
+          Files were generated but could NOT be copied to shared folder.
+          
+          Please manually copy files from:
+            {{ ahk_output_dir }}
+          
+          To the Windows shared folder:
+            {{ windows_script_dir }}
+          
+          Or remount the shared folder with write permissions.
+      when: copy_to_shared_folder | bool and shared_folder_check.stat.exists and shared_folder_writable.rc != 0

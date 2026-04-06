@@ -1,0 +1,72 @@
+---
+# Task file for UCP Firmware operations
+- name: Set standard servers CSV file path
+  set_fact:
+    servers_csv_path: "{{ playbook_dir }}/../config/smci-server.csv"
+
+- name: Log CSV file path
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [FirmwareUpdate] Using servers CSV file: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
+
+- name: Verify servers CSV file exists
+  stat:
+    path: "{{ servers_csv_path }}"
+  register: csv_file_check
+  failed_when: not csv_file_check.stat.exists
+
+- name: Log CSV file validation
+  shell: |
+    if [ "{{ csv_file_check.stat.exists }}" = "True" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [FirmwareUpdate] CSV file validation successful" >> {{ ha_module_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [FirmwareUpdate] CSV file not found: {{ servers_csv_path }}" >> {{ ha_module_log_file }}
+    fi
+
+- name: Get firmware URL
+  pause:
+    prompt: |
+      Please navigate to http://[IPv6]:8081 of this jumphost in a browser 
+      and provide the URL for the firmware binary file
+  register: firmware_url_input
+
+- name: Validate firmware URL
+  fail:
+    msg: "Firmware URL is required"
+  when: firmware_url_input.user_input == ''
+
+- name: Update firmware on all servers
+  ucp_firmware_update:
+    servers_csv: "{{ servers_csv_path }}"
+    firmware_url: "{{ firmware_url_input.user_input }}"
+    ilorest_path: "{{ ilorest_path | default('ilorest') }}"
+    manage_nginx: true
+  register: firmware_result
+
+- name: Display firmware update results
+  debug:
+    msg: |
+      Firmware Update Results:
+      - Successfully updated: {{ firmware_result.updated_servers | length }} servers
+      - Failed: {{ firmware_result.failed_servers | length }} servers
+      
+      Firmware URL: {{ firmware_url_input.user_input }}
+      
+      Successful servers: {{ firmware_result.updated_servers | join(', ') }}
+      {% if firmware_result.failed_servers %}
+      Failed servers:
+      {% for failed in firmware_result.failed_servers %}
+      - {{ failed.ipaddress }}: {{ failed.error }}
+      {% endfor %}
+      {% endif %}
+
+- name: Wait for firmware update completion
+  pause:
+    prompt: |
+      Firmware update initiated. This may take several minutes to complete.
+      Please wait for all servers to finish updating before proceeding.
+      Press Enter to continue...
+
+- name: Log firmware update operation
+  lineinfile:
+    path: "{{ log_file }}"
+    line: "{{ ansible_date_time.iso8601 }} - INFO - Firmware Update completed: {{ firmware_result.updated_servers | length }} successful, {{ firmware_result.failed_servers | length }} failed"

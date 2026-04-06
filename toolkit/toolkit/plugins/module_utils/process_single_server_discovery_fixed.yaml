@@ -1,0 +1,98 @@
+---
+# Process single server for network discovery - FIXED VERSION
+
+- name: "Log start of enhanced server discovery for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting discovery for server {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IPv6: {{ server_data.ipv6 }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Starting discovery for server {{ server_data.hostname }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IPv6: {{ server_data.ipv6 }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IPv6 username: {{ server_data.username }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IPv6 password: {{ server_data.password }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Server IPv4: {{ server_data.ipv4 }}" >> {{ configchecker_log_file }}
+    
+
+- name: "Test basic connectivity to {{ server_data.hostname }}"
+  uri:
+    url: "https://{{ server_data.ipv4 }}/redfish/v1"
+    method: GET
+    url_username: "{{ server_data.username }}"
+    url_password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: false
+    timeout: 30
+    headers:
+      Content-Type: application/json
+    status_code: [200, 401, 404, 500, 503]
+    return_content: yes
+  register: connectivity_test
+  ignore_errors: true
+
+- name: Debug the response
+  ansible.builtin.debug:
+    var: connectivity_test
+
+- name: "Log connectivity test result for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Connectivity test for {{ server_data.hostname }}: {{ 'SUCCESS' if connectivity_test.status == 200 else 'FAILED' }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Connectivity status code: {{ connectivity_test.status | default('N/A') }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+
+- name: "Get network adapters collection for {{ server_data.hostname }}"
+  vars:
+    server_data_ipv6: "{{ server_data.ipv6[:-7] }}"
+  ansible.builtin.uri:
+    url: "https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters"
+    method: GET
+    user: "{{ server_data.username }}"
+    password: "{{ server_data.password }}"
+    force_basic_auth: yes
+    validate_certs: no
+    timeout: 30
+    headers:
+      Accept: "application/json"
+    status_code: [200, 401, 404, 500, 503]
+  register: adapters_result
+  ignore_errors: true
+
+# - name: Debug the response of network adapter
+#   ansible.builtin.debug:
+#     var: adapters_result
+
+- name: "Log network adapter discovery result for {{ server_data.hostname }}"
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Network adapter discovery for {{ server_data.hostname }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] API call result: {{ 'SUCCESS' if adapters_result.status == 200 else 'FAILED' }}" >> {{ configchecker_log_file }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Network adapter discovery for {{ server_data.hostname }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] API URL: https://{{ server_data.ipv4 }}/redfish/v1/Chassis/1/NetworkAdapters" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [DEBUG] [NetworkDiscovery] Status Code: {{ adapters_result.status | default('N/A') }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    {% if adapters_result.status == 200 %}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Adapters found: {{ adapters_result.json.Members | default([]) | length }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    {% else %}
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [ERROR] [NetworkDiscovery] Error: {{ adapters_result.msg | default(adapters_result.content | default('Unknown error')) }}" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    {% endif %}
+
+# SUCCESS CASE - Process discovered adapters
+- name: "Process network adapters when successful"
+  when: adapters_result.status == 200 and adapters_result.json.Members is defined
+  block:
+    - name: "Log successful discovery for {{ server_data.hostname }}"
+      shell: |
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Successfully discovered {{ adapters_result.json.Members | length }} network adapters" >> {{ configchecker_log_file }}
+        echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [NetworkDiscovery] Adding basic adapter info to table and CSV" >> {{ current_discovery_module_log_file | default(discovery_module_log_file) }}
+    
+    # Dynamic processing of all available network adapters
+    - name: "Process each network adapter dynamically"
+      include_tasks: process_single_adapter_sms.yaml
+      loop: "{{ adapters_result.json.Members }}"
+      loop_control:
+        index_var: adapter_index
+        loop_var: adapter_info
+      vars:
+        adapter_id: "{{ adapter_info['@odata.id'].split('/')[-1] }}"
+        adapter_name: "{{ adapter_info.Name | default('Adapter ' + (adapter_index + 1) | string) }}"
+        adapter_number: "{{ adapter_index + 1 }}"
+
+
+
+
+    

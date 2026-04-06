@@ -6,11 +6,13 @@
   ],
   "_scratch_space" : [
     "This section is reserved for temporary notes or scratch space.",
-    "You can use it to jot down ideas or reminders while configuring the toolkit."
+    "You can use it to jot down ideas or reminders while configuring the toolkit.",
+    "fe80::b56c:71f0:fb08:edfc", "55.93",
+    "fe80::85c1:5730:9ba3:d2c","55.80"
   ],
-  "use_target_nodes": true,
+  "use_target_nodes": false,
   "nodes": [
-    "fe80::7ea6:2aff:fe6e:c730%enp0s8"
+    "fe80::85c1:5730:9ba3:d2c%enp0s8"
   ],
   "network_interface": "auto",
   "_network_interface_comment": [
@@ -30,8 +32,8 @@
     "Priority order for interface auto-detection.",
     "First available interface from this list will be used when network_interface is set to 'auto'"
   ],
-  "firmware_skip_bmc": "true",
-  "firmware_skip_bios": "true",
-  "firmware_skip_pcie_devices": "false",
-  "minios_file_name": "minios20.04_Sep02_2024.iso"
+  "firmware_skip_bmc": false,
+  "firmware_skip_bios": false,
+  "firmware_skip_pcie_devices": false,
+  "minios_file_name": "minios-smci_15Feb.iso"
 }

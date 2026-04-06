@@ -1,0 +1,147 @@
+---
+# Task file for processing individual VSSB servers
+# Variables expected:
+#   - vssb_server_data: List containing server details
+#   - vssb_server_index: Index of current server
+#   - vssb_total_servers: Total number of servers
+#   - vssb_iso_url: SUSE Linux ISO URL
+#   - vssb_kickstart_url: Optional kickstart/autoyast URL
+
+- name: Set VSSB server details
+  set_fact:
+    vssb_server_type: "{{ vssb_server_data[0] | default('Unknown') }}"
+    vssb_server_host: "{{ vssb_server_data[1] | default('') }}"
+    vssb_server_model: "{{ vssb_server_data[2] | default('') }}"
+    vssb_server_sku: "{{ vssb_server_data[3] | default('') }}"
+    vssb_server_serial: "{{ vssb_server_data[4] | default('') }}"
+    vssb_server_ip: "{{ vssb_server_data[5] | default('') }}"
+    vssb_server_user: "{{ vssb_server_data[6] | default('admin') }}"
+    vssb_server_password: "{{ vssb_server_data[7] | default('') | trim }}"
+
+- name: Display VSSB server processing info
+  debug:
+    msg: |
+      ================================================================
+      Processing VSSB Server {{ vssb_server_index + 1 }} of {{ vssb_total_servers }}
+      ================================================================
+      Model: {{ vssb_server_model }}
+      IP: {{ vssb_server_ip }}
+      Serial: {{ vssb_server_serial }}
+      ================================================================
+
+- name: Log VSSB server processing start
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] Processing server {{ vssb_server_index + 1 }}/{{ vssb_total_servers }}: {{ vssb_server_ip }}" >> {{ sds_ha_log_file }}
+
+# Detect server generation
+- name: Detect VSSB server generation
+  set_fact:
+    vssb_is_g6: "{{ 'G6' in vssb_server_model }}"
+    vssb_is_g3: "{{ 'G3' in vssb_server_model }}"
+
+- name: Set VSSB server generation
+  set_fact:
+    vssb_server_gen: "{{ 'G6' if vssb_is_g6 else ('G3' if vssb_is_g3 else 'Unknown') }}"
+
+- name: Log VSSB server generation
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] Server {{ vssb_server_ip }} generation: {{ vssb_server_gen }}" >> {{ sds_ha_log_file }}
+
+# Determine BIOS template for VSSB
+- name: Set VSSB BIOS template path
+  set_fact:
+    vssb_bios_template: "{{ default_templates_dir }}/HA{{ vssb_server_gen }}/HA_{{ vssb_server_gen }}_VSSB.bios.json"
+  when: vssb_server_gen != 'Unknown'
+
+- name: Check if VSSB-specific template exists
+  stat:
+    path: "{{ vssb_bios_template | default('') }}"
+  register: vssb_template_check
+  when: vssb_bios_template is defined
+
+- name: Fall back to default BIOS template if VSSB template not found
+  set_fact:
+    vssb_bios_template: "{{ default_templates_dir }}/HA{{ vssb_server_gen }}/HA_{{ vssb_server_gen }}_default.bios.json"
+  when: 
+    - vssb_server_gen != 'Unknown'
+    - vssb_template_check is defined 
+    - not (vssb_template_check.stat.exists | default(false))
+
+- name: Display VSSB BIOS template
+  debug:
+    msg: "Using BIOS template: {{ vssb_bios_template | default('N/A') }}"
+  when: vssb_server_gen != 'Unknown'
+
+# Step 1: Apply VSSB BIOS template
+- name: Apply VSSB BIOS template
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] Applying BIOS template to {{ vssb_server_ip }}" >> {{ ha_module_log_file }}
+    {{ ilorest_path }} --nologo login {{ vssb_server_ip }} -u {{ vssb_server_user }} -p {{ vssb_server_password }}
+    {{ ilorest_path }} --nologo load --filename {{ vssb_bios_template | default('') }}
+    {{ ilorest_path }} --nologo logout
+  register: vssb_bios_result
+  ignore_errors: yes
+  when: 
+    - vssb_server_gen != 'Unknown'
+    - vssb_bios_template is defined
+
+- name: Log VSSB BIOS template result
+  shell: |
+    if [ "{{ vssb_bios_result.rc | default(1) }}" = "0" ]; then
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] BIOS template applied successfully to {{ vssb_server_ip }}" >> {{ sds_ha_log_file }}
+    else
+      echo "[$(date '+%Y-%m-%d %H:%M:%S')] [WARN] [VSSB] BIOS template application may have issues for {{ vssb_server_ip }}" >> {{ sds_ha_log_file }}
+    fi
+  ignore_errors: yes
+
+# Step 2: Mount SUSE Linux ISO for VSSB
+- name: Mount SUSE Linux ISO for VSSB
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] Mounting SUSE Linux ISO on {{ vssb_server_ip }}" >> {{ ha_module_log_file }}
+    {{ ilorest_path }} --nologo login {{ vssb_server_ip }} -u {{ vssb_server_user }} -p {{ vssb_server_password }}
+    {{ ilorest_path }} --nologo virtualmedia 2 --url {{ vssb_iso_url }}
+    {{ ilorest_path }} --nologo virtualmedia 2 --bootnext
+    {{ ilorest_path }} --nologo logout
+  register: vssb_mount_result
+  ignore_errors: yes
+
+- name: Log VSSB ISO mount result
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] ISO mount command completed for {{ vssb_server_ip }}" >> {{ sds_ha_log_file }}
+  ignore_errors: yes
+
+# Step 3: Set boot order to network boot if kickstart is specified
+- name: Configure network boot for kickstart (if URL provided)
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] Configuring network boot for kickstart on {{ vssb_server_ip }}" >> {{ ha_module_log_file }}
+    {{ ilorest_path }} --nologo login {{ vssb_server_ip }} -u {{ vssb_server_user }} -p {{ vssb_server_password }}
+    {{ ilorest_path }} --nologo set Boot/BootSourceOverrideTarget=UefiTarget
+    {{ ilorest_path }} --nologo logout
+  register: vssb_boot_order_result
+  ignore_errors: yes
+  when: vssb_kickstart_url is defined and vssb_kickstart_url | length > 0
+
+# Step 4: Reboot server to boot from ISO
+- name: Reboot VSSB server
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] Rebooting {{ vssb_server_ip }} to boot from SUSE ISO" >> {{ ha_module_log_file }}
+    {{ ilorest_path }} --nologo login {{ vssb_server_ip }} -u {{ vssb_server_user }} -p {{ vssb_server_password }}
+    {{ ilorest_path }} --nologo reboot --ResetType ForceRestart
+    {{ ilorest_path }} --nologo logout
+  register: vssb_reboot_result
+  ignore_errors: yes
+
+- name: Log VSSB reboot result
+  shell: |
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] [INFO] [VSSB] Reboot command sent to {{ vssb_server_ip }}" >> {{ sds_ha_log_file }}
+  ignore_errors: yes
+
+- name: Display VSSB server completion
+  debug:
+    msg: |
+      VSSB server setup for {{ vssb_server_ip }} completed:
+      - Server Generation: {{ vssb_server_gen }}
+      - BIOS Template: {{ 'Applied' if (vssb_bios_result.rc | default(1)) == 0 else 'Skipped/Failed' }}
+      - ISO Mount: {{ 'Success' if (vssb_mount_result.rc | default(1)) == 0 else 'Skipped/Failed' }}
+      - Kickstart Config: {{ 'Configured' if vssb_kickstart_url | default('') | length > 0 else 'Not specified' }}
+      - Reboot: {{ 'Initiated' if (vssb_reboot_result.rc | default(1)) == 0 else 'Skipped/Failed' }}
